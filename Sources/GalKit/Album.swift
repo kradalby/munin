@@ -16,7 +16,7 @@ struct Album: Hashable, Comparable {
     var albums: Set<Album>
     var keywords: Set<String>
     var people: Set<String>
-
+    
     
     init(name: String, path: String) {
         self.name = name
@@ -37,7 +37,7 @@ struct Album: Hashable, Comparable {
         case keywords
         case people
     }
-
+    
 }
 
 extension Album: Encodable {
@@ -49,7 +49,7 @@ extension Album: Encodable {
         try container.encode(path, forKey: .path)
         try container.encode(keywords, forKey: .keywords)
         try container.encode(people, forKey: .people)
-
+        
         var photosContainer = container.nestedUnkeyedContainer(
             forKey: .photos)
         
@@ -64,20 +64,20 @@ extension Album: Encodable {
             try albumsContainer.encode($0.url)
         }
         
-//        var keywordsContainer = container.nestedUnkeyedContainer(
-//            forKey: .keywords)
+        //        var keywordsContainer = container.nestedUnkeyedContainer(
+        //            forKey: .keywords)
         
-//        try keywords.forEach {
-//            try keywordsContainer.encode($0.url)
-//        }
-//
-//        var peopleContainer = container.nestedUnkeyedContainer(
-//            forKey: .people)
-//
-//        try people.forEach {
-//            try peopleContainer.encode($0.url)
-//        }
-
+        //        try keywords.forEach {
+        //            try keywordsContainer.encode($0.url)
+        //        }
+        //
+        //        var peopleContainer = container.nestedUnkeyedContainer(
+        //            forKey: .people)
+        //
+        //        try people.forEach {
+        //            try peopleContainer.encode($0.url)
+        //        }
+        
     }
 }
 
@@ -91,7 +91,7 @@ extension Album: Decodable {
         self.path = try values.decode(String.self, forKey: .path)
         self.keywords = try values.decode(Set<String>.self, forKey: .keywords)
         self.people = try values.decode(Set<String>.self, forKey: .people)
-
+        
         
         //        self.photos = try values.decode([Photo].self, forKey: .photos)
         //        self.albums = try values.decode([Album].self, forKey: .albums)
@@ -116,25 +116,25 @@ extension Album: Decodable {
         }
         self.albums = albums
         
-//        var keywordsArray = try values.nestedUnkeyedContainer(forKey: .keywords)
-//        var keywords: Set<Keyword> = Set<Keyword>()
-//        while (!keywordsArray.isAtEnd) {
-//            let url = try keywordsArray.decode(String.self)
-//            if let keyword = readAndDecodeJsonFile(Keyword.self, atPath: url) {
-//                keywords.insert(keyword)
-//            }
-//        }
-//        self.keywords = keywords
-//
-//        var peopleArray = try values.nestedUnkeyedContainer(forKey: .people)
-//        var people: Set<Keyword> = Set<Keyword>()
-//        while (!peopleArray.isAtEnd) {
-//            let url = try peopleArray.decode(String.self)
-//            if let person = readAndDecodeJsonFile(Keyword.self, atPath: url) {
-//                people.insert(person)
-//            }
-//        }
-//        self.people = people
+        //        var keywordsArray = try values.nestedUnkeyedContainer(forKey: .keywords)
+        //        var keywords: Set<Keyword> = Set<Keyword>()
+        //        while (!keywordsArray.isAtEnd) {
+        //            let url = try keywordsArray.decode(String.self)
+        //            if let keyword = readAndDecodeJsonFile(Keyword.self, atPath: url) {
+        //                keywords.insert(keyword)
+        //            }
+        //        }
+        //        self.keywords = keywords
+        //
+        //        var peopleArray = try values.nestedUnkeyedContainer(forKey: .people)
+        //        var people: Set<Keyword> = Set<Keyword>()
+        //        while (!peopleArray.isAtEnd) {
+        //            let url = try peopleArray.decode(String.self)
+        //            if let person = readAndDecodeJsonFile(Keyword.self, atPath: url) {
+        //                people.insert(person)
+        //            }
+        //        }
+        //        self.people = people
     }
 }
 
@@ -191,19 +191,23 @@ extension Album {
     var hashValue: Int {
         return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
     }
+    
+//    static func diff(lhs: Album, rhs: Album) -> (Album, Album) {
+//
+//    }
 }
 
 extension Album {
     func numberOfPhotos(travers: Bool) -> Int {
         if travers {
-            return albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
+            return self.albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
         }
         return photos.count
     }
     
     func numberOfAlbums(travers: Bool) -> Int {
         if travers {
-            return albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
+            return self.albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
         }
         return albums.count
     }
@@ -219,7 +223,10 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
             let exists = fm.fileExists(atPath: joinPath(paths: atPath, element), isDirectory: &isDirectory)
             
             if exists && isDirectory.boolValue {
-                album.albums.insert(readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config))
+                let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config)
+                album.albums.insert(childAlbum)
+                album.keywords = album.keywords.union(childAlbum.keywords)
+                album.people = album.people.union(childAlbum.people)
             } else if exists {
                 if let fileNameWithoutExtension = fileNameWithoutExtension(atPath: joinPath(paths: atPath, element)),
                     let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {

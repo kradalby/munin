@@ -21,7 +21,7 @@ public struct Statistics {
         self.writtenPhotos = self.originalPhotos * gallery.config.resolutions.count
         
         self.keywords = gallery.input.keywords.count
-        self.people = gallery.input.keywords.count
+        self.people = gallery.input.people.count
     }
     
     public func toString() -> String {

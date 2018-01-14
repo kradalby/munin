@@ -49,13 +49,22 @@ public struct Gallery {
     
     public init(config: GalleryConfiguration) {
         self.config = config
+        
+        // read input directory
         self.input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
+
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
             self.output = album
         } else {
             log.info("Could not find any output album, assuming new is to be created")
         }
-        log.debug(self.input == self.output)
+        log.debug("Input album differs from output album: \(self.input != self.output)")
+        log.debug("Input: \n\(self.input)")
+        if let out = self.output {
+            log.debug("Output: \n\(out)")
+
+        }
+
     }
     
     public func write() {
