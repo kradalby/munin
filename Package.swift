@@ -13,19 +13,14 @@ let package = Package(
         .library(
             name: "GalKit",
             targets: ["GalKit"]),
-        .library(
-            name: "Logger",
-            targets: ["Logger"]),
-        .library(
-            name: "Config",
-            targets: ["Config"]),
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         //.package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "0.8.0"),
 //        .package(url: "https://github.com/oarrabi/Guaka.git", from: "0.1.3"),
-        .package(url: "https://github.com/onevcat/Rainbow", from: "3.0.0")
+        .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.1"),
+        .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.1"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -43,16 +38,6 @@ let package = Package(
             dependencies: [
                 "Logger",
                 "Config"
-                ]),
-        .target(
-            name: "Logger",
-            dependencies: [
-                "Rainbow"
-                ]),
-        .target(
-            name: "Config",
-            dependencies: [
-                "Logger"
                 ]),
     ]
 

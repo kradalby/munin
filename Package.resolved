@@ -2,21 +2,21 @@
   "object": {
     "pins": [
       {
-        "package": "CryptoSwift",
-        "repositoryURL": "https://github.com/krzyzanowskim/CryptoSwift.git",
+        "package": "Config.swift",
+        "repositoryURL": "https://github.com/kradalby/Config.swift.git",
         "state": {
           "branch": null,
-          "revision": "d0084e4a6fe9490b3baab3d3c2aad58d3a852daf",
-          "version": "0.8.0"
+          "revision": "cd94fe6252ede86dfd392d30d6796dffe768193c",
+          "version": "0.0.1"
         }
       },
       {
-        "package": "Guaka",
-        "repositoryURL": "https://github.com/oarrabi/Guaka.git",
+        "package": "Logger.swift",
+        "repositoryURL": "https://github.com/kradalby/Logger.swift.git",
         "state": {
           "branch": null,
-          "revision": "9dfb2ea95b8ab9e799d0f65a79a2316679a758e0",
-          "version": "0.1.3"
+          "revision": "a0f30c08743f269ecca5fc20372193f2e19a7a11",
+          "version": "0.0.1"
         }
       },
       {
@@ -26,15 +26,6 @@
           "branch": null,
           "revision": "f407235c7e473c3cb2d2907bb6822616d22a0b78",
           "version": "3.0.3"
-        }
-      },
-      {
-        "package": "StringScanner",
-        "repositoryURL": "https://github.com/oarrabi/StringScanner",
-        "state": {
-          "branch": null,
-          "revision": "246c697efe2f57d9042f58b1b53ace4fddb1efc4",
-          "version": "0.2.0"
         }
       }
     ]
