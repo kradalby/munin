@@ -139,7 +139,7 @@ extension Album: Decodable {
 }
 
 extension Album {
-    public func writeToOutputDirectory(config: GalleryConfiguration) -> Void {
+    public func write(config: GalleryConfiguration) -> Void {
         let fm = FileManager()
         do {
             try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
@@ -160,7 +160,7 @@ extension Album {
             }
             
             for album in self.albums {
-                album.writeToOutputDirectory(config: config)
+                album.write(config: config)
             }
             
             for photo in self.photos {
