@@ -9,18 +9,6 @@ import Foundation
 import Logger
 
 struct Album: Hashable, Comparable {
-    static func ==(lhs: Album, rhs: Album) -> Bool {
-        return lhs.name == rhs.name
-    }
-    
-    static func <(lhs: Album, rhs: Album) -> Bool {
-        return lhs.name < rhs.name
-    }
-    
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-    }
-    
     var name: String
     var url: String
     var path: String
@@ -49,20 +37,7 @@ struct Album: Hashable, Comparable {
         case keywords
         case people
     }
-    
-    func numberOfPhotos(travers: Bool) -> Int {
-        if travers {
-            return albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
-        }
-        return photos.count
-    }
-    
-    func numberOfAlbums(travers: Bool) -> Int {
-        if travers {
-            return albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
-        }
-        return albums.count
-    }
+
 }
 
 extension Album: Encodable {
@@ -197,6 +172,42 @@ extension Album {
     }
 }
 
+extension Album {
+    static func ==(lhs: Album, rhs: Album) -> Bool {
+        guard lhs.name == rhs.name else { return false }
+        guard lhs.url == rhs.url else { return false }
+        guard lhs.path == rhs.path else { return false }
+        guard lhs.photos == rhs.photos else { return false }
+        guard lhs.albums == rhs.albums else { return false }
+        guard lhs.keywords == rhs.keywords else { return false }
+        guard lhs.people == rhs.people else { return false }
+        return true
+    }
+    
+    static func <(lhs: Album, rhs: Album) -> Bool {
+        return lhs.name < rhs.name
+    }
+    
+    var hashValue: Int {
+        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    }
+}
+
+extension Album {
+    func numberOfPhotos(travers: Bool) -> Int {
+        if travers {
+            return albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
+        }
+        return photos.count
+    }
+    
+    func numberOfAlbums(travers: Bool) -> Int {
+        if travers {
+            return albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
+        }
+        return albums.count
+    }
+}
 
 func readStateFromInputDirectory(atPath: String, outPath: String, name: String, config: GalleryConfiguration) -> Album {
     log.info("Creating album from path: \(joinPath(paths: atPath))")

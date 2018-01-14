@@ -55,6 +55,7 @@ public struct Gallery {
         } else {
             log.info("Could not find any output album, assuming new is to be created")
         }
+        log.debug(self.input == self.output)
     }
     
     public func write() {
