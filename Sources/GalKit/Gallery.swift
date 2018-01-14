@@ -50,10 +50,14 @@ public struct Gallery {
     public init(config: GalleryConfiguration) {
         self.config = config
         self.input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
-        if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/index.json") {
+        if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
             self.output = album
         } else {
             log.info("Could not find any output album, assuming new is to be created")
         }
+    }
+    
+    public func write() {
+        input.writeToOutputDirectory(config: config)
     }
 }

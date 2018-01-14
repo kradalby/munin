@@ -27,3 +27,5 @@ let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: 
 let gallery = Gallery(config: config)
 
 print(gallery)
+//gallery.write()
+

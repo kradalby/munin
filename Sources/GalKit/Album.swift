@@ -8,10 +8,6 @@
 import Foundation
 import Logger
 
-
-
-
-
 struct Album: Hashable, Comparable {
     static func ==(lhs: Album, rhs: Album) -> Bool {
         return lhs.name == rhs.name
@@ -154,7 +150,7 @@ extension Album: Decodable {
 }
 
 extension Album {
-    func writeToOutputDirectory(config: GalleryConfiguration) -> Void {
+    public func writeToOutputDirectory(config: GalleryConfiguration) -> Void {
         let fm = FileManager()
         do {
             try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
