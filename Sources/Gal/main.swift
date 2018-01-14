@@ -27,5 +27,15 @@ let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: 
 let gallery = Gallery(config: config)
 
 print(gallery)
+
+//let start = Date()
 //gallery.write()
+//let end = Date()
+//
+//let executionTime = end.timeIntervalSince(start)
+//
+let stats = gallery.statistics().toString()
+
+log.info(stats)
+//log.info("in: \(executionTime) seconds")
 

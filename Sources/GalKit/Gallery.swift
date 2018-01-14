@@ -60,4 +60,8 @@ public struct Gallery {
     public func write() {
         input.writeToOutputDirectory(config: config)
     }
+    
+    public func statistics() -> Statistics {
+        return Statistics(gallery: self)
+    }
 }

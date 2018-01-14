@@ -49,6 +49,20 @@ struct Album: Hashable, Comparable {
         case keywords
         case people
     }
+    
+    func numberOfPhotos(travers: Bool) -> Int {
+        if travers {
+            return albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
+        }
+        return photos.count
+    }
+    
+    func numberOfAlbums(travers: Bool) -> Int {
+        if travers {
+            return albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
+        }
+        return albums.count
+    }
 }
 
 extension Album: Encodable {
