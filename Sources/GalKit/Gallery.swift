@@ -51,13 +51,21 @@ public struct Gallery {
         self.config = config
         
         // read input directory
+        let inputStart = Date()
         self.input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
-
+        let inputEnd = Date()
+        log.debug("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
+        
+        let outputStart = Date()
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
             self.output = album
         } else {
             log.info("Could not find any output album, assuming new is to be created")
         }
+        let outputEnd = Date()
+        log.debug("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
+
+        
         log.debug("Input album differs from output album: \(self.input != self.output)")
         log.debug("Input: \n\(self.input)")
         if let out = self.output {
