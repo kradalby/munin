@@ -7,6 +7,7 @@
 
 import Foundation
 import Config
+import Logger
 
 let concurrentPhotoQueue =
     DispatchQueue(
@@ -14,6 +15,8 @@ let concurrentPhotoQueue =
         attributes: .concurrent)
 
 let concurrentDispatchGroup = DispatchGroup()
+
+var log = Logger(LogLevel.INFO)
 
 public struct GalleryConfiguration: Configuration {
     var name: String
@@ -23,6 +26,7 @@ public struct GalleryConfiguration: Configuration {
     var inputPath: String
     var outputPath: String
     var fileExtentions: [String]
+    public var logLevel: Int
     
     enum CodingKeys: String, CodingKey
     {
@@ -33,6 +37,7 @@ public struct GalleryConfiguration: Configuration {
         case inputPath
         case outputPath
         case fileExtentions
+        case logLevel
     }
     
     public init(from decoder: Decoder) throws
@@ -45,7 +50,7 @@ public struct GalleryConfiguration: Configuration {
         self.inputPath = try values.decode(String.self, forKey: .inputPath)
         self.outputPath = try values.decode(String.self, forKey: .outputPath)
         self.fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
-
+        self.logLevel = try values.decode(Int.self, forKey: .logLevel)
     }
 }
 
@@ -57,11 +62,13 @@ public struct Gallery {
     public init(config: GalleryConfiguration) {
         self.config = config
         
+        log = Logger(config.logLevel)
+        
         // read input directory
         let inputStart = Date()
         self.input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
         let inputEnd = Date()
-        log.debug("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
+        log.info("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
         
         let outputStart = Date()
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {

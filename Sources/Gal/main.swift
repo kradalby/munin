@@ -3,37 +3,38 @@ import Foundation
 import GalKit
 import Logger
 import Config
+import Commander
 
-let log = Logger()
+var log = Logger(LogLevel.INFO)
+
+let main = command(
+    Option("config", default: "gal.json", description: "JSON based configuration file for gal"),
+    Flag("dry", default: false, description: "Dry-run, do not write gallery")
+) { config, dry in
+    
+
+    let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
+
+    log = Logger(config.logLevel)
+
+    let gallery = Gallery(config: config)
+    
+    if !dry {
+        let start = Date()
+        gallery.write()
+        let end = Date()
+        
+        let executionTime = end.timeIntervalSince(start)
+        
+        log.info("Generated in: \(executionTime) seconds")
+    }
+    let stats = gallery.statistics().toString()
+    log.info(stats)
+}
+
+main.run()
 
 
-//let file = FileDestination()
-//file.logFileURL = URL(fileURLWithPath: "/tmp/g.log")
-//file.format = "$Dyyyy-MM-dd HH:mm:ss.SSS$d $C$L$c: $M"
-//file.minLevel = log.Level.info
-//log.addDestination(file)
 
 
 
-//let state = readStateFromInputDirectory(atPath: basePath, outPath: "out", name: "sample")
-//log.debug("\(state)")
-//let outDirState = readStateFromOutputDirectory(indexFileAtPath: "out/sample/index.json")!
-//log.debug("\(outDirState)")
-//// writeStateToOutputDirectory(state: state)
-//
-//log.debug("\("\(state)" == "\(outDirState)")")
-
-let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: "config.json")
-let gallery = Gallery(config: config)
-
-
-
-let start = Date()
-gallery.write()
-let end = Date()
-
-let executionTime = end.timeIntervalSince(start)
-
-log.info("Generated in: \(executionTime) seconds")
-let stats = gallery.statistics().toString()
-log.info(stats)

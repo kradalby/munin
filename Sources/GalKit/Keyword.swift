@@ -1,30 +1,13 @@
 import Foundation
-import Logger
 
 struct Keyword: Hashable, Comparable {
-    static func <(lhs: Keyword, rhs: Keyword) -> Bool {
-        return lhs.name < rhs.name
-        
-    }
-    
-    static func ==(lhs: Keyword, rhs: Keyword) -> Bool {
-        return lhs.name == rhs.name
-        
-    }
-    
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-    }
-    
-    
+
     var name: String
     var url: String
-    var path: String
     var photos: Set<Photo>
     
     init(name: String, path: String) {
         self.name = name
-        self.path = path
         self.url = joinPath(paths: path, "\(self.name).json")
         self.photos = []
     }
@@ -43,7 +26,6 @@ extension Keyword: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(url, forKey: .url)
-        try container.encode(path, forKey: .path)
 
         
         var photosContainer = container.nestedUnkeyedContainer(
@@ -63,7 +45,6 @@ extension Keyword: Decodable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         self.name = try values.decode(String.self, forKey: .name)
         self.url = try values.decode(String.self, forKey: .url)
-        self.path = try values.decode(String.self, forKey: .path)
 
         
         
@@ -81,10 +62,31 @@ extension Keyword: Decodable {
 }
 
 extension Keyword {
-    func writeToOutputDirectory(config: GalleryConfiguration) -> Void {
+    static func <(lhs: Keyword, rhs: Keyword) -> Bool {
+        return lhs.name < rhs.name
+        
+    }
+    
+    static func ==(lhs: Keyword, rhs: Keyword) -> Bool {
+        guard lhs.name == rhs.name else { return false }
+        guard lhs.url == rhs.url else { return false }
+        guard lhs.photos == rhs.photos else { return false }
+
+        return true
+    }
+    
+    var hashValue: Int {
+        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    }
+    
+}
+
+extension Keyword {
+    func write(config: GalleryConfiguration) -> Void {
         let fm = FileManager()
+        let path = URL(fileURLWithPath: self.url).deletingLastPathComponent()
         do {
-            try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
+            try fm.createDirectory(at: path, withIntermediateDirectories: true)
             
             log.info("Writing metadata for \(type(of: self)) \(self.name)")
             let encoder = JSONEncoder()
@@ -98,7 +100,7 @@ extension Keyword {
                 }
             }
         } catch {
-            log.error("Failed creating directory \(self.path) with error: \n\(error)")
+            log.error("Failed creating directory \(path.absoluteString) with error: \n\(error)")
         }
     }
 }

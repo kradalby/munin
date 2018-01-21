@@ -17,9 +17,8 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        //.package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "0.8.0"),
-//        .package(url: "https://github.com/oarrabi/Guaka.git", from: "0.1.3"),
-        .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.1"),
+        .package(url: "https://github.com/kylef/Commander.git", from: "0.8.0"),
+        .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.6"),
         .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.1"),
     ],
     targets: [
@@ -31,7 +30,7 @@ let package = Package(
                 "GalKit",
                 "Logger",
                 "Config",
-//                "Guaka"
+                "Commander"
                 ]),
         .target(
             name: "GalKit",

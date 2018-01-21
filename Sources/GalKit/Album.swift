@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import Logger
-
 
 struct Album: Hashable, Comparable {
     var name: String

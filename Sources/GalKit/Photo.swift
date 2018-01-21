@@ -7,8 +7,6 @@
 
 import Foundation
 import ImageIO
-import Logger
-
 
 
 struct Photo: Codable, Comparable, Hashable {

@@ -1,6 +1,7 @@
 /out
 /sample
 config.json
+gal.json
 .DS_Store
 /.build
 /Packages
