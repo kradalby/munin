@@ -8,6 +8,7 @@
 import Foundation
 import Logger
 
+
 struct Album: Hashable, Comparable {
     var name: String
     var url: String
@@ -164,8 +165,14 @@ extension Album {
             }
             
             for photo in self.photos {
-                photo.write(config: config)
+                concurrentPhotoQueue.async {
+                    concurrentDispatchGroup.enter()
+                    photo.write(config: config)
+                    concurrentDispatchGroup.leave()
+                }
             }
+            
+            
         } catch {
             log.error("Failed creating directory \(self.path) with error: \n\(error)")
         }

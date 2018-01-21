@@ -26,14 +26,14 @@ let log = Logger()
 let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: "config.json")
 let gallery = Gallery(config: config)
 
+
+
+let start = Date()
+gallery.write()
+let end = Date()
+
+let executionTime = end.timeIntervalSince(start)
+
+log.info("Generated in: \(executionTime) seconds")
 let stats = gallery.statistics().toString()
 log.info(stats)
-
-//let start = Date()
-//gallery.write()
-//let end = Date()
-//
-//let executionTime = end.timeIntervalSince(start)
-//
-//log.info("in: \(executionTime) seconds")
-

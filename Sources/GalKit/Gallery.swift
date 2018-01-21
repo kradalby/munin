@@ -8,6 +8,13 @@
 import Foundation
 import Config
 
+let concurrentPhotoQueue =
+    DispatchQueue(
+        label: "no.kradalby.gal.Gallery",
+        attributes: .concurrent)
+
+let concurrentDispatchGroup = DispatchGroup()
+
 public struct GalleryConfiguration: Configuration {
     var name: String
     var people: [String]
@@ -77,6 +84,7 @@ public struct Gallery {
     
     public func write() {
         input.write(config: config)
+        concurrentDispatchGroup.wait()
     }
     
     public func statistics() -> Statistics {
