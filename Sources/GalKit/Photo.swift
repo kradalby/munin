@@ -238,11 +238,15 @@ func readPhotoFromPath(atPath: String, outPath: String, name: String, fileExtens
             }
 
             if let gpsDict = dict["{GPS}"] as? [String: Any] {
+                if let altitude = gpsDict["Altitude"] as? Double,
+                    let latitude = gpsDict["Latitude"] as? Double,
+                    let longitude = gpsDict["Longitude"] as? Double {
                 photo.gps = GPS(
-                    altitude: gpsDict["Altitude"] as! Double,
-                    latitude: gpsDict["Latitude"] as! Double,
-                    longitude: gpsDict["Longitude"] as! Double
-                )
+                    altitude: altitude,
+                    latitude: latitude,
+                    longitude: longitude
+                    )
+                }
             } else {
                 log.warning("GPS tag not found for photo, some metatags will be unavailable")
             }

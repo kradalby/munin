@@ -8,7 +8,6 @@
 import Foundation
 
 
-
 func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T : Decodable {
     let fm = FileManager()
     var isDirectory: ObjCBool = ObjCBool(false)

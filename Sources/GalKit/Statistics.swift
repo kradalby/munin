@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Statistics {
+public struct Statistics: Codable {
     var originalPhotos: Int
     var writtenPhotos: Int
     var albums: Int
@@ -34,6 +34,22 @@ public struct Statistics {
         
         \t\(self.writtenPhotos) photos has been encoded
         """
+    }
+    
+    public func write(config: GalleryConfiguration) -> Void {
+        log.info("Writing stats")
+        let fileURL = NSURL.fileURL(withPath: joinPath(paths: config.outputPath, config.name, "stats.json"))
+
+        let encoder = JSONEncoder()
+        
+        if let encodedData = try? encoder.encode(self) {
+            do {
+                log.trace("Writing statistics to json to \(fileURL.path)")
+                try encodedData.write(to: URL(fileURLWithPath: fileURL.path))
+            } catch {
+                log.error("Could not write statistics json to \(fileURL.path) with error: \n\(error)")
+            }
+        }
     }
 }
 

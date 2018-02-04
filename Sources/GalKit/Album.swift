@@ -163,10 +163,10 @@ extension Album {
             }
             
             for photo in self.photos {
-                concurrentPhotoQueue.async {
-                    concurrentDispatchGroup.enter()
+                concurrentQueue.async {
+                    concurrentPhotoEncodeGroup.enter()
                     photo.write(config: config)
-                    concurrentDispatchGroup.leave()
+                    concurrentPhotoEncodeGroup.leave()
                 }
             }
             
@@ -228,25 +228,37 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
             let exists = fm.fileExists(atPath: joinPath(paths: atPath, element), isDirectory: &isDirectory)
             
             if exists && isDirectory.boolValue {
-                let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config)
-                album.albums.insert(childAlbum)
-                album.keywords = album.keywords.union(childAlbum.keywords)
-                album.people = album.people.union(childAlbum.people)
+//                concurrentPhotoReadDirectoryGroup.enter()
+//                concurrentQueue.async {
+                    let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config)
+                    album.albums.insert(childAlbum)
+                    album.keywords = album.keywords.union(childAlbum.keywords)
+                    album.people = album.people.union(childAlbum.people)
+//                }
+//                concurrentPhotoReadDirectoryGroup.leave()
+
+
             } else if exists {
                 if let fileNameWithoutExtension = fileNameWithoutExtension(atPath: joinPath(paths: atPath, element)),
                     let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
                     if config.fileExtentions.contains(fileExtension) {
-                        if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
-                            album.photos.insert(photo)
-                            album.keywords = album.keywords.union(photo.keywords)
-                            album.people = album.people.union(photo.people)
+                        concurrentQueue.async {
+                            concurrentPhotoReadDirectoryGroup.enter()
+                            if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
+                                album.photos.insert(photo)
+                                album.keywords = album.keywords.union(photo.keywords)
+                                album.people = album.people.union(photo.people)
+                            }
+                            concurrentPhotoReadDirectoryGroup.leave()
                         }
+                        
                     } else {
                         log.warning("File found, but it was not a photo, path: \(joinPath(paths: atPath, element))")
                     }
                 }
             }
         }
+        concurrentPhotoReadDirectoryGroup.wait()
     }
     return album
 }

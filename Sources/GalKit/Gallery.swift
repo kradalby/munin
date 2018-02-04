@@ -9,12 +9,16 @@ import Foundation
 import Config
 import Logger
 
-let concurrentPhotoQueue =
+let concurrentQueue =
     DispatchQueue(
         label: "no.kradalby.gal.Gallery",
         attributes: .concurrent)
 
-let concurrentDispatchGroup = DispatchGroup()
+let concurrentPhotoEncodeGroup = DispatchGroup()
+//let concurrentPhotoReadJSONGroup = DispatchGroup()
+let concurrentPhotoReadDirectoryGroup = DispatchGroup()
+
+
 
 var log = Logger(LogLevel.INFO)
 
@@ -91,7 +95,8 @@ public struct Gallery {
     
     public func write() {
         input.write(config: config)
-        concurrentDispatchGroup.wait()
+        concurrentPhotoEncodeGroup.wait()
+        self.statistics().write(config: self.config)
     }
     
     public func statistics() -> Statistics {
