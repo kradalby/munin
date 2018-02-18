@@ -33,15 +33,17 @@ struct Photo: Codable, Comparable, Hashable {
     var cameraMake: String?
     var cameraModel: String?
     var copyright: String?
+    var modifiedDate: Date
     var keywords: Set<String>
     var people: Set<String>
 
-    init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto]) {
+    init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto], modifiedDate: Date) {
         self.name = name
         self.url = url
         self.originalImageURL = originalImageURL
         self.originalImagePath = originalImagePath
         self.scaledPhotos = scaledPhotos
+        self.modifiedDate = modifiedDate
         self.isoSpeed = []
         self.keywords = []
         self.people = []
@@ -97,6 +99,7 @@ extension Photo {
         guard lhs.cameraMake == rhs.cameraMake else { return false }
         guard lhs.cameraModel == rhs.cameraModel else { return false }
         guard lhs.copyright == rhs.copyright else { return false }
+        guard lhs.modifiedDate == rhs.modifiedDate else { return false }
         guard lhs.keywords == rhs.keywords else { return false }
         guard lhs.people == rhs.people else { return false }
         return true
@@ -182,11 +185,14 @@ func readPhotoFromPath(atPath: String, outPath: String, name: String, fileExtens
                         url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
                         maxResolution: $0)
                     }
-                )
+                ),
+                modifiedDate: fileModificationDate(url: fileURL) ?? Date() // If no modifiation date is available, use now.
             )
 
             photo.width = dict["PixelWidth"] as? Int
             photo.height = dict["PixelHeight"] as? Int
+            
+            
 
             if let exif = dict["{Exif}"] as? [String: Any] {
                 photo.aperture = exif["ApertureValue"] as? Double

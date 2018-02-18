@@ -98,3 +98,12 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
     }
     return nil
 }
+
+func fileModificationDate(url: URL) -> Date? {
+    do {
+        let attr = try FileManager.default.attributesOfItem(atPath: url.path)
+        return attr[FileAttributeKey.modificationDate] as? Date
+    } catch {
+        return nil
+    }
+}
