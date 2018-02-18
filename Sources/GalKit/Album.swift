@@ -175,6 +175,17 @@ extension Album {
             log.error("Failed creating directory \(self.path) with error: \n\(error)")
         }
     }
+    
+    func copyWithoutChildren() -> Album {
+        var newAlbum = Album(name: self.name, path: self.path)
+        newAlbum.url = self.url
+        newAlbum.photos = []
+        newAlbum.albums = []
+        newAlbum.keywords = self.keywords
+        newAlbum.people = self.people
+        
+        return newAlbum
+    }
 }
 
 extension Album {
@@ -258,8 +269,8 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                 }
             }
         }
-        concurrentPhotoReadDirectoryGroup.wait()
     }
+    concurrentPhotoReadDirectoryGroup.wait()
     return album
 }
 

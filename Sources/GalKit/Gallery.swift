@@ -85,11 +85,27 @@ public struct Gallery {
 
         
         log.debug("Input album differs from output album: \(self.input != self.output)")
-        log.debug("Input: \n\(self.input)")
-        if let out = self.output {
-            log.debug("Output: \n\(out)")
-
+//        log.debug("Input: \n\(self.input)")
+//        if let out = self.output {
+//            log.debug("Output: \n\(out)")
+//        }
+        
+        let diffStart = Date()
+        if let output = self.output {
+            let (added, removed) = diff(new: self.input, old: output)
+            if let unwrappedAdded = added, let unwrappedRemoved = removed {
+                log.debug("Added:")
+                prettyPrintAlbum(unwrappedAdded)
+                log.debug("")
+                log.debug("")
+                log.debug("Removed:")
+                prettyPrintAlbum(unwrappedRemoved)
+                log.debug("")
+            }
         }
+        let diffEnd = Date()
+        log.debug("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
+
 
     }
     
@@ -102,4 +118,79 @@ public struct Gallery {
     public func statistics() -> Statistics {
         return Statistics(gallery: self)
     }
+}
+
+func diff(new: Album, old: Album) -> (Album?, Album?) {
+    if new == old {
+        return (nil, nil)
+    }
+    
+    var removed = new.copyWithoutChildren()
+    var added = new.copyWithoutChildren()
+    
+    removed.photos = old.photos.subtracting(new.photos)
+    added.photos = new.photos.subtracting(old.photos)
+    
+    log.debug("Removed photos: \(removed.photos)")
+    log.debug("Added photos: \(added.photos)")
+    
+    // Not changed
+    let _ = new.albums.intersection(old.albums)
+    let onlyNewAlbums = new.albums.subtracting(old.albums)
+    let onlyOldAlbums = old.albums.subtracting(new.albums)
+    
+    let changedAlbums = pairChangedAlbums(newAlbums: Array(onlyNewAlbums), oldAlbums: Array(onlyOldAlbums))
+    
+    for changed in changedAlbums {
+        if let newChangedAlbum = changed.0,
+            let oldChangedAlbum = changed.1 {
+            let (addedChild, removedChild) = diff(new: newChangedAlbum, old: oldChangedAlbum)
+            
+            if let child = addedChild {
+                added.albums.insert(child)
+            }
+            
+            if let child = removedChild {
+                removed.albums.insert(child)
+            }
+        } else if let newChangedAlbum = changed.0 {
+            added.albums.insert(newChangedAlbum)
+        } else if let oldChangedAlbum = changed.1 {
+            removed.albums.insert(oldChangedAlbum)
+        }
+    }
+    
+    return (added, removed)
+}
+
+func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Album?)]) {
+    var pairs: [(Album?, Album?)] = []
+    
+    for new in newAlbums {
+        if isAlbumInListByName(album: new, albums: oldAlbums) {
+            for old in oldAlbums {
+                if new.name == old.name {
+                    pairs.append((new, old))
+                }
+            }
+        } else {
+            pairs.append((new, nil))
+        }
+    }
+    for old in oldAlbums {
+        if !isAlbumInListByName(album: old, albums: newAlbums) {
+            pairs.append((nil, old))
+        }
+    }
+    
+    return pairs
+}
+
+func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
+    for item in albums {
+        if album.name == item.name {
+            return true
+        }
+    }
+    return false
 }

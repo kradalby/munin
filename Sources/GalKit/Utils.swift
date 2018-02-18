@@ -99,11 +99,47 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
     return nil
 }
 
+extension Date {
+    var millisecondsSince1970:Int64 {
+        return Int64((self.timeIntervalSince1970 * 1000.0).rounded())
+    }
+    
+    init(milliseconds:Int64) {
+        self = Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
+    }
+}
+
+// When the modified date is encoded to json, the millisecond accuracy is lost.
+// Therefore we remove it before so we can do a proper equal of the picture to
+// seconds accuracy.
 func fileModificationDate(url: URL) -> Date? {
     do {
         let attr = try FileManager.default.attributesOfItem(atPath: url.path)
-        return attr[FileAttributeKey.modificationDate] as? Date
+        if let date = attr[FileAttributeKey.modificationDate] as? Date {
+            let rounded = date.millisecondsSince1970 - (date.millisecondsSince1970 % 1000)
+            let roundedDate = Date(milliseconds: rounded)
+            return roundedDate
+        }
+        return nil
     } catch {
         return nil
     }
+}
+
+
+func prettyPrintAlbum(_ album: Album) {
+    let indentCharacter = "  "
+    func prettyPrintAlbumRecursive(_ album: Album, indent: Int) {
+        let indentString = String(repeating: indentCharacter, count: indent)
+        let indentChildString = String(repeating: indentCharacter, count: indent + 1)
+
+        log.debug("\(indentString)Album: \(album.name): \(album.path)")
+        for photo in album.photos {
+            log.debug("\(indentChildString)Photo: \(photo.name): \(photo.url)")
+        }
+        for childAlbum in album.albums {
+            prettyPrintAlbumRecursive(childAlbum, indent: indent + 1)
+        }
+    }
+    prettyPrintAlbumRecursive(album, indent: 0)
 }

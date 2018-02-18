@@ -99,6 +99,14 @@ extension Photo {
         guard lhs.cameraMake == rhs.cameraMake else { return false }
         guard lhs.cameraModel == rhs.cameraModel else { return false }
         guard lhs.copyright == rhs.copyright else { return false }
+       
+//        if lhs.modifiedDate != rhs.modifiedDate {
+//            log.debug("image: \(lhs.name)")
+//            log.debug("\(lhs.modifiedDate) \(rhs.modifiedDate) \(lhs.modifiedDate == rhs.modifiedDate)")
+//            log.debug("\(lhs.modifiedDate.timeIntervalSince(rhs.modifiedDate))")
+//
+//        }
+
         guard lhs.modifiedDate == rhs.modifiedDate else { return false }
         guard lhs.keywords == rhs.keywords else { return false }
         guard lhs.people == rhs.people else { return false }
@@ -193,7 +201,6 @@ func readPhotoFromPath(atPath: String, outPath: String, name: String, fileExtens
             photo.height = dict["PixelHeight"] as? Int
             
             
-
             if let exif = dict["{Exif}"] as? [String: Any] {
                 photo.aperture = exif["ApertureValue"] as? Double
                 photo.fNumber = exif["FNumber"] as? Double
