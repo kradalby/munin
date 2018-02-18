@@ -1,7 +1,11 @@
 # TODO
 
+* Bug
+  - Reading state from directory concurrently is not working properly
 * Compare state
-* Use modified date as cheap state
+  - Implement remove from remove diff
+  - Use added diff to write
+
 * People and Keyword
   - Bubble every keyword from the leaf nodes to the top
   - Keyword/People json that describes all pictures with the given keyword blow the given node
