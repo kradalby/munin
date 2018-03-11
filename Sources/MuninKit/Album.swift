@@ -176,6 +176,16 @@ extension Album {
         }
     }
     
+    public func destroy(config: GalleryConfiguration) -> Void {
+//        let fm = FileManager()
+        
+        for photo in self.photos {
+            photo.destroy(config: config)
+        }
+        
+        
+    }
+    
     func copyWithoutChildren() -> Album {
         var newAlbum = Album(name: self.name, path: self.path)
         newAlbum.url = self.url
@@ -208,9 +218,7 @@ extension Album {
         return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
     }
     
-//    static func diff(lhs: Album, rhs: Album) -> (Album, Album) {
-//
-//    }
+
 }
 
 extension Album {
@@ -227,18 +235,28 @@ extension Album {
         }
         return albums.count
     }
+    
+    func isEmpty(travers: Bool) -> Bool {
+        for album in self.albums {
+            if !album.isEmpty(travers: travers) {
+                return false
+            }
+        }
+        return self.photos.isEmpty
+    }
 }
 
 func readStateFromInputDirectory(atPath: String, outPath: String, name: String, config: GalleryConfiguration) -> Album {
     log.info("Creating album from path: \(joinPath(paths: atPath))")
     let fm = FileManager()
-    var album = Album(name: name, path: joinPath(paths: outPath, name))
+    var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)))
     if let files = try? fm.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
         for element in files {
             var isDirectory: ObjCBool = ObjCBool(false)
             let exists = fm.fileExists(atPath: joinPath(paths: atPath, element), isDirectory: &isDirectory)
             
             if exists && isDirectory.boolValue {
+
 //                concurrentPhotoReadDirectoryGroup.enter()
 //                concurrentQueue.async {
                     let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config)
@@ -253,15 +271,15 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                 if let fileNameWithoutExtension = fileNameWithoutExtension(atPath: joinPath(paths: atPath, element)),
                     let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
                     if config.fileExtentions.contains(fileExtension) {
-                        concurrentQueue.async {
-                            concurrentPhotoReadDirectoryGroup.enter()
-                            if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
+//                        concurrentQueue.async {
+//                            concurrentPhotoReadDirectoryGroup.enter()
+                            if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, urlifyName(name)), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
                                 album.photos.insert(photo)
                                 album.keywords = album.keywords.union(photo.keywords)
                                 album.people = album.people.union(photo.people)
                             }
-                            concurrentPhotoReadDirectoryGroup.leave()
-                        }
+//                            concurrentPhotoReadDirectoryGroup.leave()
+//                        }
                         
                     } else {
                         log.warning("File found, but it was not a photo, path: \(joinPath(paths: atPath, element))")
@@ -269,8 +287,9 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                 }
             }
         }
+//        concurrentPhotoReadDirectoryGroup.wait()
+
     }
-    concurrentPhotoReadDirectoryGroup.wait()
     return album
 }
 

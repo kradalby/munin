@@ -1,0 +1,20 @@
+{
+    "name": "krapic",
+    "people": [
+        "Kristoffer Andreas Dalby",
+        "Denisa Dosenovicova",
+        "Quentin Mannes",
+        "Csaba Jeger",
+        "Danielle O'Driscoll",
+        "Christina Toldbo",
+        "Dharmesh Tailor",
+        "Rohan Ramasamy",
+        "Priya Patel"
+    ],
+    "resolutions": [1200, 992, 768, 576, 300],
+    "jpegCompression": 0.2,
+    "inputPath": "sample",
+    "outputPath": "out",
+    "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
+    "logLevel": 5
+}

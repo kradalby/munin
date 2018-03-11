@@ -59,9 +59,13 @@ public struct GalleryConfiguration: Configuration {
 }
 
 public struct Gallery {
-    var input: Album
-    var output: Album?
-    var config: GalleryConfiguration
+    let config: GalleryConfiguration
+
+    let input: Album
+    let output: Album?
+    
+    let addedDiff: Album?
+    let removedDiff: Album?
     
     public init(config: GalleryConfiguration) {
         self.config = config
@@ -70,47 +74,63 @@ public struct Gallery {
         
         // read input directory
         let inputStart = Date()
-        self.input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
+        let input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
         let inputEnd = Date()
         log.info("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
         
         let outputStart = Date()
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
-            self.output = album
+            let output = album
+            let outputEnd = Date()
+            log.debug("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
+            
+            
+            log.debug("Input album differs from output album: \(input != output)")
+            //        log.debug("Input: \n\(self.input)")
+            //        if let out = self.output {
+            //            log.debug("Output: \n\(out)")
+            //        }
+            let diffStart = Date()
+
+                let (added, removed) = diff(new: input, old: output)
+                if let unwrappedAdded = added, let unwrappedRemoved = removed {
+                    log.debug("Added:")
+                    prettyPrintAlbum(unwrappedAdded)
+                    log.debug("")
+                    log.debug("")
+                    log.debug("Removed:")
+                    prettyPrintAlbum(unwrappedRemoved)
+                    log.debug("")
+                }
+            
+            let diffEnd = Date()
+            log.debug("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
+            
+            self.output = output
+            self.addedDiff = added
+            self.removedDiff = removed
         } else {
+            self.output = nil
+            self.addedDiff = nil
+            self.removedDiff = nil
             log.info("Could not find any output album, assuming new is to be created")
         }
-        let outputEnd = Date()
-        log.debug("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
 
-        
-        log.debug("Input album differs from output album: \(self.input != self.output)")
-//        log.debug("Input: \n\(self.input)")
-//        if let out = self.output {
-//            log.debug("Output: \n\(out)")
-//        }
-        
-        let diffStart = Date()
-        if let output = self.output {
-            let (added, removed) = diff(new: self.input, old: output)
-            if let unwrappedAdded = added, let unwrappedRemoved = removed {
-                log.debug("Added:")
-                prettyPrintAlbum(unwrappedAdded)
-                log.debug("")
-                log.debug("")
-                log.debug("Removed:")
-                prettyPrintAlbum(unwrappedRemoved)
-                log.debug("")
-            }
-        }
-        let diffEnd = Date()
-        log.debug("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
-
+        self.input = input
 
     }
     
-    public func write() {
-        input.write(config: config)
+    public func build() {
+//        if let added = self.addedDiff {
+//            added.write(config: config)
+//            concurrentPhotoEncodeGroup.wait()
+//        }
+        
+//        if let removed = self.removedDiff {
+//            removed.destroy(config: config)
+//        }
+
+        self.input.write(config: config)
         concurrentPhotoEncodeGroup.wait()
         self.statistics().write(config: self.config)
     }
@@ -130,9 +150,7 @@ func diff(new: Album, old: Album) -> (Album?, Album?) {
     
     removed.photos = old.photos.subtracting(new.photos)
     added.photos = new.photos.subtracting(old.photos)
-    
-    log.debug("Removed photos: \(removed.photos)")
-    log.debug("Added photos: \(added.photos)")
+
     
     // Not changed
     let _ = new.albums.intersection(old.albums)

@@ -163,6 +163,34 @@ extension Photo {
             }
         }
     }
+    
+    func destroy(config: GalleryConfiguration) -> Void {
+        let fm = FileManager()
+        log.info("Removing image \(self.name)")
+        let jsonURL = NSURL.fileURL(withPath: self.url)
+        let symlinkedImageURL = NSURL.fileURL(withPath: self.originalImageURL)
+        do {
+            try fm.removeItem(at: jsonURL)
+        } catch {
+            log.error("Could not remove image json \(self.name) at path \(self.url)")
+        }
+        
+        do {
+            try fm.removeItem(at: symlinkedImageURL)
+        } catch {
+            log.error("Could not remove image json \(self.name) at path \(self.originalImageURL)")
+        }
+        
+        for scaledPhoto in self.scaledPhotos {
+            let fileURL = NSURL.fileURL(withPath: scaledPhoto.url)
+            do {
+                try fm.removeItem(at: fileURL)
+            } catch {
+                log.error("Could not remove image \(self.name) at path \(scaledPhoto.url)")
+            }
+        }
+
+    }
 }
 
 func readPhotoFromPath(atPath: String, outPath: String, name: String, fileExtension: String, config: GalleryConfiguration) -> Photo? {

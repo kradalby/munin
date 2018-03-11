@@ -143,3 +143,7 @@ func prettyPrintAlbum(_ album: Album) {
     }
     prettyPrintAlbumRecursive(album, indent: 0)
 }
+
+func urlifyName(_ name: String) -> String {
+    return name.replacingOccurrences(of: " ", with: "_")
+}

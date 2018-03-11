@@ -1,6 +1,6 @@
 import Foundation
 
-import GalKit
+import MuninKit
 import Logger
 import Config
 import Commander
@@ -8,7 +8,7 @@ import Commander
 var log = Logger(LogLevel.INFO)
 
 let main = command(
-    Option("config", default: "gal.json", description: "JSON based configuration file for gal"),
+    Option("config", default: "munin.json", description: "JSON based configuration file for gal"),
     Flag("dry", default: false, description: "Dry-run, do not write gallery")
 ) { config, dry in
     
@@ -21,7 +21,7 @@ let main = command(
     
     if !dry {
         let start = Date()
-        gallery.write()
+        gallery.build()
         let end = Date()
         
         let executionTime = end.timeIntervalSince(start)
