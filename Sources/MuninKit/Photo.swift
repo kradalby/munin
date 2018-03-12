@@ -72,6 +72,8 @@ struct GPS: Codable, Equatable {
     var altitude: Double
     var latitude: Double
     var longitude: Double
+    
+
 }
 
 extension Photo {
@@ -140,10 +142,10 @@ extension Photo {
             }
         }
 
-
+        let relativeOriginialPath = Array(repeating: "..", count: self.depth()) + [self.originalImagePath]
         log.info("Symlinking original image \(self.name) to \(self.originalImageURL)")
         do {
-            try createOrReplaceSymlink(from: self.originalImagePath, to: self.originalImageURL)
+            try createOrReplaceSymlink(from: joinPath(paths: relativeOriginialPath), to: self.originalImageURL)
         } catch {
             log.error("Could not symlink image \(self.name) to \(self.originalImageURL) with error: \n\(error)")
         }
@@ -190,6 +192,17 @@ extension Photo {
             }
         }
 
+    }
+    
+    func depth() -> Int {
+        let char: Character = "/"
+        var counter = 0
+        for c in self.url {
+            if c == char {
+                counter += 1
+            }
+        }
+        return counter
     }
 }
 

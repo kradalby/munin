@@ -39,6 +39,10 @@ func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T : De
 func createOrReplaceSymlink(from: String, to: String) throws -> Void {
     let fm = FileManager()
     
+    log.info("Symlink from: \(from) to: \(to)")
+    log.info("Symlink from: \(URL(fileURLWithPath:from)) to: \(URL(fileURLWithPath: to))")
+
+    
     var isDirectory: ObjCBool = ObjCBool(false)
     let exists = fm.fileExists(atPath: to, isDirectory: &isDirectory)
     if exists || isDirectory.boolValue {
@@ -46,10 +50,14 @@ func createOrReplaceSymlink(from: String, to: String) throws -> Void {
         try fm.removeItem(atPath: to)
     }
     
-    try fm.createSymbolicLink(at: URL(fileURLWithPath: to), withDestinationURL: URL(fileURLWithPath:from))
+    try fm.createSymbolicLink(atPath: to, withDestinationPath: from)
 }
 
 func joinPath(paths: String...) -> String {
+    return paths.filter({$0 != ""}).joined(separator: "/")
+}
+
+func joinPath(paths: [String]) -> String {
     return paths.filter({$0 != ""}).joined(separator: "/")
 }
 
