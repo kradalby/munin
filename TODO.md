@@ -5,6 +5,10 @@
 * Compare state
   - Implement remove from remove diff
   - Use added diff to write
+    * Diff has to contain mor information, as it removes entries to things not in diff
+* Dont create scaled photo bigger than original
+* Look into how handling landscape, standing photos should be done
+* Symlink handling does ofc not work when we sync to server
 
 * People and Keyword
   - Bubble every keyword from the leaf nodes to the top
