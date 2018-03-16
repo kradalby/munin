@@ -36,6 +36,8 @@ struct Photo: Codable, Comparable, Hashable {
     var modifiedDate: Date
     var keywords: Set<String>
     var people: Set<String>
+    var next: String?
+    var previous: String?
 
     init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto], modifiedDate: Date) {
         self.name = name
@@ -47,6 +49,7 @@ struct Photo: Codable, Comparable, Hashable {
         self.isoSpeed = []
         self.keywords = []
         self.people = []
+
     }
 }
 
@@ -206,7 +209,13 @@ extension Photo {
     }
 }
 
-func readPhotoFromPath(atPath: String, outPath: String, name: String, fileExtension: String, config: GalleryConfiguration) -> Photo? {
+func readPhotoFromPath(
+    atPath: String,
+    outPath: String,
+    name: String,
+    fileExtension: String,
+    config: GalleryConfiguration
+    ) -> Photo? {
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
 

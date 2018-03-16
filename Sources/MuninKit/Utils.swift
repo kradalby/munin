@@ -151,3 +151,11 @@ func prettyPrintAlbum(_ album: Album) {
 func urlifyName(_ name: String) -> String {
     return name.replacingOccurrences(of: " ", with: "_")
 }
+
+
+extension Collection {
+    /// Returns the element at the specified index iff it is within bounds, otherwise nil.
+    subscript (safe index: Index) -> Element? {
+        return indices.contains(index) ? self[index] : nil
+    }
+}

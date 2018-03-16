@@ -53,7 +53,7 @@ extension Album: Encodable {
             forKey: .photos)
         
         try photos.forEach {
-            try photosContainer.encode(PhotoInAlbum(url: $0.url, scaledPhotos: $0.scaledPhotos))
+            try photosContainer.encode(PhotoInAlbum(url: $0.url, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
         }
         
         var albumsContainer = container.nestedUnkeyedContainer(
@@ -83,6 +83,7 @@ extension Album: Encodable {
 struct PhotoInAlbum : Codable {
     var url : String
     var scaledPhotos: [ScaledPhoto]
+    var gps: GPS?
 }
 
 
@@ -255,6 +256,7 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
     log.info("Creating album from path: \(joinPath(paths: atPath))")
     let fm = FileManager()
     var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)))
+    var photos = Array<Photo>()
     if let files = try? fm.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
         for element in files {
             var isDirectory: ObjCBool = ObjCBool(false)
@@ -279,9 +281,7 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 //                        concurrentQueue.async {
 //                            concurrentPhotoReadDirectoryGroup.enter()
                             if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, urlifyName(name)), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
-                                album.photos.insert(photo)
-                                album.keywords = album.keywords.union(photo.keywords)
-                                album.people = album.people.union(photo.people)
+                                photos.append(photo)
                             }
 //                            concurrentPhotoReadDirectoryGroup.leave()
 //                        }
@@ -295,6 +295,27 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 //        concurrentPhotoReadDirectoryGroup.wait()
 
     }
+    
+    for (index, photo) in photos.enumerated() {
+        let previous = photos.index(before: index)
+        let next = photos.index(after: index)
+        if previous == -1 {
+            photos[index].previous = photos[photos.count - 1].url
+
+        } else {
+            photos[index].previous = photos[photos.index(before: index)].url
+        }
+        if next == photos.count {
+            photos[index].next = photos[0].url
+        } else {
+            photos[index].next = photos[photos.index(after: index)].url
+        }
+
+        album.photos.insert(photos[index])
+        album.keywords = album.keywords.union(photos[index].keywords)
+        album.people = album.people.union(photos[index].people)
+    }
+    
     return album
 }
 
