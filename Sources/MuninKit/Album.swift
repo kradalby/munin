@@ -53,7 +53,7 @@ extension Album: Encodable {
             forKey: .photos)
         
         try photos.forEach {
-            try photosContainer.encode($0.url)
+            try photosContainer.encode(PhotoInAlbum(url: $0.url, scaledPhotos: $0.scaledPhotos))
         }
         
         var albumsContainer = container.nestedUnkeyedContainer(
@@ -80,6 +80,11 @@ extension Album: Encodable {
     }
 }
 
+struct PhotoInAlbum : Codable {
+    var url : String
+    var scaledPhotos: [ScaledPhoto]
+}
+
 
 extension Album: Decodable {
     init(from decoder: Decoder) throws
@@ -98,8 +103,8 @@ extension Album: Decodable {
         var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
         var photos: Set<Photo> = Set<Photo>()
         while (!photosArray.isAtEnd) {
-            let url = try photosArray.decode(String.self)
-            if let photo = readAndDecodeJsonFile(Photo.self, atPath: url) {
+            let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
+            if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
                 photos.insert(photo)
             }
         }
