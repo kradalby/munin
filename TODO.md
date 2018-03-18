@@ -1,5 +1,7 @@
 # TODO
 
+* Make photo object embedded into index.json
+
 * Bug
   - Reading state from directory concurrently is not working properly
 * Compare state
@@ -8,6 +10,7 @@
     * Diff has to contain mor information, as it removes entries to things not in diff
 * Dont create scaled photo bigger than original
 * Look into how handling landscape, standing photos should be done
+
 
 * People and Keyword
   - Bubble every keyword from the leaf nodes to the top

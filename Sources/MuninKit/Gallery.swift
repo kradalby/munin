@@ -132,12 +132,17 @@ public struct Gallery {
 
         self.input.write(config: config, jsonOnly: jsonOnly)
         concurrentPhotoEncodeGroup.wait()
+        
         self.statistics().write(config: self.config)
+        Locations(gallery: self).write(config: self.config)
     }
     
     public func statistics() -> Statistics {
         return Statistics(gallery: self)
     }
+    
+    
+    
 }
 
 func diff(new: Album, old: Album) -> (Album?, Album?) {
