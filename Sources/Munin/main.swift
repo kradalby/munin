@@ -8,9 +8,10 @@ import Commander
 var log = Logger(LogLevel.INFO)
 
 let main = command(
-    Option("config", default: "munin.json", description: "JSON based configuration file for gal"),
-    Flag("dry", default: false, description: "Dry-run, do not write gallery")
-) { config, dry in
+    Option("config", default: "munin.json", description: "JSON based configuration file for munin"),
+    Flag("dry", default: false, description: "Dry-run, do not write gallery"),
+    Flag("json", default: false, description: "Write only JSON files, no images, useful for updating data with new munin features")
+) { config, dry, json in
     
 
     let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
@@ -21,7 +22,7 @@ let main = command(
     
     if !dry {
         let start = Date()
-        gallery.build()
+        gallery.build(jsonOnly: json)
         let end = Date()
         
         let executionTime = end.timeIntervalSince(start)

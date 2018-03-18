@@ -131,29 +131,33 @@ extension Photo {
 }
 
 extension Photo {
-    func write(config: GalleryConfiguration) -> Void {
+    func write(config: GalleryConfiguration, jsonOnly: Bool) -> Void {
 
-        log.info("Writing image \(self.name)")
-        let fileURL = NSURL.fileURL(withPath: self.originalImagePath)
-        if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
-            for scaledPhoto in self.scaledPhotos {
-                if let resizedImageData = resizeImage(imageSource: imageSource, maxResolution: scaledPhoto.maxResolution, compression: CGFloat(config.jpegCompression)) {
-                    log.trace("Writing image \(self.name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-                    do {
-                        try resizedImageData.write(to: URL(fileURLWithPath: scaledPhoto.url))
-                    } catch {
-                        log.error("Could not write image \(self.name) to \(scaledPhoto.url) with error: \n\(error)")
+        // Only write images and symlink if the user wants to
+        if !jsonOnly {
+            log.info("Writing image \(self.name)")
+            let fileURL = NSURL.fileURL(withPath: self.originalImagePath)
+            if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
+                for scaledPhoto in self.scaledPhotos {
+                    if let resizedImageData = resizeImage(imageSource: imageSource, maxResolution: scaledPhoto.maxResolution, compression: CGFloat(config.jpegCompression)) {
+                        log.trace("Writing image \(self.name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+                        do {
+                            try resizedImageData.write(to: URL(fileURLWithPath: scaledPhoto.url))
+                        } catch {
+                            log.error("Could not write image \(self.name) to \(scaledPhoto.url) with error: \n\(error)")
+                        }
                     }
                 }
             }
-        }
-
-        let relativeOriginialPath = Array(repeating: "..", count: self.depth()) + [self.originalImagePath]
-        log.info("Symlinking original image \(self.name) to \(self.originalImageURL)")
-        do {
-            try createOrReplaceSymlink(from: joinPath(paths: relativeOriginialPath), to: self.originalImageURL)
-        } catch {
-            log.error("Could not symlink image \(self.name) to \(self.originalImageURL) with error: \n\(error)")
+            
+            let relativeOriginialPath = Array(repeating: "..", count: self.depth()) + [self.originalImagePath]
+            log.info("Symlinking original image \(self.name) to \(self.originalImageURL)")
+            do {
+                try createOrReplaceSymlink(from: joinPath(paths: relativeOriginialPath), to: self.originalImageURL)
+            } catch {
+                log.error("Could not symlink image \(self.name) to \(self.originalImageURL) with error: \n\(error)")
+            }
+            
         }
 
         log.info("Writing metadata for image \(self.name)")

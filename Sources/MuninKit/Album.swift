@@ -59,9 +59,9 @@ extension Album: Encodable {
         var albumsContainer = container.nestedUnkeyedContainer(
             forKey: .albums)
         
-        let scaledPhotos = self.firstImageInAlbum()?.scaledPhotos
         
         try albums.forEach {
+            let scaledPhotos = $0.firstImageInAlbum()?.scaledPhotos ?? []
             try albumsContainer.encode(AlbumInAlbum(url: $0.url, name: $0.name, scaledPhotos: scaledPhotos))
         }
         
@@ -91,7 +91,7 @@ struct PhotoInAlbum : Codable {
 struct AlbumInAlbum : Codable {
     var url : String
     var name : String
-    var scaledPhotos: [ScaledPhoto]?
+    var scaledPhotos: [ScaledPhoto]
 }
 
 
@@ -152,7 +152,7 @@ extension Album: Decodable {
 }
 
 extension Album {
-    public func write(config: GalleryConfiguration) -> Void {
+    public func write(config: GalleryConfiguration, jsonOnly: Bool) -> Void {
         let fm = FileManager()
         do {
             try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
@@ -173,13 +173,13 @@ extension Album {
             }
             
             for album in self.albums {
-                album.write(config: config)
+                album.write(config: config, jsonOnly: jsonOnly)
             }
             
             for photo in self.photos {
                 concurrentQueue.async {
                     concurrentPhotoEncodeGroup.enter()
-                    photo.write(config: config)
+                    photo.write(config: config, jsonOnly: jsonOnly)
                     concurrentPhotoEncodeGroup.leave()
                 }
             }
@@ -212,12 +212,16 @@ extension Album {
     }
     
     func firstImageInAlbum() -> Photo? {
-        if let photo = self.photos.first {
-            return photo
+        for photo in self.photos {
+            if photo.orientation == Orientation.landscape {
+                return photo
+            }
         }
-        if let album = self.albums.first {
+        
+        for album in self.albums {
             return album.firstImageInAlbum()
         }
+        
         return nil
     }
 }

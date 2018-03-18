@@ -120,7 +120,7 @@ public struct Gallery {
 
     }
     
-    public func build() {
+    public func build(jsonOnly: Bool) {
 //        if let added = self.addedDiff {
 //            added.write(config: config)
 //            concurrentPhotoEncodeGroup.wait()
@@ -130,7 +130,7 @@ public struct Gallery {
 //            removed.destroy(config: config)
 //        }
 
-        self.input.write(config: config)
+        self.input.write(config: config, jsonOnly: jsonOnly)
         concurrentPhotoEncodeGroup.wait()
         self.statistics().write(config: self.config)
     }
