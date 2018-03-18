@@ -59,8 +59,10 @@ extension Album: Encodable {
         var albumsContainer = container.nestedUnkeyedContainer(
             forKey: .albums)
         
+        let scaledPhotos = self.firstImageInAlbum()?.scaledPhotos
+        
         try albums.forEach {
-            try albumsContainer.encode($0.url)
+            try albumsContainer.encode(AlbumInAlbum(url: $0.url, name: $0.name, scaledPhotos: scaledPhotos))
         }
         
         //        var keywordsContainer = container.nestedUnkeyedContainer(
@@ -84,6 +86,12 @@ struct PhotoInAlbum : Codable {
     var url : String
     var scaledPhotos: [ScaledPhoto]
     var gps: GPS?
+}
+
+struct AlbumInAlbum : Codable {
+    var url : String
+    var name : String
+    var scaledPhotos: [ScaledPhoto]?
 }
 
 
@@ -114,8 +122,8 @@ extension Album: Decodable {
         var albumsArray = try values.nestedUnkeyedContainer(forKey: .albums)
         var albums: Set<Album> = Set<Album>()
         while (!albumsArray.isAtEnd) {
-            let url = try albumsArray.decode(String.self)
-            if let album = readAndDecodeJsonFile(Album.self, atPath: url) {
+            let albumInAlbum = try albumsArray.decode(AlbumInAlbum.self)
+            if let album = readAndDecodeJsonFile(Album.self, atPath: albumInAlbum.url) {
                 albums.insert(album)
             }
         }
@@ -201,6 +209,16 @@ extension Album {
         newAlbum.people = self.people
         
         return newAlbum
+    }
+    
+    func firstImageInAlbum() -> Photo? {
+        if let photo = self.photos.first {
+            return photo
+        }
+        if let album = self.albums.first {
+            return album.firstImageInAlbum()
+        }
+        return nil
     }
 }
 
@@ -296,7 +314,7 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 
     }
     
-    for (index, photo) in photos.enumerated() {
+    for (index, _) in photos.enumerated() {
         let previous = photos.index(before: index)
         let next = photos.index(after: index)
         if previous == -1 {

@@ -33,6 +33,7 @@ struct Photo: Codable, Comparable, Hashable {
     var cameraMake: String?
     var cameraModel: String?
     var copyright: String?
+    var orientation: Orientation?
     var modifiedDate: Date
     var keywords: Set<String>
     var people: Set<String>
@@ -49,7 +50,6 @@ struct Photo: Codable, Comparable, Hashable {
         self.isoSpeed = []
         self.keywords = []
         self.people = []
-
     }
 }
 
@@ -75,8 +75,11 @@ struct GPS: Codable, Equatable {
     var altitude: Double
     var latitude: Double
     var longitude: Double
-    
+}
 
+enum Orientation: String, Codable {
+    case landscape
+    case portrait
 }
 
 extension Photo {
@@ -250,6 +253,13 @@ func readPhotoFromPath(
             photo.width = dict["PixelWidth"] as? Int
             photo.height = dict["PixelHeight"] as? Int
             
+            if let width = photo.width, let height = photo.height {
+                if width > height {
+                    photo.orientation = Orientation.landscape
+                } else {
+                    photo.orientation = Orientation.portrait
+                }
+            }
             
             if let exif = dict["{Exif}"] as? [String: Any] {
                 photo.aperture = exif["ApertureValue"] as? Double
