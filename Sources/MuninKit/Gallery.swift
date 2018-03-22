@@ -74,7 +74,7 @@ public struct Gallery {
         
         // read input directory
         let inputStart = Date()
-        let input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, config: config)
+        let input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, parents: [], config: config)
         let inputEnd = Date()
         log.info("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
         

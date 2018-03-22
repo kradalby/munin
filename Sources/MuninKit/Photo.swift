@@ -15,6 +15,7 @@ struct Photo: Codable, Comparable, Hashable {
     var originalImageURL: String
     var originalImagePath: String
     var scaledPhotos: [ScaledPhoto]
+    var parents: [Parent]
 
     // Metadata
     var aperture: Double?
@@ -40,12 +41,13 @@ struct Photo: Codable, Comparable, Hashable {
     var next: String?
     var previous: String?
 
-    init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto], modifiedDate: Date) {
+    init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto], modifiedDate: Date, parents: [Parent]) {
         self.name = name
         self.url = url
         self.originalImageURL = originalImageURL
         self.originalImagePath = originalImagePath
         self.scaledPhotos = scaledPhotos
+        self.parents = parents
         self.modifiedDate = modifiedDate
         self.isoSpeed = []
         self.keywords = []
@@ -89,7 +91,8 @@ extension Photo {
         guard lhs.originalImageURL == rhs.originalImageURL else { return false }
         guard lhs.originalImagePath == rhs.originalImagePath else { return false }
         guard lhs.scaledPhotos == rhs.scaledPhotos else { return false }
-        
+        guard lhs.parents == rhs.parents else { return false }
+
         // Metadata
         guard lhs.aperture == rhs.aperture else { return false }
         guard lhs.dateTime == rhs.dateTime else { return false }
@@ -221,6 +224,7 @@ func readPhotoFromPath(
     outPath: String,
     name: String,
     fileExtension: String,
+    parents: [Parent],
     config: GalleryConfiguration
     ) -> Photo? {
     let dateFormatter = DateFormatter()
@@ -251,7 +255,8 @@ func readPhotoFromPath(
                         maxResolution: $0)
                     }
                 ),
-                modifiedDate: fileModificationDate(url: fileURL) ?? Date() // If no modifiation date is available, use now.
+                modifiedDate: fileModificationDate(url: fileURL) ?? Date(), // If no modifiation date is available, use now.
+                parents: parents
             )
 
             photo.width = dict["PixelWidth"] as? Int

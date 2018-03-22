@@ -15,9 +15,10 @@ struct Album: Hashable, Comparable {
     var albums: Set<Album>
     var keywords: Set<String>
     var people: Set<String>
+    var parents : [Parent]
     
     
-    init(name: String, path: String) {
+    init(name: String, path: String, parents: [Parent]) {
         self.name = name
         self.path = path
         self.url = joinPath(paths: path, "index.json")
@@ -25,6 +26,7 @@ struct Album: Hashable, Comparable {
         self.albums = []
         self.keywords = Set()
         self.people = Set()
+        self.parents = parents
     }
     
     enum CodingKeys: String, CodingKey {
@@ -35,6 +37,7 @@ struct Album: Hashable, Comparable {
         case albums
         case keywords
         case people
+        case parents
     }
     
 }
@@ -48,6 +51,8 @@ extension Album: Encodable {
         try container.encode(path, forKey: .path)
         try container.encode(keywords, forKey: .keywords)
         try container.encode(people, forKey: .people)
+        try container.encode(parents, forKey: .parents)
+
         
         var photosContainer = container.nestedUnkeyedContainer(
             forKey: .photos)
@@ -94,6 +99,24 @@ struct AlbumInAlbum : Codable {
     var scaledPhotos: [ScaledPhoto]
 }
 
+struct Parent : Codable, Comparable {
+    var name : String
+    var url : String
+    
+    static func ==(lhs: Parent, rhs: Parent) -> Bool {
+        guard lhs.name == rhs.name else { return false }
+        guard lhs.url == rhs.url else { return false }
+        return true
+    }
+    
+    static func <(lhs: Parent, rhs: Parent) -> Bool {
+        return lhs.name < rhs.name
+    }
+    
+    var hashValue: Int {
+        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    }
+}
 
 extension Album: Decodable {
     init(from decoder: Decoder) throws
@@ -104,7 +127,8 @@ extension Album: Decodable {
         self.path = try values.decode(String.self, forKey: .path)
         self.keywords = try values.decode(Set<String>.self, forKey: .keywords)
         self.people = try values.decode(Set<String>.self, forKey: .people)
-        
+        self.parents = try values.decode([Parent].self, forKey: .parents)
+
         
         //        self.photos = try values.decode([Photo].self, forKey: .photos)
         //        self.albums = try values.decode([Album].self, forKey: .albums)
@@ -201,7 +225,7 @@ extension Album {
     }
     
     func copyWithoutChildren() -> Album {
-        var newAlbum = Album(name: self.name, path: self.path)
+        var newAlbum = Album(name: self.name, path: self.path, parents: self.parents)
         newAlbum.url = self.url
         newAlbum.photos = []
         newAlbum.albums = []
@@ -235,6 +259,8 @@ extension Album {
         guard lhs.albums == rhs.albums else { return false }
         guard lhs.keywords == rhs.keywords else { return false }
         guard lhs.people == rhs.people else { return false }
+        guard lhs.parents == rhs.parents else { return false }
+
         return true
     }
     
@@ -274,10 +300,16 @@ extension Album {
     }
 }
 
-func readStateFromInputDirectory(atPath: String, outPath: String, name: String, config: GalleryConfiguration) -> Album {
+func readStateFromInputDirectory(atPath: String, outPath: String, name: String, parents: [Parent] ,config: GalleryConfiguration) -> Album {
     log.info("Creating album from path: \(joinPath(paths: atPath))")
     let fm = FileManager()
-    var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)))
+    
+    var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)), parents: parents)
+    let parent = Parent(name: album.name, url: album.url)
+    var newParents = parents
+    newParents.append(parent)
+    
+    
     var photos = Array<Photo>()
     if let files = try? fm.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
         for element in files {
@@ -288,7 +320,8 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 
 //                concurrentPhotoReadDirectoryGroup.enter()
 //                concurrentQueue.async {
-                    let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, config: config)
+                
+                let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, parents: newParents, config: config)
                     album.albums.insert(childAlbum)
                     album.keywords = album.keywords.union(childAlbum.keywords)
                     album.people = album.people.union(childAlbum.people)
@@ -302,7 +335,14 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                     if config.fileExtentions.contains(fileExtension) {
 //                        concurrentQueue.async {
 //                            concurrentPhotoReadDirectoryGroup.enter()
-                            if let photo = readPhotoFromPath(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, urlifyName(name)), name: fileNameWithoutExtension, fileExtension: fileExtension, config: config) {
+                            if let photo = readPhotoFromPath(
+                                atPath: joinPath(paths: atPath, element),
+                                outPath: joinPath(paths: outPath, urlifyName(name)),
+                                name: fileNameWithoutExtension,
+                                fileExtension: fileExtension,
+                                parents: newParents,
+                                config: config) {
+                                
                                 photos.append(photo)
                             }
 //                            concurrentPhotoReadDirectoryGroup.leave()
