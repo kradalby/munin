@@ -1,5 +1,5 @@
 {
-    "name": "krapic",
+    "name": "root",
     "people": [
         "Kristoffer Andreas Dalby",
         "Denisa Dosenovicova",
@@ -14,7 +14,7 @@
     "resolutions": [1200, 992, 768, 576, 300],
     "jpegCompression": 0.2,
     "inputPath": "sample",
-    "outputPath": "out",
+    "outputPath": "content",
     "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
     "logLevel": 5
 }
