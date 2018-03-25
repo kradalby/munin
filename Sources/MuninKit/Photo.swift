@@ -22,6 +22,7 @@ struct Photo: Codable, Comparable, Hashable {
     var dateTime: Date?
     var fNumber: Double?
     var focalLength: Double?
+    var exposureTime: Double?
     var isoSpeed: Set<Int>
     var width: Int?
     var height: Int?
@@ -276,6 +277,7 @@ func readPhotoFromPath(
                 photo.meteringMode = exif["MeteringMode"] as? Int
                 photo.shutterSpeed = exif["ShutterSpeedValue"] as? Double
                 photo.focalLength = exif["FocalLength"] as? Double
+                photo.exposureTime = exif["ExposureTime"] as? Double
 
                 if let isoSpeed = exif["ISOSpeedRatings"] as? [Int] {
                     photo.isoSpeed = Set(isoSpeed)
