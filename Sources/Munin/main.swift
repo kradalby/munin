@@ -12,21 +12,20 @@ let main = command(
     Flag("dry", default: false, description: "Dry-run, do not write gallery"),
     Flag("json", default: false, description: "Write only JSON files, no images, useful for updating data with new munin features")
 ) { config, dry, json in
-    
 
     let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
 
     log = Logger(config.logLevel)
 
     let gallery = Gallery(config: config)
-    
+
     if !dry {
         let start = Date()
         gallery.build(jsonOnly: json)
         let end = Date()
-        
+
         let executionTime = end.timeIntervalSince(start)
-        
+
         log.info("Generated in: \(executionTime) seconds")
     }
     let stats = gallery.statistics().toString()
@@ -34,8 +33,3 @@ let main = command(
 }
 
 main.run()
-
-
-
-
-

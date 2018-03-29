@@ -8,7 +8,6 @@
 import Foundation
 import ImageIO
 
-
 struct Photo: Codable, Comparable, Hashable {
     var name: String
     var url: String
@@ -111,7 +110,7 @@ extension Photo {
         guard lhs.cameraMake == rhs.cameraMake else { return false }
         guard lhs.cameraModel == rhs.cameraModel else { return false }
         guard lhs.copyright == rhs.copyright else { return false }
-       
+
 //        if lhs.modifiedDate != rhs.modifiedDate {
 //            log.debug("image: \(lhs.name)")
 //            log.debug("\(lhs.modifiedDate) \(rhs.modifiedDate) \(lhs.modifiedDate == rhs.modifiedDate)")
@@ -135,7 +134,7 @@ extension Photo {
 }
 
 extension Photo {
-    func write(config: GalleryConfiguration, jsonOnly: Bool) -> Void {
+    func write(config: GalleryConfiguration, jsonOnly: Bool) {
 
         // Only write images and symlink if the user wants to
         if !jsonOnly {
@@ -153,7 +152,7 @@ extension Photo {
                     }
                 }
             }
-            
+
             let relativeOriginialPath = Array(repeating: "..", count: self.depth()) + [self.originalImagePath]
             log.info("Symlinking original image \(self.name) to \(self.originalImageURL)")
             do {
@@ -161,7 +160,7 @@ extension Photo {
             } catch {
                 log.error("Could not symlink image \(self.name) to \(self.originalImageURL) with error: \n\(error)")
             }
-            
+
         }
 
         log.info("Writing metadata for image \(self.name)")
@@ -179,8 +178,8 @@ extension Photo {
             }
         }
     }
-    
-    func destroy(config: GalleryConfiguration) -> Void {
+
+    func destroy(config: GalleryConfiguration) {
         let fm = FileManager()
         log.info("Removing image \(self.name)")
         let jsonURL = NSURL.fileURL(withPath: self.url)
@@ -190,13 +189,13 @@ extension Photo {
         } catch {
             log.error("Could not remove image json \(self.name) at path \(self.url)")
         }
-        
+
         do {
             try fm.removeItem(at: symlinkedImageURL)
         } catch {
             log.error("Could not remove image json \(self.name) at path \(self.originalImageURL)")
         }
-        
+
         for scaledPhoto in self.scaledPhotos {
             let fileURL = NSURL.fileURL(withPath: scaledPhoto.url)
             do {
@@ -207,7 +206,7 @@ extension Photo {
         }
 
     }
-    
+
     func depth() -> Int {
         let char: Character = "/"
         var counter = 0
@@ -242,7 +241,6 @@ func readPhotoFromPath(
         //            print(hash.toHexString())
         //        }
 
-
         let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
         if let dict = imageProperties as? [String: Any] {
             var photo = Photo(
@@ -250,8 +248,7 @@ func readPhotoFromPath(
                 url: "\(joinPath(paths: outPath, name)).json",
                 originalImageURL: "\(joinPath(paths: outPath, name))_original.\(fileExtension)",
                 originalImagePath: atPath,
-                scaledPhotos: config.resolutions.map(
-                    {ScaledPhoto(
+                scaledPhotos: config.resolutions.map({ScaledPhoto(
                         url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
                         maxResolution: $0)
                     }
@@ -262,7 +259,7 @@ func readPhotoFromPath(
 
             photo.width = dict["PixelWidth"] as? Int
             photo.height = dict["PixelHeight"] as? Int
-            
+
             if let width = photo.width, let height = photo.height {
                 if width > height {
                     photo.orientation = Orientation.landscape
@@ -270,7 +267,7 @@ func readPhotoFromPath(
                     photo.orientation = Orientation.portrait
                 }
             }
-            
+
             if let exif = dict["{Exif}"] as? [String: Any] {
                 photo.aperture = exif["ApertureValue"] as? Double
                 photo.fNumber = exif["FNumber"] as? Double
