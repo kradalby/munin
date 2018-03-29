@@ -1,7 +1,5 @@
 # TODO
 
-* Make photo object embedded into index.json
-
 * Bug
   - Reading state from directory concurrently is not working properly
 * Compare state
@@ -12,7 +10,3 @@
 * Look into how handling landscape, standing photos should be done
 
 
-* People and Keyword
-  - Bubble every keyword from the leaf nodes to the top
-  - Keyword/People json that describes all pictures with the given keyword blow the given node
-  - Link keyword json from album
