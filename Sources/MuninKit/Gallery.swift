@@ -133,6 +133,10 @@ public struct Gallery {
         self.input.write(config: config, jsonOnly: jsonOnly)
         concurrentPhotoEncodeGroup.wait()
         
+        buildKeywordsFromAlbum(album:self.input).forEach({$0.write(config: config)})
+        buildPeopleFromAlbum(album:self.input).forEach({$0.write(config: config)})
+
+        
         self.statistics().write(config: self.config)
         Locations(gallery: self).write(config: self.config)
     }

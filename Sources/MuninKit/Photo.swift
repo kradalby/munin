@@ -37,8 +37,8 @@ struct Photo: Codable, Comparable, Hashable {
     var copyright: String?
     var orientation: Orientation?
     var modifiedDate: Date
-    var keywords: Set<String>
-    var people: Set<String>
+    var keywords: Set<KeywordPointer>
+    var people: Set<KeywordPointer>
     var next: String?
     var previous: String?
 
@@ -302,10 +302,11 @@ func readPhotoFromPath(
 
                 if let keywords = iptc["Keywords"] as? [String] {
                     for keyword in keywords {
+                        let keywordPointer = KeywordPointer(name: keyword, url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json")
                         if config.people.contains(keyword) {
-                            photo.people.insert(keyword)
+                            photo.people.insert(keywordPointer)
                         } else {
-                            photo.keywords.insert(keyword)
+                            photo.keywords.insert(keywordPointer)
                         }
                     }
                 }

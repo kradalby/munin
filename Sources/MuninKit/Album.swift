@@ -13,8 +13,8 @@ struct Album: Hashable, Comparable {
     var path: String
     var photos: Set<Photo>
     var albums: Set<Album>
-    var keywords: Set<String>
-    var people: Set<String>
+    var keywords: Set<KeywordPointer>
+    var people: Set<KeywordPointer>
     var parents : [Parent]
     
     
@@ -125,8 +125,8 @@ extension Album: Decodable {
         self.name = try values.decode(String.self, forKey: .name)
         self.url = try values.decode(String.self, forKey: .url)
         self.path = try values.decode(String.self, forKey: .path)
-        self.keywords = try values.decode(Set<String>.self, forKey: .keywords)
-        self.people = try values.decode(Set<String>.self, forKey: .people)
+        self.keywords = try values.decode(Set<KeywordPointer>.self, forKey: .keywords)
+        self.people = try values.decode(Set<KeywordPointer>.self, forKey: .people)
         self.parents = try values.decode([Parent].self, forKey: .parents)
 
         
@@ -290,6 +290,12 @@ extension Album {
         return albums.count
     }
     
+    func flattenPhotos() -> Set<Photo> {
+        return self.photos.union(self.albums.map({$0.flattenPhotos()}).reduce(Set(), { x, y in
+            x.union(y)
+        }))
+    }
+    
     func isEmpty(travers: Bool) -> Bool {
         for album in self.albums {
             if !album.isEmpty(travers: travers) {
@@ -300,7 +306,7 @@ extension Album {
     }
 }
 
-func readStateFromInputDirectory(atPath: String, outPath: String, name: String, parents: [Parent] ,config: GalleryConfiguration) -> Album {
+func readStateFromInputDirectory(atPath: String, outPath: String, name: String, parents: [Parent], config: GalleryConfiguration) -> Album {
     log.info("Creating album from path: \(joinPath(paths: atPath))")
     let fm = FileManager()
     
@@ -358,7 +364,7 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 
     }
     
-    for (index, _) in photos.enumerated() {
+    for (index, photo) in photos.enumerated() {
         let previous = photos.index(before: index)
         let next = photos.index(after: index)
         if previous == -1 {
@@ -373,10 +379,13 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
             photos[index].next = photos[photos.index(after: index)].url
         }
 
-        album.photos.insert(photos[index])
-        album.keywords = album.keywords.union(photos[index].keywords)
-        album.people = album.people.union(photos[index].people)
+        album.photos.insert(photo)
+        
+        album.keywords = album.keywords.union(photo.keywords)
+        album.people = album.people.union(photo.people)
+        
     }
+    
     
     return album
 }

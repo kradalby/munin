@@ -70,6 +70,11 @@ func fileNameWithoutExtension(atPath: String) -> String? {
     return nil
 }
 
+func pathWithoutFileName(atPath: String) -> String? {
+    let url = NSURL(fileURLWithPath: atPath)
+    return url.deletingLastPathComponent?.relativeString
+}
+
 func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat) -> Data? {
     // get source properties so we retain metadata (EXIF) for the downsized image
     if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],

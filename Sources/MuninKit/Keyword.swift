@@ -6,9 +6,9 @@ struct Keyword: Hashable, Comparable {
     var url: String
     var photos: Set<Photo>
     
-    init(name: String, path: String) {
+    init(name: String, url: String) {
         self.name = name
-        self.url = joinPath(paths: path, "\(self.name).json")
+        self.url = url
         self.photos = []
     }
     
@@ -16,9 +16,10 @@ struct Keyword: Hashable, Comparable {
         case name
         case url
         case photos
-        case path
+//        case path
     }
 }
+
 
 extension Keyword: Encodable {
     func encode(to encoder: Encoder) throws
@@ -32,7 +33,7 @@ extension Keyword: Encodable {
             forKey: .photos)
         
         try photos.forEach {
-            try photosContainer.encode($0.url)
+            try photosContainer.encode(PhotoInAlbum(url: $0.url, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
         }
         
     }
@@ -52,8 +53,8 @@ extension Keyword: Decodable {
         var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
         var photos: Set<Photo> = Set<Photo>()
         while (!photosArray.isAtEnd) {
-            let url = try photosArray.decode(String.self)
-            if let photo = readAndDecodeJsonFile(Photo.self, atPath: url) {
+            let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
+            if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
                 photos.insert(photo)
             }
         }
@@ -64,7 +65,6 @@ extension Keyword: Decodable {
 extension Keyword {
     static func <(lhs: Keyword, rhs: Keyword) -> Bool {
         return lhs.name < rhs.name
-        
     }
     
     static func ==(lhs: Keyword, rhs: Keyword) -> Bool {
@@ -104,4 +104,72 @@ extension Keyword {
         }
     }
 }
+
+func buildKeywordsFromAlbum(album: Album) -> [Keyword] {
+    var temporary: [String : Keyword] = [:]
+
+    for photo in album.flattenPhotos() {
+        for keywordPointer in photo.keywords {
+            if temporary.keys.contains(keywordPointer.name) {
+                temporary[keywordPointer.name]!.photos.insert(photo)
+            } else {
+                var keyword = Keyword(name: keywordPointer.name, url: keywordPointer.url)
+                keyword.photos.insert(photo)
+                temporary[keywordPointer.name] = keyword
+            }
+        }
+    
+    }
+    return temporary.values.map({$0})
+}
+
+func buildPeopleFromAlbum(album: Album) -> [Keyword] {
+    var temporary: [String : Keyword] = [:]
+    
+    for photo in album.flattenPhotos() {
+                for keywordPointer in photo.people {
+                    if temporary.keys.contains(keywordPointer.name) {
+                        temporary[keywordPointer.name]!.photos.insert(photo)
+                    } else {
+                        var keyword = Keyword(name: keywordPointer.name, url: keywordPointer.url)
+                        keyword.photos.insert(photo)
+                        temporary[keywordPointer.name] = keyword
+                    }
+                }
+    }
+    return temporary.values.map({$0})
+}
+
+struct KeywordPointer: Hashable, Comparable, Codable {
+    var name: String
+    var url: String
+    
+    static func <(lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
+        return lhs.name < rhs.name
+    }
+    
+    static func ==(lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
+        guard lhs.name == rhs.name else { return false }
+        guard lhs.url == rhs.url else { return false }
+        
+        return true
+    }
+    
+    static func ==(lhs: Keyword, rhs: KeywordPointer) -> Bool {
+        guard lhs.name == rhs.name else { return false }
+        guard lhs.url == rhs.url else { return false }
+        
+        return true
+    }
+    
+    static func ==(lhs: KeywordPointer, rhs: Keyword) -> Bool {
+        return rhs == lhs
+    }
+    
+    var hashValue: Int {
+        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    }
+}
+
+
 
