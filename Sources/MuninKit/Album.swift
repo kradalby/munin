@@ -368,8 +368,8 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
             photos[index].next = photos[photos.index(after: index)].url
         }
 
-        album.photos.insert(photo)
-
+        album.photos.insert(photos[index])
+        
         album.keywords = album.keywords.union(photo.keywords)
         album.people = album.people.union(photo.people)
 
