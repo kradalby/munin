@@ -116,16 +116,26 @@ public struct Gallery {
     }
 
     public func build(jsonOnly: Bool) {
-//        if let added = self.addedDiff {
-//            added.write(config: config)
-//            concurrentPhotoEncodeGroup.wait()
-//        }
+        if let removed = self.removedDiff {
+            log.info("Removing images from diff")
+            removed.destroy(config: config)
+        }
+        
+        if let added = self.addedDiff {
+            log.info("Adding images from diff")
+            added.write(config: config, writeJson: false, writeImage: !jsonOnly)
+            concurrentPhotoEncodeGroup.wait()
+        }
 
-//        if let removed = self.removedDiff {
-//            removed.destroy(config: config)
-//        }
+        log.info("----------------------------------------------------------------------------")
+        
+        // We have already changed the actual image files, so we only write json
+        if self.addedDiff == nil && self.removedDiff == nil {
+            self.input.write(config: config, writeJson: true, writeImage: true)
 
-        self.input.write(config: config, jsonOnly: jsonOnly)
+        } else {
+            self.input.write(config: config, writeJson: true, writeImage: false)
+        }
         concurrentPhotoEncodeGroup.wait()
 
         buildKeywordsFromAlbum(album: self.input).forEach({$0.write(config: config)})
@@ -138,7 +148,6 @@ public struct Gallery {
     public func statistics() -> Statistics {
         return Statistics(gallery: self)
     }
-
 }
 
 func diff(new: Album, old: Album) -> (Album?, Album?) {

@@ -170,7 +170,7 @@ extension Album: Decodable {
 }
 
 extension Album {
-    public func write(config: GalleryConfiguration, jsonOnly: Bool) {
+    public func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
         let fm = FileManager()
         do {
             try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
@@ -181,23 +181,26 @@ extension Album {
                 encoder.dateEncodingStrategy = .iso8601
             }
 
-            if let encodedData = try? encoder.encode(self) {
-                do {
-                    log.trace("Writing album metadata \(self.name) to \(self.url)")
-                    try encodedData.write(to: URL(fileURLWithPath: self.url))
-                } catch {
-                    log.error("Could not write album \(self.name) to \(self.url) with error: \n\(error)")
+            if writeJson {
+                if let encodedData = try? encoder.encode(self) {
+                    do {
+                        log.trace("Writing album metadata \(self.name) to \(self.url)")
+                        try encodedData.write(to: URL(fileURLWithPath: self.url))
+                    } catch {
+                        log.error("Could not write album \(self.name) to \(self.url) with error: \n\(error)")
+                    }
                 }
             }
-
+                
             for album in self.albums {
-                album.write(config: config, jsonOnly: jsonOnly)
+                album.write(config: config, writeJson: writeJson, writeImage: writeImage)
             }
 
+            log.info("Album: \(self.name) has \(writeImage)")
             for photo in self.photos {
                 concurrentQueue.async {
                     concurrentPhotoEncodeGroup.enter()
-                    photo.write(config: config, jsonOnly: jsonOnly)
+                    photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
                     concurrentPhotoEncodeGroup.leave()
                 }
             }
@@ -210,10 +213,15 @@ extension Album {
     public func destroy(config: GalleryConfiguration) {
 //        let fm = FileManager()
 
+        log.info("Inside: \(self.name)")
+        log.info("Destroying: \(self.photos)")
         for photo in self.photos {
             photo.destroy(config: config)
         }
-
+        
+        for album in self.albums {
+            album.destroy(config: config)
+        }
     }
 
     func copyWithoutChildren() -> Album {

@@ -134,10 +134,11 @@ extension Photo {
 }
 
 extension Photo {
-    func write(config: GalleryConfiguration, jsonOnly: Bool) {
+    func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
 
+        log.info("Photo: \(self.name) has \(writeImage)")
         // Only write images and symlink if the user wants to
-        if !jsonOnly {
+        if writeImage {
             log.info("Writing image \(self.name)")
             let fileURL = NSURL.fileURL(withPath: self.originalImagePath)
             if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
@@ -163,25 +164,27 @@ extension Photo {
 
         }
 
-        log.info("Writing metadata for image \(self.name)")
-        let encoder = JSONEncoder()
-        if #available(OSX 10.12, *) {
-            encoder.dateEncodingStrategy = .iso8601
-        }
-
-        if let encodedData = try? encoder.encode(self) {
-            do {
-                log.trace("Writing image metadata \(self.name) to \(self.url)")
-                try encodedData.write(to: URL(fileURLWithPath: self.url))
-            } catch {
-                log.error("Could not write image \(self.name) to \(self.url) with error: \n\(error)")
+        if writeJson {
+            log.info("Writing metadata for image \(self.name)")
+            let encoder = JSONEncoder()
+            if #available(OSX 10.12, *) {
+                encoder.dateEncodingStrategy = .iso8601
+            }
+            
+            if let encodedData = try? encoder.encode(self) {
+                do {
+                    log.trace("Writing image metadata \(self.name) to \(self.url)")
+                    try encodedData.write(to: URL(fileURLWithPath: self.url))
+                } catch {
+                    log.error("Could not write image \(self.name) to \(self.url) with error: \n\(error)")
+                }
             }
         }
     }
 
     func destroy(config: GalleryConfiguration) {
         let fm = FileManager()
-        log.info("Removing image \(self.name)")
+        log.trace("Removing image \(self.name)")
         let jsonURL = NSURL.fileURL(withPath: self.url)
         let symlinkedImageURL = NSURL.fileURL(withPath: self.originalImageURL)
         do {
