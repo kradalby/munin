@@ -131,6 +131,8 @@ extension Photo {
     var hashValue: Int {
         return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
     }
+    
+    
 }
 
 extension Photo {
@@ -220,6 +222,16 @@ extension Photo {
         }
         return counter
     }
+    
+    
+    func include() -> Bool {
+        for keyword in self.keywords {
+            if keyword.name == "NO_HUGIN" {
+                return false
+            }
+        }
+        return true
+    }
 }
 
 func readPhotoFromPath(
@@ -278,6 +290,9 @@ func readPhotoFromPath(
                 photo.shutterSpeed = exif["ShutterSpeedValue"] as? Double
                 photo.focalLength = exif["FocalLength"] as? Double
                 photo.exposureTime = exif["ExposureTime"] as? Double
+                if let dateTime = tiff["DateTimeOriginal"] as? String {
+                    photo.dateTime = dateFormatter.date(from: dateTime)
+                }
 
                 if let isoSpeed = exif["ISOSpeedRatings"] as? [Int] {
                     photo.isoSpeed = Set(isoSpeed)
@@ -290,9 +305,7 @@ func readPhotoFromPath(
                 photo.imageDescription = tiff["ImageDescription"] as? String
                 photo.cameraMake = tiff["Make"] as? String
                 photo.cameraModel = tiff["Model"] as? String
-                if let dateTime = tiff["DateTime"] as? String {
-                    photo.dateTime = dateFormatter.date(from: dateTime)
-                }
+
             } else {
                 log.warning("TIFF tag not found for photo, some metatags will be unavailable")
             }
