@@ -346,7 +346,11 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                                 parents: newParents,
                                 config: config) {
 
-                                photos.append(photo)
+                                if photo.include() {
+                                    photos.append(photo)
+                                } else {
+                                    log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
+                                }
                             }
 //                            concurrentPhotoReadDirectoryGroup.leave()
 //                        }
