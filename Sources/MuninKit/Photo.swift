@@ -142,7 +142,6 @@ extension Photo {
         return true
     }
 
-//    TODO: sort by date
     static func <(lhs: Photo, rhs: Photo) -> Bool {
         return lhs.name < rhs.name
     }

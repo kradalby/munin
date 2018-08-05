@@ -55,7 +55,7 @@ extension Album: Encodable {
             forKey: .photos)
 
         try photos.forEach {
-            try photosContainer.encode(PhotoInAlbum(url: $0.url, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
+            try photosContainer.encode(PhotoInAlbum(url: $0.url, originalImageURL: $0.originalImageURL, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
         }
 
         var albumsContainer = container.nestedUnkeyedContainer(
@@ -85,6 +85,7 @@ extension Album: Encodable {
 
 struct PhotoInAlbum: Codable {
     var url: String
+    var originalImageURL: String
     var scaledPhotos: [ScaledPhoto]
     var gps: GPS?
 }
