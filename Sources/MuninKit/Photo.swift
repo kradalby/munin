@@ -30,6 +30,7 @@ struct Photo: Codable, Comparable, Hashable {
     var lensModel: String?
     var owner: String?
     var gps: GPS?
+    var location: LocationData?
     var imageDescription: String?
     var cameraMake: String?
     var cameraModel: String?
@@ -79,6 +80,22 @@ struct GPS: Codable, Equatable {
     var longitude: Double
 }
 
+struct LocationData: Codable, Equatable {
+    static func ==(lhs: LocationData, rhs: LocationData) -> Bool {
+        guard lhs.city == rhs.city else { return false }
+        guard lhs.state == rhs.state else { return false }
+        guard lhs.locationCode == rhs.locationCode else { return false }
+        guard lhs.locationName == rhs.locationName else { return false }
+
+        return true
+    }
+    
+    var city : String
+    var state: String
+    var locationCode: String
+    var locationName: String
+}
+
 enum Orientation: String, Codable {
     case landscape
     case portrait
@@ -106,6 +123,7 @@ extension Photo {
         guard lhs.lensModel == rhs.lensModel else { return false }
         guard lhs.owner == rhs.owner else { return false }
         guard lhs.gps == rhs.gps else { return false }
+        guard lhs.location == rhs.location else { return false }
         guard lhs.imageDescription == rhs.imageDescription else { return false }
         guard lhs.cameraMake == rhs.cameraMake else { return false }
         guard lhs.cameraModel == rhs.cameraModel else { return false }
@@ -124,6 +142,7 @@ extension Photo {
         return true
     }
 
+//    TODO: sort by date
     static func <(lhs: Photo, rhs: Photo) -> Bool {
         return lhs.name < rhs.name
     }
@@ -290,7 +309,7 @@ func readPhotoFromPath(
                 photo.shutterSpeed = exif["ShutterSpeedValue"] as? Double
                 photo.focalLength = exif["FocalLength"] as? Double
                 photo.exposureTime = exif["ExposureTime"] as? Double
-                if let dateTime = tiff["DateTimeOriginal"] as? String {
+                if let dateTime = exif["DateTimeOriginal"] as? String {
                     photo.dateTime = dateFormatter.date(from: dateTime)
                 }
 
@@ -311,6 +330,22 @@ func readPhotoFromPath(
             }
 
             if let iptc = dict["{IPTC}"] as? [String: Any] {
+                
+
+                // Add location data if available
+                if let city = iptc["City"] as? String,
+                    let state = iptc["Province/State"] as? String,
+                    let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
+                    let locationName = iptc["Country/PrimaryLocationName"] as? String {
+                    
+                    photo.location = LocationData(city: city,
+                                              state: state,
+                                              locationCode: locationCode,
+                                              locationName: locationName
+                    )
+                }
+                
+                
                 photo.copyright = iptc["CopyrightNotice"] as? String
 
                 if let keywords = iptc["Keywords"] as? [String] {
