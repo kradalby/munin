@@ -26,10 +26,12 @@ let main = command(
 
         let executionTime = end.timeIntervalSince(start)
 
-        log.info("Generated in: \(executionTime) seconds")
+        // TODO: Determine of this should be log or print
+        print("Generated in: \(executionTime) seconds")
     }
     let stats = gallery.statistics().toString()
-    log.info(stats)
+    // TODO: Determine of this should be log or print
+    print(stats)
 }
 
 main.run()

@@ -11,7 +11,7 @@
         "Rohan Ramasamy",
         "Priya Patel"
     ],
-    "resolutions": [1200, 992, 768, 576, 300],
+    "resolutions": [1200, 992, 768, 576, 340, 220, 180],
     "jpegCompression": 0.2,
     "inputPath": "sample",
     "outputPath": "content",

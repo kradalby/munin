@@ -72,7 +72,8 @@ public struct Gallery {
         let inputStart = Date()
         let input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, parents: [], config: config)
         let inputEnd = Date()
-        log.info("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
+        // TODO: Determine of this should be log or print
+        print("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
 
         let outputStart = Date()
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
