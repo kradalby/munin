@@ -16,5 +16,6 @@
     "inputPath": "sample",
     "outputPath": "content",
     "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
-    "logLevel": 5
+    "logLevel": 5,
+    "diff": true
 }

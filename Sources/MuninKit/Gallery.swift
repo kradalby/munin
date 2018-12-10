@@ -29,6 +29,7 @@ public struct GalleryConfiguration: Configuration {
     var outputPath: String
     var fileExtentions: [String]
     public var logLevel: Int
+    public var diff: Bool
 
     enum CodingKeys: String, CodingKey {
         case name
@@ -39,6 +40,7 @@ public struct GalleryConfiguration: Configuration {
         case outputPath
         case fileExtentions
         case logLevel
+        case diff
     }
 
     public init(from decoder: Decoder) throws {
@@ -51,6 +53,7 @@ public struct GalleryConfiguration: Configuration {
         self.outputPath = try values.decode(String.self, forKey: .outputPath)
         self.fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
         self.logLevel = try values.decode(Int.self, forKey: .logLevel)
+        self.diff = try values.decode(Bool.self, forKey: .diff)
     }
 }
 
@@ -79,7 +82,8 @@ public struct Gallery {
         if let album = readStateFromOutputDirectory(indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json") {
             let output = album
             let outputEnd = Date()
-            log.debug("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
+            // TODO: Determine of this should be log or print
+            print("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
 
             log.debug("Input album differs from output album: \(input != output)")
             //        log.debug("Input: \n\(self.input)")
@@ -89,19 +93,27 @@ public struct Gallery {
             let diffStart = Date()
 
                 let (added, removed) = diff(new: input, old: output)
-                if let unwrappedAdded = added, let unwrappedRemoved = removed {
-                    log.debug("Added:")
-                    prettyPrintAlbum(unwrappedAdded)
-                    log.debug("")
-                    log.debug("")
-                    log.debug("Removed:")
-                    prettyPrintAlbum(unwrappedRemoved)
-                    log.debug("")
-                }
-
+            
             let diffEnd = Date()
-            log.debug("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
 
+            if (config.diff) {
+                if let unwrappedAdded = added, let unwrappedRemoved = removed {
+                    print("")
+                    print("")
+                    print("Added:".green)
+    //                    prettyPrintAlbum(unwrappedAdded)
+                    prettyPrintAdded(unwrappedAdded)
+                    print("")
+                    print("")
+                    print("Removed:".red)
+    //                    prettyPrintAlbum(unwrappedRemoved)
+                    prettyPrintRemoved(unwrappedRemoved)
+                    print("")
+                }
+            }
+            // TODO: Determine of this should be log or print
+            print("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
+            
             self.output = output
             self.addedDiff = added
             self.removedDiff = removed

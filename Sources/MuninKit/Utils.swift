@@ -140,15 +140,38 @@ func prettyPrintAlbum(_ album: Album) {
         let indentString = String(repeating: indentCharacter, count: indent)
         let indentChildString = String(repeating: indentCharacter, count: indent + 1)
 
-        log.debug("\(indentString)Album: \(album.name): \(album.path)")
+        // TODO: Determine of this should be log or print
+        print("\(indentString)Album: \(album.name): \(album.path)")
         for photo in album.photos {
-            log.debug("\(indentChildString)Photo: \(photo.name): \(photo.url)")
+            // TODO: Determine of this should be log or print
+            print("\(indentChildString)Photo: \(photo.name): \(photo.url)")
         }
         for childAlbum in album.albums {
             prettyPrintAlbumRecursive(childAlbum, indent: indent + 1)
         }
     }
     prettyPrintAlbumRecursive(album, indent: 0)
+}
+
+func prettyPrintAdded(_ album: Album) {
+    prettyPrintAlbumCompact(album, marker: "[+]".green)
+}
+
+func prettyPrintRemoved(_ album: Album) {
+    prettyPrintAlbumCompact(album, marker: "[-]".red)
+}
+
+func prettyPrintAlbumCompact(_ album: Album, marker: String) {
+    if (!album.photos.isEmpty) {
+        print("Album: \(album.url)")
+    }
+    for photo in album.photos {
+        print("\(marker): \(photo.url)")
+    }
+    
+    for childAlbum in album.albums {
+        prettyPrintAlbumCompact(childAlbum, marker: marker)
+    }
 }
 
 func urlifyName(_ name: String) -> String {
