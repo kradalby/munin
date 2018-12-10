@@ -342,6 +342,15 @@ func readPhotoFromPath(
                                               locationCode: locationCode,
                                               locationName: locationName
                     )
+                    
+                    // Add location names as keywords
+                    let stateKeyword = KeywordPointer(name: state, url: "\(config.outputPath)/keywords/\(urlifyName(state)).json")
+                    let locationCodeKeyword = KeywordPointer(name: locationCode, url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json")
+                    let locationNameKeyword = KeywordPointer(name: locationName, url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json")
+
+                    photo.keywords.insert(stateKeyword)
+                    photo.keywords.insert(locationCodeKeyword)
+                    photo.keywords.insert(locationNameKeyword)
                 }
                 
                 
