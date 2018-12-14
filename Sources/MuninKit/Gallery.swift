@@ -131,18 +131,25 @@ public struct Gallery {
     public func build(jsonOnly: Bool) {
         if let removed = self.removedDiff {
             log.info("Removing images from diff")
+            let removeStart = Date()
             removed.destroy(config: config)
+            let removeEnd = Date()
+            print("Photos removed in \(removeEnd.timeIntervalSince(removeStart)) seconds")
         }
         
         if let added = self.addedDiff {
             log.info("Adding images from diff")
+            let addStart = Date()
             added.write(config: config, writeJson: false, writeImage: !jsonOnly)
             concurrentPhotoEncodeGroup.wait()
+            let addEnd = Date()
+            print("Photos added in \(addEnd.timeIntervalSince(addStart)) seconds")
         }
 
         log.info("----------------------------------------------------------------------------")
         
         // We have already changed the actual image files, so we only write json
+        let writeJsonStart = Date()
         if self.addedDiff == nil && self.removedDiff == nil {
             self.input.write(config: config, writeJson: true, writeImage: true)
 
@@ -150,12 +157,22 @@ public struct Gallery {
             self.input.write(config: config, writeJson: true, writeImage: false)
         }
         concurrentPhotoEncodeGroup.wait()
+        let writeJsonEnd = Date()
+        print("JSON data written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
+        let buildKeywordsStart = Date()
         buildKeywordsFromAlbum(album: self.input).forEach({$0.write(config: config)})
         buildPeopleFromAlbum(album: self.input).forEach({$0.write(config: config)})
-
+        let buildKeywordsEnd = Date()
+        print("Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds")
+        
+        
         self.statistics().write(config: self.config)
+        
+        let locationStart = Date()
         Locations(gallery: self).write(config: self.config)
+        let locationEnd = Date()
+        print("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
     }
 
     public func statistics() -> Statistics {
