@@ -2,6 +2,7 @@ install:
 	echo "Not implemented"
 
 build:
+	sourcery
 	swift build
 
 dev:
