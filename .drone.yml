@@ -1,0 +1,15 @@
+pipeline:
+  lint:
+    image: dantoml/swiftlint:latest
+    commands:
+      - swiftlint
+
+  notify:
+    image: drillster/drone-email
+    host: smtp.fap.no
+    skip_verify: true
+    port: 25
+    from: drone@drone.fap.no
+    recipients: [ kradalby@kradalby.no ]
+    when:
+      status: [ success, changed, failure ]
