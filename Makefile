@@ -1,5 +1,5 @@
-install:
-	echo "Not implemented"
+install: build
+	cp ./.build/x86_64-apple-macosx/debug/munin ~/bin/.
 
 build:
 	sourcery
