@@ -96,7 +96,7 @@ public struct Gallery {
 
             let diffEnd = Date()
 
-            if (config.diff) {
+            if config.diff {
                 if let unwrappedAdded = added, let unwrappedRemoved = removed {
                     print("")
                     print("")

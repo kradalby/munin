@@ -9,9 +9,13 @@ var log = Logger(LogLevel.INFO)
 
 let main = command(
     Option("config", default: "munin.json", description: "JSON based configuration file for munin"),
-    Flag("dry", default: false, description: "Dry-run, do not write gallery"),
+    Flag("dry",
+         default: false,
+         description: "Dry-run, do not write gallery"),
 //    Flag("diff", default: false, description: "Show what will be added and removed"),
-    Flag("json", default: false, description: "Write only JSON files, no images, useful for updating data with new munin features")
+    Flag("json",
+         default: false,
+         description: "Write only JSON files, no images, useful for updating data with new munin features")
 ) { config, dry, json in
 
     let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)

@@ -8,9 +8,9 @@
 import Foundation
 
 func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Decodable {
-    let fm = FileManager()
+    let fileManager = FileManager()
     var isDirectory: ObjCBool = ObjCBool(false)
-    let exists = fm.fileExists(atPath: atPath, isDirectory: &isDirectory)
+    let exists = fileManager.fileExists(atPath: atPath, isDirectory: &isDirectory)
 
     if exists && !isDirectory.boolValue {
         if let indexFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
@@ -36,16 +36,16 @@ func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Dec
 }
 
 func createOrReplaceSymlink(from: String, to: String) throws {
-    let fm = FileManager()
+    let fileManager = FileManager()
 
     var isDirectory: ObjCBool = ObjCBool(false)
-    let exists = fm.fileExists(atPath: to, isDirectory: &isDirectory)
+    let exists = fileManager.fileExists(atPath: to, isDirectory: &isDirectory)
     if exists || isDirectory.boolValue {
         log.trace("Symlink exists, removing \(to)")
-        try fm.removeItem(atPath: to)
+        try fileManager.removeItem(atPath: to)
     }
 
-    try fm.createSymbolicLink(atPath: to, withDestinationPath: from)
+    try fileManager.createSymbolicLink(atPath: to, withDestinationPath: from)
 }
 
 func joinPath(paths: String...) -> String {
@@ -162,7 +162,7 @@ func prettyPrintRemoved(_ album: Album) {
 }
 
 func prettyPrintAlbumCompact(_ album: Album, marker: String) {
-    if (!album.photos.isEmpty) {
+    if !album.photos.isEmpty {
         print("Album: \(album.url)")
     }
     for photo in album.photos {

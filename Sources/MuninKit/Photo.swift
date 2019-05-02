@@ -56,39 +56,39 @@ struct Photo: Codable, Comparable, Hashable {
     }
 }
 
-struct ScaledPhoto: Codable, Equatable {
-    static func ==(lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
-        guard lhs.url == rhs.url else { return false }
-        guard lhs.maxResolution == rhs.maxResolution else { return false }
-        return true
-    }
+struct ScaledPhoto: Codable, AutoEquatable {
+//    static func ==(lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
+//        guard lhs.url == rhs.url else { return false }
+//        guard lhs.maxResolution == rhs.maxResolution else { return false }
+//        return true
+//    }
 
     var url: String
     var maxResolution: Int
 }
 
-struct GPS: Codable, Equatable {
-    static func ==(lhs: GPS, rhs: GPS) -> Bool {
-        guard lhs.altitude == rhs.altitude else { return false }
-        guard lhs.latitude == rhs.latitude else { return false }
-        guard lhs.longitude == rhs.longitude else { return false }
-        return true
-    }
+struct GPS: Codable, AutoEquatable {
+//    static func ==(lhs: GPS, rhs: GPS) -> Bool {
+//        guard lhs.altitude == rhs.altitude else { return false }
+//        guard lhs.latitude == rhs.latitude else { return false }
+//        guard lhs.longitude == rhs.longitude else { return false }
+//        return true
+//    }
 
     var altitude: Double
     var latitude: Double
     var longitude: Double
 }
 
-struct LocationData: Codable, Equatable {
-    static func ==(lhs: LocationData, rhs: LocationData) -> Bool {
-        guard lhs.city == rhs.city else { return false }
-        guard lhs.state == rhs.state else { return false }
-        guard lhs.locationCode == rhs.locationCode else { return false }
-        guard lhs.locationName == rhs.locationName else { return false }
-
-        return true
-    }
+struct LocationData: Codable, AutoEquatable {
+//    static func ==(lhs: LocationData, rhs: LocationData) -> Bool {
+//        guard lhs.city == rhs.city else { return false }
+//        guard lhs.state == rhs.state else { return false }
+//        guard lhs.locationCode == rhs.locationCode else { return false }
+//        guard lhs.locationName == rhs.locationName else { return false }
+//
+//        return true
+//    }
 
     var city: String
     var state: String
@@ -101,53 +101,53 @@ enum Orientation: String, Codable {
     case portrait
 }
 
-extension Photo {
-    static func ==(lhs: Photo, rhs: Photo) -> Bool {
-        guard lhs.name == rhs.name else { return false }
-        guard lhs.url == rhs.url else { return false }
-        guard lhs.originalImageURL == rhs.originalImageURL else { return false }
-        guard lhs.originalImagePath == rhs.originalImagePath else { return false }
-        guard lhs.scaledPhotos == rhs.scaledPhotos else { return false }
-        guard lhs.parents == rhs.parents else { return false }
-
-        // Metadata
-        guard lhs.aperture == rhs.aperture else { return false }
-        guard lhs.dateTime == rhs.dateTime else { return false }
-        guard lhs.fNumber == rhs.fNumber else { return false }
-        guard lhs.focalLength == rhs.focalLength else { return false }
-        guard lhs.isoSpeed == rhs.isoSpeed else { return false }
-        guard lhs.width == rhs.width else { return false }
-        guard lhs.height == rhs.height else { return false }
-        guard lhs.meteringMode == rhs.meteringMode else { return false }
-        guard lhs.shutterSpeed == rhs.shutterSpeed else { return false }
-        guard lhs.lensModel == rhs.lensModel else { return false }
-        guard lhs.owner == rhs.owner else { return false }
-        guard lhs.gps == rhs.gps else { return false }
-        guard lhs.location == rhs.location else { return false }
-        guard lhs.imageDescription == rhs.imageDescription else { return false }
-        guard lhs.cameraMake == rhs.cameraMake else { return false }
-        guard lhs.cameraModel == rhs.cameraModel else { return false }
-        guard lhs.copyright == rhs.copyright else { return false }
-
-//        if lhs.modifiedDate != rhs.modifiedDate {
-//            log.debug("image: \(lhs.name)")
-//            log.debug("\(lhs.modifiedDate) \(rhs.modifiedDate) \(lhs.modifiedDate == rhs.modifiedDate)")
-//            log.debug("\(lhs.modifiedDate.timeIntervalSince(rhs.modifiedDate))")
+extension Photo: AutoEquatable {
+//    static func ==(lhs: Photo, rhs: Photo) -> Bool {
+//        guard lhs.name == rhs.name else { return false }
+//        guard lhs.url == rhs.url else { return false }
+//        guard lhs.originalImageURL == rhs.originalImageURL else { return false }
+//        guard lhs.originalImagePath == rhs.originalImagePath else { return false }
+//        guard lhs.scaledPhotos == rhs.scaledPhotos else { return false }
+//        guard lhs.parents == rhs.parents else { return false }
 //
-//        }
-
-        guard lhs.modifiedDate == rhs.modifiedDate else { return false }
-        guard lhs.keywords == rhs.keywords else { return false }
-        guard lhs.people == rhs.people else { return false }
-        return true
-    }
+//        // Metadata
+//        guard lhs.aperture == rhs.aperture else { return false }
+//        guard lhs.dateTime == rhs.dateTime else { return false }
+//        guard lhs.fNumber == rhs.fNumber else { return false }
+//        guard lhs.focalLength == rhs.focalLength else { return false }
+//        guard lhs.isoSpeed == rhs.isoSpeed else { return false }
+//        guard lhs.width == rhs.width else { return false }
+//        guard lhs.height == rhs.height else { return false }
+//        guard lhs.meteringMode == rhs.meteringMode else { return false }
+//        guard lhs.shutterSpeed == rhs.shutterSpeed else { return false }
+//        guard lhs.lensModel == rhs.lensModel else { return false }
+//        guard lhs.owner == rhs.owner else { return false }
+//        guard lhs.gps == rhs.gps else { return false }
+//        guard lhs.location == rhs.location else { return false }
+//        guard lhs.imageDescription == rhs.imageDescription else { return false }
+//        guard lhs.cameraMake == rhs.cameraMake else { return false }
+//        guard lhs.cameraModel == rhs.cameraModel else { return false }
+//        guard lhs.copyright == rhs.copyright else { return false }
+//
+////        if lhs.modifiedDate != rhs.modifiedDate {
+////            log.debug("image: \(lhs.name)")
+////            log.debug("\(lhs.modifiedDate) \(rhs.modifiedDate) \(lhs.modifiedDate == rhs.modifiedDate)")
+////            log.debug("\(lhs.modifiedDate.timeIntervalSince(rhs.modifiedDate))")
+////
+////        }
+//
+//        guard lhs.modifiedDate == rhs.modifiedDate else { return false }
+//        guard lhs.keywords == rhs.keywords else { return false }
+//        guard lhs.people == rhs.people else { return false }
+//        return true
+//    }
 
     static func <(lhs: Photo, rhs: Photo) -> Bool {
         return lhs.name < rhs.name
     }
-
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(url)
     }
 
 }
@@ -284,7 +284,8 @@ func readPhotoFromPath(
                         maxResolution: $0)
                     }
                 ),
-                modifiedDate: fileModificationDate(url: fileURL) ?? Date(), // If no modifiation date is available, use now.
+                // If no modifiation date is available, use now.
+                modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
                 parents: parents
             )
 

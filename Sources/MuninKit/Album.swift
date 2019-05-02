@@ -96,23 +96,20 @@ struct AlbumInAlbum: Codable {
     var scaledPhotos: [ScaledPhoto]
 }
 
-struct Parent: Codable, Comparable {
+struct Parent: Codable, AutoEquatable {
     var name: String
     var url: String
 
-    static func ==(lhs: Parent, rhs: Parent) -> Bool {
-        guard lhs.name == rhs.name else { return false }
-        guard lhs.url == rhs.url else { return false }
-        return true
-    }
+//    static func ==(lhs: Parent, rhs: Parent) -> Bool {
+//        guard lhs.name == rhs.name else { return false }
+//        guard lhs.url == rhs.url else { return false }
+//        return true
+//    }
 
-    static func <(lhs: Parent, rhs: Parent) -> Bool {
+    static func < (lhs: Parent, rhs: Parent) -> Bool {
         return lhs.name < rhs.name
     }
 
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-    }
 }
 
 extension Album: Decodable {
@@ -130,7 +127,7 @@ extension Album: Decodable {
 
         var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
         var photos: Set<Photo> = Set<Photo>()
-        while (!photosArray.isAtEnd) {
+        while !photosArray.isAtEnd {
             let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
             if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
                 photos.insert(photo)
@@ -140,7 +137,7 @@ extension Album: Decodable {
 
         var albumsArray = try values.nestedUnkeyedContainer(forKey: .albums)
         var albums: Set<Album> = Set<Album>()
-        while (!albumsArray.isAtEnd) {
+        while !albumsArray.isAtEnd {
             let albumInAlbum = try albumsArray.decode(AlbumInAlbum.self)
             if let album = readAndDecodeJsonFile(Album.self, atPath: albumInAlbum.url) {
                 albums.insert(album)
@@ -172,9 +169,9 @@ extension Album: Decodable {
 
 extension Album {
     public func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
-        let fm = FileManager()
+        let fileManager = FileManager()
         do {
-            try fm.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
 
             log.info("Writing metadata for album \(self.name)")
             let encoder = JSONEncoder()
@@ -251,29 +248,30 @@ extension Album {
     }
 }
 
-extension Album {
-    static func ==(lhs: Album, rhs: Album) -> Bool {
-        guard lhs.name == rhs.name else { return false }
-        guard lhs.url == rhs.url else { return false }
-        guard lhs.path == rhs.path else { return false }
-        guard lhs.photos == rhs.photos else { return false }
-        guard lhs.albums == rhs.albums else { return false }
-        guard lhs.keywords == rhs.keywords else { return false }
-        guard lhs.people == rhs.people else { return false }
-        guard lhs.parents == rhs.parents else { return false }
+extension Album: AutoEquatable {
+//    static func ==(lhs: Album, rhs: Album) -> Bool {
+//        guard lhs.name == rhs.name else { return false }
+//        guard lhs.url == rhs.url else { return false }
+//        guard lhs.path == rhs.path else { return false }
+//        guard lhs.photos == rhs.photos else { return false }
+//        guard lhs.albums == rhs.albums else { return false }
+//        guard lhs.keywords == rhs.keywords else { return false }
+//        guard lhs.people == rhs.people else { return false }
+//        guard lhs.parents == rhs.parents else { return false }
+//
+//        return true
+//    }
 
-        return true
-    }
-
-    static func <(lhs: Album, rhs: Album) -> Bool {
+    static func < (lhs: Album, rhs: Album) -> Bool {
         return lhs.name < rhs.name
     }
 
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(url)
     }
 
 }
+
 
 extension Album {
     func numberOfPhotos(travers: Bool) -> Int {

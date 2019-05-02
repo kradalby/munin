@@ -45,7 +45,7 @@ extension Keyword: Decodable {
         // Here we will end up with the same picture twice in memory, is that a problem?
         var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
         var photos: Set<Photo> = Set<Photo>()
-        while (!photosArray.isAtEnd) {
+        while !photosArray.isAtEnd {
             let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
             if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
                 photos.insert(photo)
@@ -55,22 +55,24 @@ extension Keyword: Decodable {
     }
 }
 
-extension Keyword {
-    static func <(lhs: Keyword, rhs: Keyword) -> Bool {
+
+
+extension Keyword: AutoEquatable {
+    static func < (lhs: Keyword, rhs: Keyword) -> Bool {
         return lhs.name < rhs.name
     }
 
-    static func ==(lhs: Keyword, rhs: Keyword) -> Bool {
-        guard lhs.name == rhs.name else { return false }
-        guard lhs.url == rhs.url else { return false }
-        guard lhs.photos == rhs.photos else { return false }
+//    static func == (lhs: Keyword, rhs: Keyword) -> Bool {
+//        guard lhs.name == rhs.name else { return false }
+//        guard lhs.url == rhs.url else { return false }
+//        guard lhs.photos == rhs.photos else { return false }
+//
+//        return true
+//    }
 
-        return true
-    }
-
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-    }
+//    var hash: Int {
+//        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
+//    }
 
 }
 
@@ -137,29 +139,26 @@ struct KeywordPointer: Hashable, Comparable, Codable {
     var name: String
     var url: String
 
-    static func <(lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
+    static func < (lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
         return lhs.name < rhs.name
     }
 
-    static func ==(lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
+    static func == (lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
 
         return true
     }
 
-    static func ==(lhs: Keyword, rhs: KeywordPointer) -> Bool {
+    static func == (lhs: Keyword, rhs: KeywordPointer) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
 
         return true
     }
 
-    static func ==(lhs: KeywordPointer, rhs: Keyword) -> Bool {
+    static func == (lhs: KeywordPointer, rhs: Keyword) -> Bool {
         return rhs == lhs
     }
 
-    var hashValue: Int {
-        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-    }
 }
