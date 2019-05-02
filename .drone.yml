@@ -1,8 +1,11 @@
 pipeline:
   lint:
-    image: dantoml/swiftlint:latest
+    image: kradalby/swift-mint:latest 
     commands:
-      - swiftlint
+        - mint install realm/SwiftLint
+        - mint install nicklockwood/SwiftFormat
+        - swiftlint
+        - swiftformat --lint Sources
 
   notify:
     image: drillster/drone-email
