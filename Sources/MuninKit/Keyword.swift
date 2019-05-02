@@ -1,7 +1,6 @@
 import Foundation
 
 struct Keyword: Hashable, Comparable {
-
     var name: String
     var url: String
     var photos: Set<Photo>
@@ -9,7 +8,7 @@ struct Keyword: Hashable, Comparable {
     init(name: String, url: String) {
         self.name = name
         self.url = url
-        self.photos = []
+        photos = []
     }
 
     enum CodingKeys: String, CodingKey {
@@ -27,20 +26,27 @@ extension Keyword: Encodable {
         try container.encode(url, forKey: .url)
 
         var photosContainer = container.nestedUnkeyedContainer(
-            forKey: .photos)
+            forKey: .photos
+        )
 
         try photos.forEach {
-            try photosContainer.encode(PhotoInAlbum(url: $0.url, originalImageURL: $0.originalImageURL, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
+            try photosContainer.encode(
+                PhotoInAlbum(
+                    url: $0.url,
+                    originalImageURL: $0.originalImageURL,
+                    scaledPhotos: $0.scaledPhotos,
+                    gps: $0.gps
+                )
+            )
         }
-
     }
 }
 
 extension Keyword: Decodable {
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try values.decode(String.self, forKey: .name)
-        self.url = try values.decode(String.self, forKey: .url)
+        name = try values.decode(String.self, forKey: .name)
+        url = try values.decode(String.self, forKey: .url)
 
         // Here we will end up with the same picture twice in memory, is that a problem?
         var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
@@ -55,32 +61,28 @@ extension Keyword: Decodable {
     }
 }
 
-
-
 extension Keyword: AutoEquatable {
     static func < (lhs: Keyword, rhs: Keyword) -> Bool {
         return lhs.name < rhs.name
     }
-
-
 }
 
 extension Keyword {
-    func write(config: GalleryConfiguration) {
-        let fm = FileManager()
-        let path = URL(fileURLWithPath: self.url).deletingLastPathComponent()
+    func write(config _: GalleryConfiguration) {
+        let fileManager = FileManager()
+        let path = URL(fileURLWithPath: url).deletingLastPathComponent()
         do {
-            try fm.createDirectory(at: path, withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: path, withIntermediateDirectories: true)
 
-            log.info("Writing metadata for \(type(of: self)) \(self.name)")
+            log.info("Writing metadata for \(type(of: self)) \(name)")
             let encoder = JSONEncoder()
 
             if let encodedData = try? encoder.encode(self) {
                 do {
-                    log.trace("Writing \(type(of: self)) metadata \(self.name) to \(self.url)")
-                    try encodedData.write(to: URL(fileURLWithPath: self.url))
+                    log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
+                    try encodedData.write(to: URL(fileURLWithPath: url))
                 } catch {
-                    log.error("Could not write \(type(of: self)) \(self.name) to \(self.url) with error: \n\(error)")
+                    log.error("Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
                 }
             }
         } catch {
@@ -102,26 +104,25 @@ func buildKeywordsFromAlbum(album: Album) -> [Keyword] {
                 temporary[keywordPointer.name] = keyword
             }
         }
-
     }
-    return temporary.values.map({$0})
+    return temporary.values.map { $0 }
 }
 
 func buildPeopleFromAlbum(album: Album) -> [Keyword] {
     var temporary: [String: Keyword] = [:]
 
     for photo in album.flattenPhotos() {
-                for keywordPointer in photo.people {
-                    if temporary.keys.contains(keywordPointer.name) {
-                        temporary[keywordPointer.name]!.photos.insert(photo)
-                    } else {
-                        var keyword = Keyword(name: keywordPointer.name, url: keywordPointer.url)
-                        keyword.photos.insert(photo)
-                        temporary[keywordPointer.name] = keyword
-                    }
-                }
+        for keywordPointer in photo.people {
+            if temporary.keys.contains(keywordPointer.name) {
+                temporary[keywordPointer.name]!.photos.insert(photo)
+            } else {
+                var keyword = Keyword(name: keywordPointer.name, url: keywordPointer.url)
+                keyword.photos.insert(photo)
+                temporary[keywordPointer.name] = keyword
+            }
+        }
     }
-    return temporary.values.map({$0})
+    return temporary.values.map { $0 }
 }
 
 struct KeywordPointer: Hashable, Comparable, Codable {
@@ -149,5 +150,4 @@ struct KeywordPointer: Hashable, Comparable, Codable {
     static func == (lhs: KeywordPointer, rhs: Keyword) -> Bool {
         return rhs == lhs
     }
-
 }

@@ -42,7 +42,15 @@ struct Photo: Codable, Comparable, Hashable {
     var next: String?
     var previous: String?
 
-    init(name: String, url: String, originalImageURL: String, originalImagePath: String, scaledPhotos: [ScaledPhoto], modifiedDate: Date, parents: [Parent]) {
+    init(
+        name: String,
+        url: String,
+        originalImageURL: String,
+        originalImagePath: String,
+        scaledPhotos: [ScaledPhoto],
+        modifiedDate: Date,
+        parents: [Parent]
+    ) {
         self.name = name
         self.url = url
         self.originalImageURL = originalImageURL
@@ -50,29 +58,24 @@ struct Photo: Codable, Comparable, Hashable {
         self.scaledPhotos = scaledPhotos
         self.parents = parents
         self.modifiedDate = modifiedDate
-        self.isoSpeed = []
-        self.keywords = []
-        self.people = []
+        isoSpeed = []
+        keywords = []
+        people = []
     }
 }
 
 struct ScaledPhoto: Codable, AutoEquatable {
-
-
     var url: String
     var maxResolution: Int
 }
 
 struct GPS: Codable, AutoEquatable {
-
     var altitude: Double
     var latitude: Double
     var longitude: Double
 }
 
 struct LocationData: Codable, AutoEquatable {
-
-
     var city: String
     var state: String
     var locationCode: String
@@ -85,51 +88,53 @@ enum Orientation: String, Codable {
 }
 
 extension Photo: AutoEquatable {
-
-
-    static func <(lhs: Photo, rhs: Photo) -> Bool {
+    static func < (lhs: Photo, rhs: Photo) -> Bool {
         return lhs.name < rhs.name
     }
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(url)
     }
-
 }
 
 extension Photo {
     func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
-
-        log.info("Photo: \(self.name) has \(writeImage)")
+        log.info("Photo: \(name) has \(writeImage)")
         // Only write images and symlink if the user wants to
         if writeImage {
-            log.info("Writing image \(self.name)")
-            let fileURL = NSURL.fileURL(withPath: self.originalImagePath)
+            log.info("Writing image \(name)")
+            let fileURL = NSURL.fileURL(withPath: originalImagePath)
             if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
-                for scaledPhoto in self.scaledPhotos {
-                    if let resizedImageData = resizeImage(imageSource: imageSource, maxResolution: scaledPhoto.maxResolution, compression: CGFloat(config.jpegCompression)) {
-                        log.trace("Writing image \(self.name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+                for scaledPhoto in scaledPhotos {
+                    if let resizedImageData = resizeImage(
+                        imageSource: imageSource,
+                        maxResolution: scaledPhoto.maxResolution,
+                        compression: CGFloat(config.jpegCompression)
+                    ) {
+                        log.trace("Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
                         do {
                             try resizedImageData.write(to: URL(fileURLWithPath: scaledPhoto.url))
                         } catch {
-                            log.error("Could not write image \(self.name) to \(scaledPhoto.url) with error: \n\(error)")
+                            log.error("Could not write image \(name) to \(scaledPhoto.url) with error: \n\(error)")
                         }
                     }
                 }
             }
 
-            let relativeOriginialPath = Array(repeating: "..", count: self.depth()) + [self.originalImagePath]
-            log.info("Symlinking original image \(self.name) to \(self.originalImageURL)")
+            let relativeOriginialPath = Array(repeating: "..", count: depth()) + [self.originalImagePath]
+            log.info("Symlinking original image \(name) to \(originalImageURL)")
             do {
-                try createOrReplaceSymlink(from: joinPath(paths: relativeOriginialPath), to: self.originalImageURL)
+                try createOrReplaceSymlink(
+                    source: joinPath(paths: relativeOriginialPath),
+                    destination: originalImageURL
+                )
             } catch {
-                log.error("Could not symlink image \(self.name) to \(self.originalImageURL) with error: \n\(error)")
+                log.error("Could not symlink image \(name) to \(originalImageURL) with error: \n\(error)")
             }
-
         }
 
         if writeJson {
-            log.info("Writing metadata for image \(self.name)")
+            log.info("Writing metadata for image \(name)")
             let encoder = JSONEncoder()
             if #available(OSX 10.12, *) {
                 encoder.dateEncodingStrategy = .iso8601
@@ -137,64 +142,62 @@ extension Photo {
 
             if let encodedData = try? encoder.encode(self) {
                 do {
-                    log.trace("Writing image metadata \(self.name) to \(self.url)")
-                    try encodedData.write(to: URL(fileURLWithPath: self.url))
+                    log.trace("Writing image metadata \(name) to \(url)")
+                    try encodedData.write(to: URL(fileURLWithPath: url))
                 } catch {
-                    log.error("Could not write image \(self.name) to \(self.url) with error: \n\(error)")
+                    log.error("Could not write image \(name) to \(url) with error: \n\(error)")
                 }
             }
         }
     }
 
-    func destroy(config: GalleryConfiguration) {
-        let fm = FileManager()
-        log.trace("Removing image \(self.name)")
-        let jsonURL = NSURL.fileURL(withPath: self.url)
-        let symlinkedImageURL = NSURL.fileURL(withPath: self.originalImageURL)
+    func destroy(config _: GalleryConfiguration) {
+        let fileManager = FileManager()
+        log.trace("Removing image \(name)")
+        let jsonURL = NSURL.fileURL(withPath: url)
+        let symlinkedImageURL = NSURL.fileURL(withPath: originalImageURL)
         do {
-            try fm.removeItem(at: jsonURL)
+            try fileManager.removeItem(at: jsonURL)
         } catch {
-            log.error("Could not remove image json \(self.name) at path \(self.url)")
+            log.error("Could not remove image json \(name) at path \(url)")
         }
 
         do {
-            try fm.removeItem(at: symlinkedImageURL)
+            try fileManager.removeItem(at: symlinkedImageURL)
         } catch {
-            log.error("Could not remove image json \(self.name) at path \(self.originalImageURL)")
+            log.error("Could not remove image json \(name) at path \(originalImageURL)")
         }
 
-        for scaledPhoto in self.scaledPhotos {
+        for scaledPhoto in scaledPhotos {
             let fileURL = NSURL.fileURL(withPath: scaledPhoto.url)
             do {
-                try fm.removeItem(at: fileURL)
+                try fileManager.removeItem(at: fileURL)
             } catch {
-                log.error("Could not remove image \(self.name) at path \(scaledPhoto.url)")
+                log.error("Could not remove image \(name) at path \(scaledPhoto.url)")
             }
         }
-
     }
 
     func depth() -> Int {
-        let char: Character = "/"
+        let urlSeparator: Character = "/"
         var counter = 0
-        for c in self.url {
-            if c == char {
-                counter += 1
-            }
+        for char in url where char == urlSeparator {
+            counter += 1
         }
         return counter
     }
 
     func include() -> Bool {
-        for keyword in self.keywords {
-            if keyword.name == "NO_HUGIN" {
-                return false
-            }
+        for keyword in keywords where keyword.name == "NO_HUGIN" {
+            return false
         }
         return true
     }
 }
 
+// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable function_body_length
+// swiftlint:disable function_parameter_count
 func readPhotoFromPath(
     atPath: String,
     outPath: String,
@@ -202,13 +205,12 @@ func readPhotoFromPath(
     fileExtension: String,
     parents: [Parent],
     config: GalleryConfiguration
-    ) -> Photo? {
+) -> Photo? {
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
 
     let fileURL = NSURL.fileURL(withPath: atPath)
     if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
-
         // Get md5 of original
         //        log.trace("Calculating md5 hash for original image \(name)")
         //        if let imageFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
@@ -224,10 +226,11 @@ func readPhotoFromPath(
                 url: "\(joinPath(paths: outPath, name)).json",
                 originalImageURL: "\(joinPath(paths: outPath, name))_original.\(fileExtension)",
                 originalImagePath: atPath,
-                scaledPhotos: config.resolutions.map({ScaledPhoto(
-                        url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
-                        maxResolution: $0)
-                    }
+                scaledPhotos: config.resolutions.map({ ScaledPhoto(
+                    url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
+                    maxResolution: $0
+                )
+                }
                 ),
                 // If no modifiation date is available, use now.
                 modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
@@ -273,23 +276,29 @@ func readPhotoFromPath(
             }
 
             if let iptc = dict["{IPTC}"] as? [String: Any] {
-
                 // Add location data if available
                 if let city = iptc["City"] as? String,
                     let state = iptc["Province/State"] as? String,
                     let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
                     let locationName = iptc["Country/PrimaryLocationName"] as? String {
-
                     photo.location = LocationData(city: city,
-                                              state: state,
-                                              locationCode: locationCode,
-                                              locationName: locationName
-                    )
+                                                  state: state,
+                                                  locationCode: locationCode,
+                                                  locationName: locationName)
 
                     // Add location names as keywords
-                    let stateKeyword = KeywordPointer(name: state, url: "\(config.outputPath)/keywords/\(urlifyName(state)).json")
-                    let locationCodeKeyword = KeywordPointer(name: locationCode, url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json")
-                    let locationNameKeyword = KeywordPointer(name: locationName, url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json")
+                    let stateKeyword = KeywordPointer(
+                        name: state,
+                        url: "\(config.outputPath)/keywords/\(urlifyName(state)).json"
+                    )
+                    let locationCodeKeyword = KeywordPointer(
+                        name: locationCode,
+                        url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json"
+                    )
+                    let locationNameKeyword = KeywordPointer(
+                        name: locationName,
+                        url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json"
+                    )
 
                     photo.keywords.insert(stateKeyword)
                     photo.keywords.insert(locationCodeKeyword)
@@ -300,7 +309,10 @@ func readPhotoFromPath(
 
                 if let keywords = iptc["Keywords"] as? [String] {
                     for keyword in keywords {
-                        let keywordPointer = KeywordPointer(name: keyword, url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json")
+                        let keywordPointer = KeywordPointer(
+                            name: keyword,
+                            url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json"
+                        )
                         if config.people.contains(keyword) {
                             photo.people.insert(keywordPointer)
                         } else {
@@ -324,10 +336,10 @@ func readPhotoFromPath(
                 if let altitude = gpsDict["Altitude"] as? Double,
                     let latitude = gpsDict["Latitude"] as? Double,
                     let longitude = gpsDict["Longitude"] as? Double {
-                photo.gps = GPS(
-                    altitude: altitude,
-                    latitude: latitude,
-                    longitude: longitude
+                    photo.gps = GPS(
+                        altitude: altitude,
+                        latitude: latitude,
+                        longitude: longitude
                     )
                 }
             } else {

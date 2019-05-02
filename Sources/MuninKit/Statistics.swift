@@ -15,24 +15,24 @@ public struct Statistics: Codable {
     var people: Int
 
     init(gallery: Gallery) {
-        self.originalPhotos = gallery.input.numberOfPhotos(travers: true)
-        self.albums = gallery.input.numberOfAlbums(travers: true)
+        originalPhotos = gallery.input.numberOfPhotos(travers: true)
+        albums = gallery.input.numberOfAlbums(travers: true)
 
-        self.writtenPhotos = self.originalPhotos * gallery.config.resolutions.count
+        writtenPhotos = originalPhotos * gallery.config.resolutions.count
 
-        self.keywords = gallery.input.keywords.count
-        self.people = gallery.input.people.count
+        keywords = gallery.input.keywords.count
+        people = gallery.input.people.count
     }
 
     public func toString() -> String {
         return """
         Gallery contains:
-        \t\(self.originalPhotos) original photos
-        \t\(self.albums) albums
-        \t\(self.keywords) keywords
-        \t\(self.people) people
+        \t\(originalPhotos) original photos
+        \t\(albums) albums
+        \t\(keywords) keywords
+        \t\(people) people
 
-        \t\(self.writtenPhotos) photos has been encoded
+        \t\(writtenPhotos) photos has been encoded
         """
     }
 

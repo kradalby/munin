@@ -8,11 +8,10 @@
 import Foundation
 
 public struct Locations: Codable {
-
     var locations: [Location]
 
     init(gallery: Gallery) {
-        self.locations = locationsFromAlbum(album: gallery.input)
+        locations = locationsFromAlbum(album: gallery.input)
     }
 
     public func write(config: GalleryConfiguration) {
@@ -43,7 +42,6 @@ func locationsFromAlbum(album: Album) -> [Location] {
 
     for photo in album.photos {
         if let gps = photo.gps {
-
             let location = Location(
                 url: photo.url,
                 gps: gps,

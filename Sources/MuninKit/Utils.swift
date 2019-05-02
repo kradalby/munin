@@ -12,9 +12,8 @@ func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Dec
     var isDirectory: ObjCBool = ObjCBool(false)
     let exists = fileManager.fileExists(atPath: atPath, isDirectory: &isDirectory)
 
-    if exists && !isDirectory.boolValue {
+    if exists, !isDirectory.boolValue {
         if let indexFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
-
             log.info("Decoding \(atPath)")
             let decoder = JSONDecoder()
             if #available(OSX 10.12, *) {
@@ -35,25 +34,25 @@ func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Dec
     return nil
 }
 
-func createOrReplaceSymlink(from: String, to: String) throws {
+func createOrReplaceSymlink(source: String, destination: String) throws {
     let fileManager = FileManager()
 
     var isDirectory: ObjCBool = ObjCBool(false)
-    let exists = fileManager.fileExists(atPath: to, isDirectory: &isDirectory)
+    let exists = fileManager.fileExists(atPath: destination, isDirectory: &isDirectory)
     if exists || isDirectory.boolValue {
-        log.trace("Symlink exists, removing \(to)")
-        try fileManager.removeItem(atPath: to)
+        log.trace("Symlink exists, removing \(destination)")
+        try fileManager.removeItem(atPath: destination)
     }
 
-    try fileManager.createSymbolicLink(atPath: to, withDestinationPath: from)
+    try fileManager.createSymbolicLink(atPath: destination, withDestinationPath: source)
 }
 
 func joinPath(paths: String...) -> String {
-    return paths.filter({$0 != ""}).joined(separator: "/")
+    return paths.filter { $0 != "" }.joined(separator: "/")
 }
 
 func joinPath(paths: [String]) -> String {
-    return paths.filter({$0 != ""}).joined(separator: "/")
+    return paths.filter { $0 != "" }.joined(separator: "/")
 }
 
 func fileExtension(atPath: String) -> String? {
@@ -79,23 +78,20 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
     if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
         let width = metaData[kCGImagePropertyPixelWidth as String] as? Int,
         let height = metaData[kCGImagePropertyPixelHeight as String] as? Int {
-
         let srcMaxResolution = max(width, height)
 
         // if max resolution is exceeded, then scale image to new resolution
         if srcMaxResolution >= maxResolution {
-            let scaleOptions  = [ kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
-                                  kCGImageSourceCreateThumbnailFromImageAlways as String: true] as [String: Any]
+            let scaleOptions = [kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
+                                kCGImageSourceCreateThumbnailFromImageAlways as String: true] as [String: Any]
 
             if let scaledImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, scaleOptions as CFDictionary) {
-
                 // add compression ratio to desitnation options
                 metaData[kCGImageDestinationLossyCompressionQuality as String] = compression
 
-                //create new jpeg
+                // create new jpeg
                 let newImageData = NSMutableData()
                 if let cgImageDestination = CGImageDestinationCreateWithData(newImageData, kUTTypeJPEG, 1, nil) {
-
                     CGImageDestinationAddImage(cgImageDestination, scaledImage, metaData as CFDictionary)
                     CGImageDestinationFinalize(cgImageDestination)
 
@@ -109,7 +105,7 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
 
 extension Date {
     var millisecondsSince1970: Int64 {
-        return Int64((self.timeIntervalSince1970 * 1000.0).rounded())
+        return Int64((timeIntervalSince1970 * 1000.0).rounded())
     }
 
     init(milliseconds: Int64) {
@@ -180,7 +176,7 @@ func urlifyName(_ name: String) -> String {
 
 extension Collection {
     /// Returns the element at the specified index iff it is within bounds, otherwise nil.
-    subscript (safe index: Index) -> Element? {
+    subscript(safe index: Index) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }
 }

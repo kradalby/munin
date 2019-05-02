@@ -1,10 +1,10 @@
 // Generated using Sourcery 0.16.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
-
 // MARK: Album Equatable
+
 extension Album: Equatable {
-    static func ==(lhs: Album, rhs: Album) -> Bool {
+    static func == (lhs: Album, rhs: Album) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
         guard lhs.path == rhs.path else { return false }
@@ -16,27 +16,33 @@ extension Album: Equatable {
         return true
     }
 }
+
 // MARK: GPS Equatable
+
 extension GPS: Equatable {
-    static func ==(lhs: GPS, rhs: GPS) -> Bool {
+    static func == (lhs: GPS, rhs: GPS) -> Bool {
         guard lhs.altitude == rhs.altitude else { return false }
         guard lhs.latitude == rhs.latitude else { return false }
         guard lhs.longitude == rhs.longitude else { return false }
         return true
     }
 }
+
 // MARK: Keyword Equatable
+
 extension Keyword: Equatable {
-    static func ==(lhs: Keyword, rhs: Keyword) -> Bool {
+    static func == (lhs: Keyword, rhs: Keyword) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
         guard lhs.photos == rhs.photos else { return false }
         return true
     }
 }
+
 // MARK: LocationData Equatable
+
 extension LocationData: Equatable {
-    static func ==(lhs: LocationData, rhs: LocationData) -> Bool {
+    static func == (lhs: LocationData, rhs: LocationData) -> Bool {
         guard lhs.city == rhs.city else { return false }
         guard lhs.state == rhs.state else { return false }
         guard lhs.locationCode == rhs.locationCode else { return false }
@@ -44,17 +50,22 @@ extension LocationData: Equatable {
         return true
     }
 }
+
 // MARK: Parent Equatable
+
 extension Parent: Equatable {
-    static func ==(lhs: Parent, rhs: Parent) -> Bool {
+    static func == (lhs: Parent, rhs: Parent) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
         return true
     }
 }
+
 // MARK: Photo Equatable
+
 extension Photo: Equatable {
-    static func ==(lhs: Photo, rhs: Photo) -> Bool {
+    // swiftlint:disable cyclomatic_complexity
+    static func == (lhs: Photo, rhs: Photo) -> Bool {
         guard lhs.name == rhs.name else { return false }
         guard lhs.url == rhs.url else { return false }
         guard lhs.originalImageURL == rhs.originalImageURL else { return false }
@@ -88,9 +99,11 @@ extension Photo: Equatable {
         return true
     }
 }
+
 // MARK: ScaledPhoto Equatable
+
 extension ScaledPhoto: Equatable {
-    static func ==(lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
+    static func == (lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
         guard lhs.url == rhs.url else { return false }
         guard lhs.maxResolution == rhs.maxResolution else { return false }
         return true

@@ -1,9 +1,9 @@
 import Foundation
 
-import MuninKit
-import Logger
-import Config
 import Commander
+import Config
+import Logger
+import MuninKit
 
 var log = Logger(LogLevel.INFO)
 
@@ -12,7 +12,7 @@ let main = command(
     Flag("dry",
          default: false,
          description: "Dry-run, do not write gallery"),
-//    Flag("diff", default: false, description: "Show what will be added and removed"),
+    //    Flag("diff", default: false, description: "Show what will be added and removed"),
     Flag("json",
          default: false,
          description: "Write only JSON files, no images, useful for updating data with new munin features")

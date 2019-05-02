@@ -7,6 +7,7 @@
 
 import Foundation
 
+// swiftlint:disable file_length
 struct Album: Hashable, Comparable {
     var name: String
     var url: String
@@ -20,11 +21,11 @@ struct Album: Hashable, Comparable {
     init(name: String, path: String, parents: [Parent]) {
         self.name = name
         self.path = path
-        self.url = joinPath(paths: path, "index.json")
-        self.photos = []
-        self.albums = []
-        self.keywords = Set()
-        self.people = Set()
+        url = joinPath(paths: path, "index.json")
+        photos = []
+        albums = []
+        keywords = Set()
+        people = Set()
         self.parents = parents
     }
 
@@ -38,7 +39,6 @@ struct Album: Hashable, Comparable {
         case people
         case parents
     }
-
 }
 
 extension Album: Encodable {
@@ -52,14 +52,23 @@ extension Album: Encodable {
         try container.encode(parents, forKey: .parents)
 
         var photosContainer = container.nestedUnkeyedContainer(
-            forKey: .photos)
+            forKey: .photos
+        )
 
         try photos.forEach {
-            try photosContainer.encode(PhotoInAlbum(url: $0.url, originalImageURL: $0.originalImageURL, scaledPhotos: $0.scaledPhotos, gps: $0.gps))
+            try photosContainer.encode(
+                PhotoInAlbum(
+                    url: $0.url,
+                    originalImageURL: $0.originalImageURL,
+                    scaledPhotos: $0.scaledPhotos,
+                    gps: $0.gps
+                )
+            )
         }
 
         var albumsContainer = container.nestedUnkeyedContainer(
-            forKey: .albums)
+            forKey: .albums
+        )
 
         try albums.forEach {
             let scaledPhotos = $0.firstImageInAlbum()?.scaledPhotos ?? []
@@ -79,7 +88,6 @@ extension Album: Encodable {
         //        try people.forEach {
         //            try peopleContainer.encode($0.url)
         //        }
-
     }
 }
 
@@ -100,22 +108,20 @@ struct Parent: Codable, AutoEquatable {
     var name: String
     var url: String
 
-
     static func < (lhs: Parent, rhs: Parent) -> Bool {
         return lhs.name < rhs.name
     }
-
 }
 
 extension Album: Decodable {
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try values.decode(String.self, forKey: .name)
-        self.url = try values.decode(String.self, forKey: .url)
-        self.path = try values.decode(String.self, forKey: .path)
-        self.keywords = try values.decode(Set<KeywordPointer>.self, forKey: .keywords)
-        self.people = try values.decode(Set<KeywordPointer>.self, forKey: .people)
-        self.parents = try values.decode([Parent].self, forKey: .parents)
+        name = try values.decode(String.self, forKey: .name)
+        url = try values.decode(String.self, forKey: .url)
+        path = try values.decode(String.self, forKey: .path)
+        keywords = try values.decode(Set<KeywordPointer>.self, forKey: .keywords)
+        people = try values.decode(Set<KeywordPointer>.self, forKey: .people)
+        parents = try values.decode([Parent].self, forKey: .parents)
 
         //        self.photos = try values.decode([Photo].self, forKey: .photos)
         //        self.albums = try values.decode([Album].self, forKey: .albums)
@@ -166,9 +172,9 @@ extension Album {
     public func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
         let fileManager = FileManager()
         do {
-            try fileManager.createDirectory(at: URL(fileURLWithPath: self.path), withIntermediateDirectories: true)
+            try fileManager.createDirectory(at: URL(fileURLWithPath: path), withIntermediateDirectories: true)
 
-            log.info("Writing metadata for album \(self.name)")
+            log.info("Writing metadata for album \(name)")
             let encoder = JSONEncoder()
             if #available(OSX 10.12, *) {
                 encoder.dateEncodingStrategy = .iso8601
@@ -177,20 +183,20 @@ extension Album {
             if writeJson {
                 if let encodedData = try? encoder.encode(self) {
                     do {
-                        log.trace("Writing album metadata \(self.name) to \(self.url)")
-                        try encodedData.write(to: URL(fileURLWithPath: self.url))
+                        log.trace("Writing album metadata \(name) to \(url)")
+                        try encodedData.write(to: URL(fileURLWithPath: url))
                     } catch {
-                        log.error("Could not write album \(self.name) to \(self.url) with error: \n\(error)")
+                        log.error("Could not write album \(name) to \(url) with error: \n\(error)")
                     }
                 }
             }
 
-            for album in self.albums {
+            for album in albums {
                 album.write(config: config, writeJson: writeJson, writeImage: writeImage)
             }
 
-            log.info("Album: \(self.name) has \(writeImage)")
-            for photo in self.photos {
+            log.info("Album: \(name) has \(writeImage)")
+            for photo in photos {
                 concurrentQueue.async {
                     concurrentPhotoEncodeGroup.enter()
                     photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
@@ -199,43 +205,41 @@ extension Album {
             }
 
         } catch {
-            log.error("Failed creating directory \(self.path) with error: \n\(error)")
+            log.error("Failed creating directory \(path) with error: \n\(error)")
         }
     }
 
     public func destroy(config: GalleryConfiguration) {
 //        let fm = FileManager()
 
-        log.info("Inside: \(self.name)")
-        log.info("Destroying: \(self.photos)")
-        for photo in self.photos {
+        log.info("Inside: \(name)")
+        log.info("Destroying: \(photos)")
+        for photo in photos {
             photo.destroy(config: config)
         }
 
-        for album in self.albums {
+        for album in albums {
             album.destroy(config: config)
         }
     }
 
     func copyWithoutChildren() -> Album {
-        var newAlbum = Album(name: self.name, path: self.path, parents: self.parents)
-        newAlbum.url = self.url
+        var newAlbum = Album(name: name, path: path, parents: parents)
+        newAlbum.url = url
         newAlbum.photos = []
         newAlbum.albums = []
-        newAlbum.keywords = self.keywords
-        newAlbum.people = self.people
+        newAlbum.keywords = keywords
+        newAlbum.people = people
 
         return newAlbum
     }
 
     func firstImageInAlbum() -> Photo? {
-        for photo in self.photos {
-            if photo.orientation == Orientation.landscape {
-                return photo
-            }
+        for photo in photos where photo.orientation == Orientation.landscape {
+            return photo
         }
 
-        for album in self.albums {
+        for album in albums {
             return album.firstImageInAlbum()
         }
 
@@ -264,65 +268,80 @@ extension Album: AutoEquatable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(url)
     }
-
 }
-
 
 extension Album {
     func numberOfPhotos(travers: Bool) -> Int {
         if travers {
-            return self.albums.map({$0.numberOfPhotos(travers: travers)}).reduce(0, +) + photos.count
+            return albums.map { $0.numberOfPhotos(travers: travers) }.reduce(0, +) + photos.count
         }
         return photos.count
     }
 
     func numberOfAlbums(travers: Bool) -> Int {
         if travers {
-            return self.albums.map({$0.numberOfAlbums(travers: travers)}).reduce(0, +) + albums.count
+            return albums.map { $0.numberOfAlbums(travers: travers) }.reduce(0, +) + albums.count
         }
         return albums.count
     }
 
     func flattenPhotos() -> Set<Photo> {
-        return self.photos.union(self.albums.map({$0.flattenPhotos()}).reduce(Set(), { x, y in
+        // swiftlint:disable identifier_name
+        return photos.union(albums.map { $0.flattenPhotos() }.reduce(Set()) { x, y in
             x.union(y)
-        }))
+        })
     }
 
     func isEmpty(travers: Bool) -> Bool {
-        for album in self.albums {
+        for album in albums {
             if !album.isEmpty(travers: travers) {
                 return false
             }
         }
-        return self.photos.isEmpty
+        return photos.isEmpty
     }
 }
 
-func readStateFromInputDirectory(atPath: String, outPath: String, name: String, parents: [Parent], config: GalleryConfiguration) -> Album {
+// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable function_body_length
+func readStateFromInputDirectory(
+    atPath: String,
+    outPath: String,
+    name: String,
+    parents: [Parent],
+    config: GalleryConfiguration
+) -> Album {
     log.info("Creating album from path: \(joinPath(paths: atPath))")
-    let fm = FileManager()
+    let fileManager = FileManager()
 
     var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)), parents: parents)
     let parent = Parent(name: album.name, url: album.url)
     var newParents = parents
     newParents.append(parent)
 
-    var photos = Array<Photo>()
-    if let files = try? fm.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
+    var photos = [Photo]()
+    if let files = try? fileManager.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
         for element in files {
             var isDirectory: ObjCBool = ObjCBool(false)
-            let exists = fm.fileExists(atPath: joinPath(paths: atPath, element), isDirectory: &isDirectory)
+            let exists = fileManager.fileExists(
+                atPath: joinPath(paths: atPath, element),
+                isDirectory: &isDirectory
+            )
 
-            if exists && isDirectory.boolValue {
-
+            if exists, isDirectory.boolValue {
 //                concurrentPhotoReadDirectoryGroup.enter()
 //                concurrentQueue.async {
 
-                let childAlbum = readStateFromInputDirectory(atPath: joinPath(paths: atPath, element), outPath: joinPath(paths: outPath, name), name: element, parents: newParents, config: config)
-                    album.albums.insert(childAlbum)
-                    album.keywords = album.keywords.union(childAlbum.keywords)
-                    album.people = album.people.union(childAlbum.people)
+                let childAlbum = readStateFromInputDirectory(
+                    atPath: joinPath(paths: atPath, element),
+                    outPath: joinPath(paths: outPath, name),
+                    name: element,
+                    parents: newParents,
+                    config: config
+                )
+                album.albums.insert(childAlbum)
+                album.keywords = album.keywords.union(childAlbum.keywords)
+                album.people = album.people.union(childAlbum.people)
 //                }
 //                concurrentPhotoReadDirectoryGroup.leave()
 
@@ -332,20 +351,20 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
                     if config.fileExtentions.contains(fileExtension) {
 //                        concurrentQueue.async {
 //                            concurrentPhotoReadDirectoryGroup.enter()
-                            if let photo = readPhotoFromPath(
-                                atPath: joinPath(paths: atPath, element),
-                                outPath: joinPath(paths: outPath, urlifyName(name)),
-                                name: fileNameWithoutExtension,
-                                fileExtension: fileExtension,
-                                parents: newParents,
-                                config: config) {
-
-                                if photo.include() {
-                                    photos.append(photo)
-                                } else {
-                                    log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-                                }
+                        if let photo = readPhotoFromPath(
+                            atPath: joinPath(paths: atPath, element),
+                            outPath: joinPath(paths: outPath, urlifyName(name)),
+                            name: fileNameWithoutExtension,
+                            fileExtension: fileExtension,
+                            parents: newParents,
+                            config: config
+                        ) {
+                            if photo.include() {
+                                photos.append(photo)
+                            } else {
+                                log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
                             }
+                        }
 //                            concurrentPhotoReadDirectoryGroup.leave()
 //                        }
 
@@ -356,7 +375,6 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
             }
         }
 //        concurrentPhotoReadDirectoryGroup.wait()
-
     }
 
     for (index, photo) in photos.enumerated() {
@@ -378,7 +396,6 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
 
         album.keywords = album.keywords.union(photo.keywords)
         album.people = album.people.union(photo.people)
-
     }
 
     return album

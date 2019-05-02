@@ -5,17 +5,18 @@
 //  Created by Kristoffer Andreas Dalby on 25/12/2017.
 //
 
-import Foundation
 import Config
+import Foundation
 import Logger
 
 let concurrentQueue =
     DispatchQueue(
         label: "no.kradalby.gal.Gallery",
-        attributes: .concurrent)
+        attributes: .concurrent
+    )
 
 let concurrentPhotoEncodeGroup = DispatchGroup()
-//let concurrentPhotoReadJSONGroup = DispatchGroup()
+// let concurrentPhotoReadJSONGroup = DispatchGroup()
 let concurrentPhotoReadDirectoryGroup = DispatchGroup()
 
 var log = Logger(LogLevel.INFO)
@@ -45,15 +46,15 @@ public struct GalleryConfiguration: Configuration {
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try values.decode(String.self, forKey: .name)
-        self.people = try values.decode([String].self, forKey: .people)
-        self.resolutions = try values.decode([Int].self, forKey: .resolutions)
-        self.jpegCompression = try values.decode(Double.self, forKey: .jpegCompression)
-        self.inputPath = try values.decode(String.self, forKey: .inputPath)
-        self.outputPath = try values.decode(String.self, forKey: .outputPath)
-        self.fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
-        self.logLevel = try values.decode(Int.self, forKey: .logLevel)
-        self.diff = try values.decode(Bool.self, forKey: .diff)
+        name = try values.decode(String.self, forKey: .name)
+        people = try values.decode([String].self, forKey: .people)
+        resolutions = try values.decode([Int].self, forKey: .resolutions)
+        jpegCompression = try values.decode(Double.self, forKey: .jpegCompression)
+        inputPath = try values.decode(String.self, forKey: .inputPath)
+        outputPath = try values.decode(String.self, forKey: .outputPath)
+        fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
+        logLevel = try values.decode(Int.self, forKey: .logLevel)
+        diff = try values.decode(Bool.self, forKey: .diff)
     }
 }
 
@@ -66,6 +67,7 @@ public struct Gallery {
     let addedDiff: Album?
     let removedDiff: Album?
 
+    // swiftlint:disable function_body_length
     public init(config: GalleryConfiguration) {
         self.config = config
 
@@ -73,7 +75,13 @@ public struct Gallery {
 
         // read input directory
         let inputStart = Date()
-        let input = readStateFromInputDirectory(atPath: config.inputPath, outPath: config.outputPath, name: config.name, parents: [], config: config)
+        let input = readStateFromInputDirectory(
+            atPath: config.inputPath,
+            outPath: config.outputPath,
+            name: config.name,
+            parents: [],
+            config: config
+        )
         let inputEnd = Date()
         // TODO: Determine of this should be log or print
         print("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
@@ -92,7 +100,7 @@ public struct Gallery {
             //        }
             let diffStart = Date()
 
-                let (added, removed) = diff(new: input, old: output)
+            let (added, removed) = diff(new: input, old: output)
 
             let diffEnd = Date()
 
@@ -101,12 +109,12 @@ public struct Gallery {
                     print("")
                     print("")
                     print("Added:".green)
-    //                    prettyPrintAlbum(unwrappedAdded)
+                    //                    prettyPrintAlbum(unwrappedAdded)
                     prettyPrintAdded(unwrappedAdded)
                     print("")
                     print("")
                     print("Removed:".red)
-    //                    prettyPrintAlbum(unwrappedRemoved)
+                    //                    prettyPrintAlbum(unwrappedRemoved)
                     prettyPrintRemoved(unwrappedRemoved)
                     print("")
                 }
@@ -115,17 +123,16 @@ public struct Gallery {
             print("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
 
             self.output = output
-            self.addedDiff = added
-            self.removedDiff = removed
+            addedDiff = added
+            removedDiff = removed
         } else {
-            self.output = nil
-            self.addedDiff = nil
-            self.removedDiff = nil
+            output = nil
+            addedDiff = nil
+            removedDiff = nil
             log.info("Could not find any output album, assuming new is to be created")
         }
 
         self.input = input
-
     }
 
     public func build(jsonOnly: Bool) {
@@ -150,26 +157,26 @@ public struct Gallery {
 
         // We have already changed the actual image files, so we only write json
         let writeJsonStart = Date()
-        if self.addedDiff == nil && self.removedDiff == nil {
-            self.input.write(config: config, writeJson: true, writeImage: true)
+        if addedDiff == nil, removedDiff == nil {
+            input.write(config: config, writeJson: true, writeImage: true)
 
         } else {
-            self.input.write(config: config, writeJson: true, writeImage: false)
+            input.write(config: config, writeJson: true, writeImage: false)
         }
         concurrentPhotoEncodeGroup.wait()
         let writeJsonEnd = Date()
         print("JSON data written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
         let buildKeywordsStart = Date()
-        buildKeywordsFromAlbum(album: self.input).forEach({$0.write(config: config)})
-        buildPeopleFromAlbum(album: self.input).forEach({$0.write(config: config)})
+        buildKeywordsFromAlbum(album: input).forEach { $0.write(config: config) }
+        buildPeopleFromAlbum(album: input).forEach { $0.write(config: config) }
         let buildKeywordsEnd = Date()
         print("Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds")
 
-        self.statistics().write(config: self.config)
+        statistics().write(config: config)
 
         let locationStart = Date()
-        Locations(gallery: self).write(config: self.config)
+        Locations(gallery: self).write(config: config)
         let locationEnd = Date()
         print("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
     }
@@ -224,10 +231,8 @@ func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Alb
 
     for new in newAlbums {
         if isAlbumInListByName(album: new, albums: oldAlbums) {
-            for old in oldAlbums {
-                if new.name == old.name {
-                    pairs.append((new, old))
-                }
+            for old in oldAlbums where new.name == old.name {
+                pairs.append((new, old))
             }
         } else {
             pairs.append((new, nil))
@@ -243,10 +248,8 @@ func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Alb
 }
 
 func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
-    for item in albums {
-        if album.name == item.name {
-            return true
-        }
+    for item in albums where album.name == item.name {
+        return true
     }
     return false
 }
