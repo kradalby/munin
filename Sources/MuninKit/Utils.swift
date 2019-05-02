@@ -84,8 +84,8 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
 
         // if max resolution is exceeded, then scale image to new resolution
         if srcMaxResolution >= maxResolution {
-            let scaleOptions  = [ kCGImageSourceThumbnailMaxPixelSize as String : maxResolution,
-                                  kCGImageSourceCreateThumbnailFromImageAlways as String : true] as [String: Any]
+            let scaleOptions  = [ kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
+                                  kCGImageSourceCreateThumbnailFromImageAlways as String: true] as [String: Any]
 
             if let scaledImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, scaleOptions as CFDictionary) {
 
@@ -168,7 +168,7 @@ func prettyPrintAlbumCompact(_ album: Album, marker: String) {
     for photo in album.photos {
         print("\(marker): \(photo.url)")
     }
-    
+
     for childAlbum in album.albums {
         prettyPrintAlbumCompact(childAlbum, marker: marker)
     }

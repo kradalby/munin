@@ -93,7 +93,7 @@ public struct Gallery {
             let diffStart = Date()
 
                 let (added, removed) = diff(new: input, old: output)
-            
+
             let diffEnd = Date()
 
             if (config.diff) {
@@ -113,7 +113,7 @@ public struct Gallery {
             }
             // TODO: Determine of this should be log or print
             print("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
-            
+
             self.output = output
             self.addedDiff = added
             self.removedDiff = removed
@@ -136,7 +136,7 @@ public struct Gallery {
             let removeEnd = Date()
             print("Photos removed in \(removeEnd.timeIntervalSince(removeStart)) seconds")
         }
-        
+
         if let added = self.addedDiff {
             log.info("Adding images from diff")
             let addStart = Date()
@@ -147,7 +147,7 @@ public struct Gallery {
         }
 
         log.info("----------------------------------------------------------------------------")
-        
+
         // We have already changed the actual image files, so we only write json
         let writeJsonStart = Date()
         if self.addedDiff == nil && self.removedDiff == nil {
@@ -165,10 +165,9 @@ public struct Gallery {
         buildPeopleFromAlbum(album: self.input).forEach({$0.write(config: config)})
         let buildKeywordsEnd = Date()
         print("Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds")
-        
-        
+
         self.statistics().write(config: self.config)
-        
+
         let locationStart = Date()
         Locations(gallery: self).write(config: self.config)
         let locationEnd = Date()

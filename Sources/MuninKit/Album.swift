@@ -192,7 +192,7 @@ extension Album {
                     }
                 }
             }
-                
+
             for album in self.albums {
                 album.write(config: config, writeJson: writeJson, writeImage: writeImage)
             }
@@ -219,7 +219,7 @@ extension Album {
         for photo in self.photos {
             photo.destroy(config: config)
         }
-        
+
         for album in self.albums {
             album.destroy(config: config)
         }
@@ -382,7 +382,7 @@ func readStateFromInputDirectory(atPath: String, outPath: String, name: String, 
         }
 
         album.photos.insert(photos[index])
-        
+
         album.keywords = album.keywords.union(photo.keywords)
         album.people = album.people.union(photo.people)
 

@@ -17,7 +17,7 @@ let main = command(
     let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
 
     log = Logger(config.logLevel)
-    
+
     let gallery = Gallery(config: config)
 
     if !dry {

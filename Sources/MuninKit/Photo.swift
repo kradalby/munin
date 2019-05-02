@@ -89,8 +89,8 @@ struct LocationData: Codable, Equatable {
 
         return true
     }
-    
-    var city : String
+
+    var city: String
     var state: String
     var locationCode: String
     var locationName: String
@@ -149,8 +149,7 @@ extension Photo {
     var hashValue: Int {
         return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
     }
-    
-    
+
 }
 
 extension Photo {
@@ -190,7 +189,7 @@ extension Photo {
             if #available(OSX 10.12, *) {
                 encoder.dateEncodingStrategy = .iso8601
             }
-            
+
             if let encodedData = try? encoder.encode(self) {
                 do {
                     log.trace("Writing image metadata \(self.name) to \(self.url)")
@@ -240,8 +239,7 @@ extension Photo {
         }
         return counter
     }
-    
-    
+
     func include() -> Bool {
         for keyword in self.keywords {
             if keyword.name == "NO_HUGIN" {
@@ -329,20 +327,19 @@ func readPhotoFromPath(
             }
 
             if let iptc = dict["{IPTC}"] as? [String: Any] {
-                
 
                 // Add location data if available
                 if let city = iptc["City"] as? String,
                     let state = iptc["Province/State"] as? String,
                     let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
                     let locationName = iptc["Country/PrimaryLocationName"] as? String {
-                    
+
                     photo.location = LocationData(city: city,
                                               state: state,
                                               locationCode: locationCode,
                                               locationName: locationName
                     )
-                    
+
                     // Add location names as keywords
                     let stateKeyword = KeywordPointer(name: state, url: "\(config.outputPath)/keywords/\(urlifyName(state)).json")
                     let locationCodeKeyword = KeywordPointer(name: locationCode, url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json")
@@ -352,8 +349,7 @@ func readPhotoFromPath(
                     photo.keywords.insert(locationCodeKeyword)
                     photo.keywords.insert(locationNameKeyword)
                 }
-                
-                
+
                 photo.copyright = iptc["CopyrightNotice"] as? String
 
                 if let keywords = iptc["Keywords"] as? [String] {
