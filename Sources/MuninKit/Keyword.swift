@@ -62,17 +62,6 @@ extension Keyword: AutoEquatable {
         return lhs.name < rhs.name
     }
 
-//    static func == (lhs: Keyword, rhs: Keyword) -> Bool {
-//        guard lhs.name == rhs.name else { return false }
-//        guard lhs.url == rhs.url else { return false }
-//        guard lhs.photos == rhs.photos else { return false }
-//
-//        return true
-//    }
-
-//    var hash: Int {
-//        return name.lengthOfBytes(using: .utf8) ^ url.lengthOfBytes(using: .utf8) &* 16777619
-//    }
 
 }
 

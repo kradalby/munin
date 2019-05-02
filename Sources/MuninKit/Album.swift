@@ -100,11 +100,6 @@ struct Parent: Codable, AutoEquatable {
     var name: String
     var url: String
 
-//    static func ==(lhs: Parent, rhs: Parent) -> Bool {
-//        guard lhs.name == rhs.name else { return false }
-//        guard lhs.url == rhs.url else { return false }
-//        return true
-//    }
 
     static func < (lhs: Parent, rhs: Parent) -> Bool {
         return lhs.name < rhs.name
