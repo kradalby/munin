@@ -19,3 +19,4 @@ reinstall:
 
 lint:
 	swiftlint
+	swiftformat --lint Sources
