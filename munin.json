@@ -1,12 +1,28 @@
 {
-    "name": "root",
-    "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
-    "jpegCompression": 0.75,
-    "inputPath": "example/album",
-    "outputPath": "example/content",
-    "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
-    "logLevel": 1,
-    "diff": true,
-    "people": [
-    ]
+  "name": "root",
+  "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
+  "jpegCompression": 0.75,
+  "inputPath": "example/album",
+  "outputPath": "example/content",
+  "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
+  "logLevel": 1,
+  "diff": true,
+  "people": [
+    "Tri M. Nguyen",
+    "Christina Toldbo",
+    "Tri Nguyen",
+    "Csaba Jéger",
+    "Dharmesh Tailor",
+    "Martin Meuche",
+    "Rohan Ramasamy",
+    "Vetle Breiland Dalby",
+    "Danielle O'Driscoll",
+    "Angel Dalby",
+    "Monica Pas",
+    "Peter Vaník",
+    "Marlies Arnhof",
+    "Vetle Sebastian Dalby",
+    "Kristoffer Andréas B Dalby",
+    "Kristoffer Andreas Dalby"
+  ]
 }
