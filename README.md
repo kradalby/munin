@@ -53,6 +53,7 @@ Munin is configured with a simple json file:
     "logLevel": 1,
     "diff": true,
     "people": [
+        "Kristoffer Andreas Dalby"
     ]
 }
 ```
