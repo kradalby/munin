@@ -1,22 +1,12 @@
 {
     "name": "root",
-    "people": [
-        "Kristoffer Andreas Dalby",
-        "Denisa Dosenovicova",
-        "Quentin Mannes",
-        "Csaba Jeger",
-        "Danielle O'Driscoll",
-        "Christina Toldbo",
-        "Dharmesh Tailor",
-        "Rohan Ramasamy",
-        "Priya Patel",
-        "Derp Man"
-    ],
-    "resolutions": [1200, 992, 768, 576, 340, 220, 180],
-    "jpegCompression": 0.2,
-    "inputPath": "sample",
-    "outputPath": "content",
+    "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
+    "jpegCompression": 0.75,
+    "inputPath": "example/album",
+    "outputPath": "example/content",
     "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
-    "logLevel": 5,
-    "diff": true
+    "logLevel": 1,
+    "diff": true,
+    "people": [
+    ]
 }

@@ -6,7 +6,7 @@ build:
 	swift build
 
 dev:
-	echo "Not implemented"
+	swift package generate-xcodeproj
 
 upgrade:
 	echo "Not implemented"

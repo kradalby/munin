@@ -1,5 +1,5 @@
-/content
-/sample
+content/
+sample/
 config.json
 gal.json
 .DS_Store
