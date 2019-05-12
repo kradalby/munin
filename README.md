@@ -60,8 +60,9 @@ Munin is configured with a simple json file:
 
 ## Install
 
-### Installing with [mint]()
-TODO: FIGURE OUT HOW THIS WORKS
+### Installing with [mint](https://github.com/yonaskolb/Mint)
+
+    mint run kradalby/munin
 
 ### Building yourself
 This installation will put the binary to `~/bin` which needs to be in your path. If you would like to install it elsewhere, take a look at the `Makefile`
