@@ -69,9 +69,9 @@ Munin is configured with a simple json file:
 This installation will put the binary to `~/bin` which needs to be in your path. If you would like to install it elsewhere, take a look at the `Makefile`
 
 Requirements:
-    - Swift 5
-    - Xcode 10.2
-    - git
+- Swift 5
+- Xcode 10.2
+- git
 
 Clone:
 
