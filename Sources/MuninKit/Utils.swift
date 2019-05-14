@@ -80,7 +80,7 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
         let height = metaData[kCGImagePropertyPixelHeight as String] as? Int {
         let srcMaxResolution = max(width, height)
 
-        // if max resolution is exceeded, then scale image to new resolution
+        // if source resolution is larger than the scaled resolution, scale down image
         if srcMaxResolution >= maxResolution {
             let scaleOptions = [kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
                                 kCGImageSourceCreateThumbnailFromImageAlways as String: true] as [String: Any]
@@ -98,7 +98,7 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
                     return newImageData as Data
                 }
             }
-        }
+        } 
     }
     return nil
 }
