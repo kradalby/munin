@@ -242,14 +242,14 @@ func readPhotoFromPath(
                     photo.orientation = Orientation.portrait
                 }
             }
-            
+
             let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
-            
-            photo.scaledPhotos = config.resolutions.filter({ $0 < maxResolution }).map({ ScaledPhoto(
+
+            photo.scaledPhotos = config.resolutions.filter { $0 < maxResolution }.map({ ScaledPhoto(
                 url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
                 maxResolution: $0
-                )
-                }
+            )
+            }
             )
 
             if let exif = dict["{Exif}"] as? [String: Any] {

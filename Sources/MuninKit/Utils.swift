@@ -98,7 +98,7 @@ func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CG
                     return newImageData as Data
                 }
             }
-        } 
+        }
     }
     return nil
 }
