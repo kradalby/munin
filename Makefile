@@ -20,3 +20,7 @@ reinstall:
 lint:
 	swiftlint
 	swiftformat --lint Sources
+
+fmt:
+	swiftlint autocorrect
+	swiftformat Sources
