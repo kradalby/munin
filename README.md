@@ -15,7 +15,7 @@ Munin uses ImageIO for reading image metadata and encoding of images which curre
 - Generate albums fast!
     - Generate only changed albums/images
     - Encode with all available cores
-    - Reuse original images by symlinking ([example]())
+    - Reuse original images by symlinking ([example](example/content/root/2018/2018-03-10_Alkmaar/20180310-133656-IMG_6007_original.jpg))
     - Generate multiple sizes for responsive usage
 - Structure EXIF and other metadata as JSON ([example]())
 - Structure image by keywords ([example]())
