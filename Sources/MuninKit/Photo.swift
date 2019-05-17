@@ -339,11 +339,13 @@ func readPhotoFromPath(
             if let gpsDict = dict["{GPS}"] as? [String: Any] {
                 if let altitude = gpsDict["Altitude"] as? Double,
                     let latitude = gpsDict["Latitude"] as? Double,
-                    let longitude = gpsDict["Longitude"] as? Double {
+                    let longitude = gpsDict["Longitude"] as? Double,
+                    let longitudeRef = gpsDict["LongitudeRef"] as? String,
+                    let latitudeRef = gpsDict["LatitudeRef"] as? String {
                     photo.gps = GPS(
                         altitude: altitude,
-                        latitude: latitude,
-                        longitude: longitude
+                        latitude: latitudeRef == "N" ? latitude : latitude * -1,
+                        longitude: longitudeRef == "E" ? longitude : longitude * -1
                     )
                 }
             } else {
