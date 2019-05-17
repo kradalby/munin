@@ -4,7 +4,7 @@ import Cocoa
 
 var str = "Hello, playground"
 
-let fileURL = NSURL.fileURL(withPath: "/Users/kradalby/Downloads/20180629-114907-IMG_0995.jpeg")
+let fileURL = NSURL.fileURL(withPath: "/Users/kradalby/Desktop/20181026-144836-IMG_0127.jpg")
 if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
 
     let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
