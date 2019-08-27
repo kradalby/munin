@@ -94,7 +94,7 @@ Generate a Xcode project:
 or bring your favourite editor.
 
 ### Code style
-When developing on the project, be sure to follow the standard setup of [Swiftlint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+When developing on the project, be sure to follow the standard setup of [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
 
 All linters can be run with:
 
