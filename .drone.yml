@@ -1,15 +1,7 @@
 ---
 kind: pipeline
-type: ssh
+type: exec
 name: build
-
-server:
-  host:
-    from_secret: ssh_host
-  user:
-    from_secret: ssh_user
-  ssh_key:
-    from_secret: ssh_key
 
 platform:
   os: darwin
@@ -17,19 +9,31 @@ platform:
 
 steps:
 - name: lint
+  when:
+    branch:
+    - master
   commands:
     - brew install sourcery swiftlint swiftformat
     - make lint
 
 - name: build
+  when:
+    branch:
+    - master
   commands:
     - make build
 
 - name: install local
+  when:
+    branch:
+    - master
   commands:
     - make install
 
 - name: publish build
+  when:
+    branch:
+    - master
   commands:
     - make publish
 
