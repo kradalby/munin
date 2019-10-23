@@ -1,10 +1,57 @@
 ---
 kind: pipeline
-name: default
+type: ssh
+name: build
+
+server:
+  host:
+    from_secret: ssh_host
+  user:
+    from_secret: ssh_user
+  ssh_key:
+    from_secret: ssh_key
 
 platform:
-  os: linux
+  os: darwin
   arch: amd64
+
+steps:
+- name: lint
+  commands:
+    - brew install sourcery swiftlint swiftformat
+    - make lint
+
+- name: build
+  commands:
+    - make build
+
+- name: install local
+  commands:
+    - make install
+
+- name: publish build
+  commands:
+    - make publish
+
+- name: notify
+  pull: if-not-exists
+  image: drillster/drone-email
+  settings:
+    from: drone@drone.fap.no
+    host: smtp.fap.no
+    port: 25
+    recipients:
+    - kradalby@kradalby.no
+    skip_verify: true
+  when:
+    status:
+    - success
+    - changed
+    - failure
+
+---
+kind: pipeline
+name: lint-in-docker
 
 steps:
 - name: lint

@@ -1,6 +1,9 @@
 install: build
 	cp ./.build/x86_64-apple-macosx/debug/munin ~/bin/.
 
+publish: build
+	scp ./.build/x86_64-apple-macosx/debug/munin root@storage.terra.fap.no:/storage/nfs/k8s/builds/munin/.
+
 build:
 	sourcery
 	swift build
