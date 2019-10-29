@@ -53,32 +53,32 @@ steps:
 #     - changed
 #     - failure
 
----
-kind: pipeline
-name: lint-in-docker
-
-steps:
-- name: lint
-  pull: if-not-exists
-  image: kradalby/swift-mint:latest
-  commands:
-  - mint install realm/SwiftLint
-  - mint install nicklockwood/SwiftFormat
-  - swiftlint
-  - swiftformat --lint Sources
-
-- name: notify
-  pull: if-not-exists
-  image: drillster/drone-email
-  settings:
-    from: drone@drone.fap.no
-    host: smtp.fap.no
-    port: 25
-    recipients:
-    - kradalby@kradalby.no
-    skip_verify: true
-  when:
-    status:
-    - success
-    - changed
-    - failure
+# ---
+# kind: pipeline
+# name: lint-in-docker
+# 
+# steps:
+# - name: lint
+#   pull: if-not-exists
+#   image: kradalby/swift-mint:latest
+#   commands:
+#   - mint install realm/SwiftLint
+#   - mint install nicklockwood/SwiftFormat
+#   - swiftlint
+#   - swiftformat --lint Sources
+# 
+# - name: notify
+#   pull: if-not-exists
+#   image: drillster/drone-email
+#   settings:
+#     from: drone@drone.fap.no
+#     host: smtp.fap.no
+#     port: 25
+#     recipients:
+#     - kradalby@kradalby.no
+#     skip_verify: true
+#   when:
+#     status:
+#     - success
+#     - changed
+#     - failure
