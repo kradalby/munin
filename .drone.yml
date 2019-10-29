@@ -8,15 +8,15 @@ platform:
   arch: amd64
 
 steps:
-# - name: lint
-#   when:
-#     branch:
-#     - master
-#   commands:
-#     - brew bundle
-#     - echo $PATH
-#     - ls -lah
-#     - make lint
+- name: lint
+  when:
+    branch:
+    - master
+  commands:
+    - brew bundle
+    - echo $PATH
+    - ls -lah
+    - make lint
 
 - name: build
   when:
