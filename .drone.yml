@@ -13,7 +13,7 @@ steps:
     branch:
     - master
   commands:
-    - brew upgrade sourcery swiftlint swiftformat
+    - brew bundle
     - make lint
 
 - name: build
@@ -21,6 +21,7 @@ steps:
     branch:
     - master
   commands:
+    - brew bundle
     - make build
 
 - name: install local
