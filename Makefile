@@ -22,7 +22,7 @@ reinstall:
 
 lint:
 	swiftlint
-	swiftformat --lint Sources
+	swiftformat --config .swiftformat --lint Sources
 
 fmt:
 	swiftlint autocorrect
