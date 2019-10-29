@@ -31,7 +31,7 @@ steps:
     branch:
     - master
   commands:
-    - make install
+    - cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/.
 
 - name: publish build
   when:
@@ -59,7 +59,7 @@ steps:
 # ---
 # kind: pipeline
 # name: lint-in-docker
-# 
+#
 # steps:
 # - name: lint
 #   pull: if-not-exists
@@ -69,7 +69,7 @@ steps:
 #   - mint install nicklockwood/SwiftFormat
 #   - swiftlint
 #   - swiftformat --lint Sources
-# 
+#
 # - name: notify
 #   pull: if-not-exists
 #   image: drillster/drone-email
