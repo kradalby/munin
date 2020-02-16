@@ -9,9 +9,6 @@ platform:
 
 steps:
 - name: lint
-  when:
-    branch:
-    - master
   commands:
     - brew bundle
     - echo $PATH
@@ -19,9 +16,6 @@ steps:
     - make lint
 
 - name: build
-  when:
-    branch:
-    - master
   commands:
     - brew bundle
     - make build
