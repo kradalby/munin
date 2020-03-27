@@ -8,74 +8,28 @@ platform:
   arch: amd64
 
 steps:
-- name: lint
-  commands:
-    - brew bundle
-    - echo $PATH
-    - ls -lah
-    - make lint
+  - name: lint
+    commands:
+      - brew bundle
+      - echo $PATH
+      - ls -lah
+      - make lint
 
-- name: build
-  commands:
-    - brew bundle
-    - make build
+  - name: build
+    commands:
+      - brew bundle
+      - make build
 
-- name: install local
-  when:
-    branch:
-    - master
-  commands:
-    - cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/.
+  - name: install local
+    when:
+      branch:
+        - master
+    commands:
+      - cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/.
 
-- name: publish build
-  when:
-    branch:
-    - master
-  commands:
-    - make publish
-
-# - name: notify
-#   pull: if-not-exists
-#   image: drillster/drone-email
-#   settings:
-#     from: drone@drone.fap.no
-#     host: smtp.fap.no
-#     port: 25
-#     recipients:
-#     - kradalby@kradalby.no
-#     skip_verify: true
-#   when:
-#     status:
-#     - success
-#     - changed
-#     - failure
-
-# ---
-# kind: pipeline
-# name: lint-in-docker
-#
-# steps:
-# - name: lint
-#   pull: if-not-exists
-#   image: kradalby/swift-mint:latest
-#   commands:
-#   - mint install realm/SwiftLint
-#   - mint install nicklockwood/SwiftFormat
-#   - swiftlint
-#   - swiftformat --lint Sources
-#
-# - name: notify
-#   pull: if-not-exists
-#   image: drillster/drone-email
-#   settings:
-#     from: drone@drone.fap.no
-#     host: smtp.fap.no
-#     port: 25
-#     recipients:
-#     - kradalby@kradalby.no
-#     skip_verify: true
-#   when:
-#     status:
-#     - success
-#     - changed
-#     - failure
+  - name: publish build
+    when:
+      branch:
+        - master
+    commands:
+      - make publish
