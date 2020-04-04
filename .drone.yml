@@ -7,12 +7,13 @@ platform:
   os: darwin
   arch: amd64
 
+# Make sure dependencies for build and lint
+# is installed on the build machine
+
 steps:
   - name: lint
     commands:
-      - brew bundle
-      - echo $PATH
-      - ls -lah
+      - pwd
       - make lint
 
   - name: build
@@ -24,6 +25,8 @@ steps:
     when:
       branch:
         - master
+      event:
+        - push
     commands:
       - cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/.
 
@@ -31,5 +34,7 @@ steps:
     when:
       branch:
         - master
+      event:
+        - push
     commands:
       - make publish
