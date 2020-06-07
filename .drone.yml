@@ -1,40 +1,58 @@
 ---
-kind: pipeline
-type: exec
-name: build
-
-platform:
-  os: darwin
-  arch: amd64
-
-# Make sure dependencies for build and lint
-# is installed on the build machine
-
-steps:
-  - name: lint
-    commands:
-      - pwd
-      - make lint
-
-  - name: build
-    commands:
-      - brew bundle
-      - make build
-
-  - name: install local
-    when:
-      branch:
-        - master
-      event:
-        - push
-    commands:
-      - cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/.
-
-  - name: publish build
-    when:
-      branch:
-        - master
-      event:
-        - push
-    commands:
-      - make publish
+{
+   "kind": "pipeline",
+   "name": "default",
+   "platform": {
+      "arch": "amd64",
+      "os": "darwin"
+   },
+   "steps": [
+      {
+         "commands": [
+            "make lint"
+         ],
+         "name": "Lint",
+         "pull": "always"
+      },
+      {
+         "commands": [
+            "brew bundle",
+            "make build"
+         ],
+         "name": "Build",
+         "pull": "always"
+      },
+      {
+         "commands": [
+            "cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/."
+         ],
+         "name": "Install on local system",
+         "pull": "always",
+         "when": {
+            "branch": [
+               "master"
+            ],
+            "event": [
+               "push"
+            ]
+         }
+      },
+      {
+         "commands": [
+            "make publish"
+         ],
+         "name": "Publish",
+         "pull": "always",
+         "when": {
+            "branch": [
+               "master"
+            ],
+            "event": [
+               "push"
+            ]
+         }
+      }
+   ],
+   "type": "exec"
+}
+...
