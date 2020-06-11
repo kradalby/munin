@@ -1,7 +1,7 @@
 ---
 {
    "kind": "pipeline",
-   "name": "default",
+   "name": "MacOS",
    "platform": {
       "arch": "amd64",
       "os": "darwin"
