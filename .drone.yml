@@ -9,12 +9,20 @@
    "steps": [
       {
          "commands": [
-            "echo $HOME",
-            "brew bundle",
+            "brew bundle"
+         ],
+         "environment": {
+            "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
+         },
+         "name": "Ensure tooling",
+         "pull": "always"
+      },
+      {
+         "commands": [
             "make lint"
          ],
          "environment": {
-            "PATH": "/Users/kradalby/go/bin:/Users/kradalby/.local/bin:/Users/kradalby/bin:/Users/kradalby/git/dotfiles/bin:/Users/kradalby/.cargo/bin:/Users/kradalby/.config/yarn/global/node_modules/.bin:/Users/kradalby/.npm-packages/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/Users/kradalby/.vim/plugged/fzf/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
+            "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
          },
          "name": "Lint",
          "pull": "always"
@@ -24,7 +32,7 @@
             "make build"
          ],
          "environment": {
-            "PATH": "/Users/kradalby/go/bin:/Users/kradalby/.local/bin:/Users/kradalby/bin:/Users/kradalby/git/dotfiles/bin:/Users/kradalby/.cargo/bin:/Users/kradalby/.config/yarn/global/node_modules/.bin:/Users/kradalby/.npm-packages/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/Users/kradalby/.vim/plugged/fzf/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
+            "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
          },
          "name": "Build",
          "pull": "always"
@@ -48,6 +56,9 @@
          "commands": [
             "make publish"
          ],
+         "environment": {
+            "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
+         },
          "name": "Publish",
          "pull": "always",
          "when": {
