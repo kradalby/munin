@@ -6,7 +6,11 @@
 //
 
 import Foundation
-import ImageIO
+#if CROSSPLATFORM
+    import SwiftGD
+#else
+    import ImageIO
+#endif
 
 struct Photo: Codable, Comparable, Hashable {
     var name: String
@@ -104,22 +108,35 @@ extension Photo {
         if writeImage {
             log.info("Writing image \(name)")
             let fileURL = NSURL.fileURL(withPath: originalImagePath)
-            if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
-                for scaledPhoto in scaledPhotos {
-                    if let resizedImageData = resizeImage(
-                        imageSource: imageSource,
-                        maxResolution: scaledPhoto.maxResolution,
-                        compression: CGFloat(config.jpegCompression)
-                    ) {
-                        log.trace("Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-                        do {
-                            try resizedImageData.write(to: URL(fileURLWithPath: scaledPhoto.url))
-                        } catch {
-                            log.error("Could not write image \(name) to \(scaledPhoto.url) with error: \n\(error)")
+            #if CROSSPLATFORM
+                if let image = Image(url: fileURL) {
+                    for scaledPhoto in scaledPhotos {
+                        if let resizedImage = image.resizedTo(width: scaledPhoto.maxResolution) {
+                            log.trace("Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+                            if !resizedImage.write(to: URL(fileURLWithPath: scaledPhoto.url), quality: Int(100 * config.jpegCompression)) {
+                                log.error("Could not write image \(name) to \(scaledPhoto.url)")
+                            }
                         }
                     }
                 }
-            }
+            #else
+                if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
+                    for scaledPhoto in scaledPhotos {
+                        if let resizedImageData = resizeImageCoreGraphics(
+                            imageSource: imageSource,
+                            maxResolution: scaledPhoto.maxResolution,
+                            compression: CGFloat(config.jpegCompression)
+                        ) {
+                            log.trace("Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+                            do {
+                                try resizedImageData.write(to: URL(fileURLWithPath: scaledPhoto.url))
+                            } catch {
+                                log.error("Could not write image \(name) to \(scaledPhoto.url) with error: \n\(error)")
+                            }
+                        }
+                    }
+                }
+            #endif
 
             let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
             log.info("Symlinking original image \(name) to \(originalImageURL)")
