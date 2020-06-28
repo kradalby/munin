@@ -8,6 +8,10 @@ build:
 	sourcery
 	swift build
 
+build-cross:
+	sourcery
+	swift build -Xswiftc '-DCROSSPLATFORM'
+
 dev:
 	swift package generate-xcodeproj
 
