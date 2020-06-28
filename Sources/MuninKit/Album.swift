@@ -379,7 +379,7 @@ func readStateFromInputDirectory(
 
     // Ensure that we have a stable order before building next/previous map.
     photos.sort(by: { $0.dateTime ?? Date.distantPast > $1.dateTime ?? Date.distantPast })
-    
+
     for (index, photo) in photos.enumerated() {
         let previous = photos.index(before: index)
         let next = photos.index(after: index)

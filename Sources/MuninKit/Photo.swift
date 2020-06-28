@@ -121,7 +121,7 @@ extension Photo {
                 }
             }
 
-            let relativeOriginialPath = Array(repeating: "..", count: depth()) + [self.originalImagePath]
+            let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
             log.info("Symlinking original image \(name) to \(originalImageURL)")
             do {
                 try createOrReplaceSymlink(

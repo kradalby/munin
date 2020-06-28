@@ -136,7 +136,7 @@ public struct Gallery {
     }
 
     public func build(jsonOnly: Bool) {
-        if let removed = self.removedDiff {
+        if let removed = removedDiff {
             log.info("Removing images from diff")
             let removeStart = Date()
             removed.destroy(config: config)
@@ -144,7 +144,7 @@ public struct Gallery {
             print("Photos removed in \(removeEnd.timeIntervalSince(removeStart)) seconds")
         }
 
-        if let added = self.addedDiff {
+        if let added = addedDiff {
             log.info("Adding images from diff")
             let addStart = Date()
             added.write(config: config, writeJson: false, writeImage: !jsonOnly)
