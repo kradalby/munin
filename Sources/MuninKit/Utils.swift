@@ -73,7 +73,7 @@ func pathWithoutFileName(atPath: String) -> String? {
     return url.deletingLastPathComponent?.relativeString
 }
 
-func resizeImage(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat) -> Data? {
+func resizeImageCoreGraphics(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat) -> Data? {
     // get source properties so we retain metadata (EXIF) for the downsized image
     if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
         let width = metaData[kCGImagePropertyPixelWidth as String] as? Int,
