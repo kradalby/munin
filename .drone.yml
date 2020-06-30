@@ -14,7 +14,7 @@
          "environment": {
             "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
          },
-         "name": "Ensure tooling",
+         "name": "Ensure tooling and deps",
          "pull": "always"
       },
       {
@@ -35,6 +35,16 @@
             "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
          },
          "name": "Build",
+         "pull": "always"
+      },
+      {
+         "commands": [
+            "make build-cross"
+         ],
+         "environment": {
+            "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
+         },
+         "name": "Build cross-platform",
          "pull": "always"
       },
       {
