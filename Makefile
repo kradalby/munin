@@ -30,4 +30,7 @@ lint:
 
 fmt:
 	swiftlint autocorrect
-	swiftformat Sources
+	swift-format --recursive --in-place Sources/ Package.swift
+
+run: build
+	./.build/x86_64-apple-macosx/debug/munin

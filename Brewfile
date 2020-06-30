@@ -1,3 +1,7 @@
+# Tooling
 brew 'swiftlint'
-brew 'swiftformat'
+brew 'swift-format'
 brew 'sourcery'
+
+# Dependencies
+brew 'gd'
