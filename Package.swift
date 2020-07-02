@@ -1,4 +1,4 @@
-// swift-tools-version:4.0
+// swift-tools-version:5.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -17,12 +17,12 @@ let package = Package(
     ),
   ],
   dependencies: [
-    // Dependencies declare other packages that this package depends on.
-    // .package(url: /* package url */, from: "1.0.0"),
     .package(url: "https://github.com/kylef/Commander.git", from: "0.9.1"),
-    .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.6"),
-    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.1"),
+    .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.7"),
+    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
+    .package(path: "../SwiftExif")
+    // .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.1"),
   ],
   targets: [
     // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -31,17 +31,18 @@ let package = Package(
       name: "Munin",
       dependencies: [
         "MuninKit",
-        "Logger",
-        "Config",
+        .product(name: "Logger", package: "Logger.swift"),
+        .product(name: "Config", package: "Config.swift"),
         "Commander",
       ]
     ),
     .target(
       name: "MuninKit",
       dependencies: [
-        "Logger",
-        "Config",
+        .product(name: "Logger", package: "Logger.swift"),
+        .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
+        "SwiftExif",
       ]
     ),
   ]

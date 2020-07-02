@@ -5,3 +5,7 @@ gal.json
 /.build
 /Packages
 /*.xcodeproj
+dump.txt
+example/
+*.playground/
+tester/

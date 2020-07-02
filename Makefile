@@ -4,12 +4,13 @@ install: build
 publish: build
 	scp ./.build/x86_64-apple-macosx/debug/munin root@storage.terra.fap.no:/storage/nfs/k8s/builds/munin/.
 
-build:
+generate:
 	sourcery
+
+build: generate
 	swift build
 
 build-cross:
-	sourcery
 	swift build -Xswiftc '-DCROSSPLATFORM'
 
 dev:
@@ -33,4 +34,7 @@ fmt:
 	swift-format --recursive --in-place Sources/ Package.swift
 
 run: build
+	./.build/x86_64-apple-macosx/debug/munin
+
+run-cross: build-cross
 	./.build/x86_64-apple-macosx/debug/munin

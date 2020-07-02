@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/kradalby/Config.swift.git",
         "state": {
           "branch": null,
-          "revision": "cd94fe6252ede86dfd392d30d6796dffe768193c",
-          "version": "0.0.1"
+          "revision": "b7c69de3556a683cf1f8146fe6737a44a3c135ac",
+          "version": "0.0.2"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/kradalby/Logger.swift.git",
         "state": {
           "branch": null,
-          "revision": "2dea3a870a5b89b02fd04b73c01f8970090a764c",
-          "version": "0.0.6"
+          "revision": "5ee3872802d4e4d44e0bd5406d78fe0e4bb999a6",
+          "version": "0.0.7"
         }
       },
       {
