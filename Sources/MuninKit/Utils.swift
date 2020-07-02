@@ -56,62 +56,63 @@ func joinPath(paths: [String]) -> String {
 }
 
 func fileExtension(atPath: String) -> String? {
-  let url = NSURL(fileURLWithPath: atPath)
+  let url = URL(fileURLWithPath: atPath)
   return url.pathExtension
 }
 
-func fileNameWithoutExtension(atPath: String) -> String? {
-  let url = NSURL(fileURLWithPath: atPath)
-  if let fileName = url.lastPathComponent, let fileExtension = url.pathExtension {
-    return fileName.replacingOccurrences(of: ".\(fileExtension)", with: "")
-  }
-  return nil
+func fileNameWithoutExtension(atPath: String) -> String {
+  let url = URL(fileURLWithPath: atPath)
+  let fileName = url.lastPathComponent
+  let fileExtension = url.pathExtension
+  return fileName.replacingOccurrences(of: ".\(fileExtension)", with: "")
 }
 
-func pathWithoutFileName(atPath: String) -> String? {
-  let url = NSURL(fileURLWithPath: atPath)
-  return url.deletingLastPathComponent?.relativeString
+func pathWithoutFileName(atPath: String) -> String {
+  let url = URL(fileURLWithPath: atPath)
+  return url.deletingLastPathComponent().relativeString
 }
 
-func resizeImageCoreGraphics(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat)
-  -> Data?
-{
-  // get source properties so we retain metadata (EXIF) for the downsized image
-  if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
-    let width = metaData[kCGImagePropertyPixelWidth as String] as? Int,
-    let height = metaData[kCGImagePropertyPixelHeight as String] as? Int
+#if os(macOS) && !CROSSPLATFORM
+  func resizeImageCoreGraphics(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat)
+    -> Data?
   {
-    let srcMaxResolution = max(width, height)
+    // get source properties so we retain metadata (EXIF) for the downsized image
+    if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
+      let width = metaData[kCGImagePropertyPixelWidth as String] as? Int,
+      let height = metaData[kCGImagePropertyPixelHeight as String] as? Int
+    {
+      let srcMaxResolution = max(width, height)
 
-    // if source resolution is larger than the scaled resolution, scale down image
-    if srcMaxResolution >= maxResolution {
-      let scaleOptions =
-        [
-          kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
-          kCGImageSourceCreateThumbnailFromImageAlways as String: true,
-        ] as [String: Any]
+      // if source resolution is larger than the scaled resolution, scale down image
+      if srcMaxResolution >= maxResolution {
+        let scaleOptions =
+          [
+            kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
+            kCGImageSourceCreateThumbnailFromImageAlways as String: true,
+          ] as [String: Any]
 
-      if let scaledImage = CGImageSourceCreateThumbnailAtIndex(
-        imageSource, 0, scaleOptions as CFDictionary)
-      {
-        // add compression ratio to desitnation options
-        metaData[kCGImageDestinationLossyCompressionQuality as String] = compression
-
-        // create new jpeg
-        let newImageData = NSMutableData()
-        if let cgImageDestination = CGImageDestinationCreateWithData(
-          newImageData, kUTTypeJPEG, 1, nil)
+        if let scaledImage = CGImageSourceCreateThumbnailAtIndex(
+          imageSource, 0, scaleOptions as CFDictionary)
         {
-          CGImageDestinationAddImage(cgImageDestination, scaledImage, metaData as CFDictionary)
-          CGImageDestinationFinalize(cgImageDestination)
+          // add compression ratio to desitnation options
+          metaData[kCGImageDestinationLossyCompressionQuality as String] = compression
 
-          return newImageData as Data
+          // create new jpeg
+          let newImageData = NSMutableData()
+          if let cgImageDestination = CGImageDestinationCreateWithData(
+            newImageData, kUTTypeJPEG, 1, nil)
+          {
+            CGImageDestinationAddImage(cgImageDestination, scaledImage, metaData as CFDictionary)
+            CGImageDestinationFinalize(cgImageDestination)
+
+            return newImageData as Data
+          }
         }
       }
     }
+    return nil
   }
-  return nil
-}
+#endif
 
 extension Date {
   var millisecondsSince1970: Int64 {

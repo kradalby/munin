@@ -16,8 +16,8 @@ public struct Locations: Codable {
 
   public func write(config: GalleryConfiguration) {
     log.info("Writing locations")
-    let fileURL = NSURL.fileURL(
-      withPath: joinPath(paths: config.outputPath, config.name, "locations.json"))
+    let fileURL = URL(
+      fileURLWithPath: joinPath(paths: config.outputPath, config.name, "locations.json"))
 
     let encoder = JSONEncoder()
 

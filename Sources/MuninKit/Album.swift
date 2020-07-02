@@ -349,17 +349,16 @@ func readStateFromInputDirectory(
         //                concurrentPhotoReadDirectoryGroup.leave()
 
       } else if exists {
-        if let fileNameWithoutExtension = fileNameWithoutExtension(
-          atPath: joinPath(paths: atPath, element)),
-          let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element))
-        {
+        let fileNameWithoutExt = fileNameWithoutExtension(
+          atPath: joinPath(paths: atPath, element))
+        if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
           if config.fileExtentions.contains(fileExtension) {
             //                        concurrentQueue.async {
             //                            concurrentPhotoReadDirectoryGroup.enter()
             if let photo = readPhotoFromPath(
               atPath: joinPath(paths: atPath, element),
               outPath: joinPath(paths: outPath, urlifyName(name)),
-              name: fileNameWithoutExtension,
+              name: fileNameWithoutExt,
               fileExtension: fileExtension,
               parents: newParents,
               config: config

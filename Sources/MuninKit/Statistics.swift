@@ -38,8 +38,8 @@ public struct Statistics: Codable {
 
   public func write(config: GalleryConfiguration) {
     log.info("Writing stats")
-    let fileURL = NSURL.fileURL(
-      withPath: joinPath(paths: config.outputPath, config.name, "stats.json"))
+    let fileURL = URL(
+      fileURLWithPath: joinPath(paths: config.outputPath, config.name, "stats.json"))
 
     let encoder = JSONEncoder()
 
