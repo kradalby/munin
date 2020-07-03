@@ -9,8 +9,20 @@
       {
          "commands": [
             "apt update",
-            "apt install -y libgd-dev libexif-dev",
+            "apt install -y libexif-dev libgd-dev",
             "make build"
+         ],
+         "image": "swift:latest",
+         "name": "Swift build",
+         "pull": "always"
+      },
+      {
+         "commands": [
+            "apt update",
+            "apt install -y libgd-dev libexif-dev",
+            "make build-release",
+            "mkdir -p dist/linux_amd64",
+            "mv .build/release/munin dist/linux_amd64/"
          ],
          "image": "swift:latest",
          "name": "Swift build",
@@ -125,7 +137,7 @@
       },
       {
          "commands": [
-            "make build"
+            "make build-release"
          ],
          "environment": {
             "PATH": "/usr/local/opt/coreutils/libexec/gnubin:/usr/local/opt/ruby/bin:/usr/local/opt/gnu-tar/libexec/gnubin:/usr/local/opt/gnu-sed/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet"
@@ -145,7 +157,7 @@
       },
       {
          "commands": [
-            "cp ./.build/x86_64-apple-macosx/debug/munin /Users/kradalby/bin/."
+            "cp ./.build/release/munin /Users/kradalby/bin/."
          ],
          "name": "Install on local system",
          "pull": "always",
