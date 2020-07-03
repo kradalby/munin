@@ -7,7 +7,7 @@ publish: build
 generate:
 	sourcery
 
-build: generate
+build:
 	swift build
 
 build-cross:
