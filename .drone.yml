@@ -25,7 +25,7 @@
             "mv .build/release/munin dist/linux_amd64/"
          ],
          "image": "swift:latest",
-         "name": "Swift build",
+         "name": "Swift release",
          "pull": "always"
       },
       {
