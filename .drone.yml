@@ -21,8 +21,8 @@
             "apt update",
             "apt install -y libgd-dev libexif-dev",
             "make build-release",
-            "mkdir -p dist/linux_amd64",
-            "mv .build/release/munin dist/linux_amd64/"
+            "mkdir -p dist/",
+            "mv .build/release/munin dist/"
          ],
          "image": "swift:latest",
          "name": "Swift release",
@@ -44,7 +44,7 @@
                "dist/*"
             ],
             "strip_components": 1,
-            "target": "/storage/nfs/k8s/builds/munin",
+            "target": "/storage/nfs/k8s/builds/munin/linux_x64",
             "username": "deploy"
          },
          "when": {
