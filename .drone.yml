@@ -8,25 +8,31 @@
    "steps": [
       {
          "commands": [
-            "apt update",
-            "apt install -y libexif-dev libgd-dev",
+           # "make test",
             "make build"
          ],
-         "image": "swift:latest",
+         "image": "kradalby/swift:groovy",
          "name": "Swift build",
          "pull": "always"
       },
       {
          "commands": [
-            "apt update",
-            "apt install -y libgd-dev libexif-dev",
+            "make test",
             "make build-release",
             "mkdir -p dist/",
             "mv .build/release/munin dist/"
          ],
-         "image": "swift:latest",
+         "image": "kradalby/swift:groovy",
          "name": "Swift release",
-         "pull": "always"
+         "pull": "always",
+         "when": {
+            "branch": [
+               "master"
+            ],
+            "event": [
+               "push"
+            ]
+         }
       },
       {
          "environment": {

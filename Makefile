@@ -6,12 +6,16 @@ publish: build
 
 generate:
 	sourcery
+	swift test --generate-linuxmain
 
 build:
 	swift build
 
 build-release:
 	swift build --configuration release
+
+test:
+	swift test
 
 build-cross:
 	swift build -Xswiftc '-DCROSSPLATFORM'

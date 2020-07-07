@@ -236,7 +236,8 @@ extension Photo {
     let fileURL = URL(fileURLWithPath: atPath)
 
     let exifImage = SwiftExif.Image(imagePath: fileURL)
-    let dict = exifImage.getData()
+    let exifDict = exifImage.Exif()
+    let iptcDict = exifImage.Iptc()
 
     var photo = Photo(
       name: name,
@@ -267,7 +268,7 @@ extension Photo {
     }
     )
 
-    if let exif = dict["EXIF"] {
+    if let exif = exifDict["EXIF"] {
       if let width = exif["Pixel X Dimension"] {
         photo.width = Int(width)
       }
@@ -312,7 +313,7 @@ extension Photo {
       log.warning("Exif tag not found for photo, some metatags will be unavailable")
     }
 
-    if let zero = dict["0"] {
+    if let zero = exifDict["0"] {
       // photo.imageDescription = tiff["ImageDescription"] as? String // Not available
       photo.cameraMake = zero["Manufacturer"]
       photo.cameraModel = zero["Model"]
@@ -323,56 +324,52 @@ extension Photo {
     }
 
     // Not currently available
-    // if let iptc = dict["{IPTC}"] as? [String: Any] {
-    //   // Add location data if available
-    //   if let city = iptc["City"] as? String,
-    //     let state = iptc["Province/State"] as? String,
-    //     let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
-    //     let locationName = iptc["Country/PrimaryLocationName"] as? String
-    //   {
-    //     photo.location = LocationData(
-    //       city: city,
-    //       state: state,
-    //       locationCode: locationCode,
-    //       locationName: locationName)
+    // Add location data if available
+    if let city = iptcDict["City"] as? String,
+      let state = iptcDict["Province/State"] as? String,
+      let locationCode = iptcDict["Country Code"] as? String,
+      let locationName = iptcDict["Country Name"] as? String
+    {
+      photo.location = LocationData(
+        city: city,
+        state: state,
+        locationCode: locationCode,
+        locationName: locationName)
 
-    //     // Add location names as keywords
-    //     let stateKeyword = KeywordPointer(
-    //       name: state,
-    //       url: "\(config.outputPath)/keywords/\(urlifyName(state)).json"
-    //     )
-    //     let locationCodeKeyword = KeywordPointer(
-    //       name: locationCode,
-    //       url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json"
-    //     )
-    //     let locationNameKeyword = KeywordPointer(
-    //       name: locationName,
-    //       url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json"
-    //     )
+      // Add location names as keywords
+      let stateKeyword = KeywordPointer(
+        name: state,
+        url: "\(config.outputPath)/keywords/\(urlifyName(state)).json"
+      )
+      let locationCodeKeyword = KeywordPointer(
+        name: locationCode,
+        url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json"
+      )
+      let locationNameKeyword = KeywordPointer(
+        name: locationName,
+        url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json"
+      )
 
-    //     photo.keywords.insert(stateKeyword)
-    //     photo.keywords.insert(locationCodeKeyword)
-    //     photo.keywords.insert(locationNameKeyword)
-    //   }
+      photo.keywords.insert(stateKeyword)
+      photo.keywords.insert(locationCodeKeyword)
+      photo.keywords.insert(locationNameKeyword)
+    }
 
-    //   if let keywords = iptc["Keywords"] as? [String] {
-    //     for keyword in keywords {
-    //       let keywordPointer = KeywordPointer(
-    //         name: keyword,
-    //         url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json"
-    //       )
-    //       if config.people.contains(keyword) {
-    //         photo.people.insert(keywordPointer)
-    //       } else {
-    //         photo.keywords.insert(keywordPointer)
-    //       }
-    //     }
-    //   }
-    // } else {
-    //   log.warning("IPTC tag not found for photo, some metatags will be unavailable")
-    // }
+    if let keywords = iptcDict["Keywords"] as? [String] {
+      for keyword in keywords {
+        let keywordPointer = KeywordPointer(
+          name: keyword,
+          url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json"
+        )
+        if config.people.contains(keyword) {
+          photo.people.insert(keywordPointer)
+        } else {
+          photo.keywords.insert(keywordPointer)
+        }
+      }
+    }
 
-    if let gpsDict = dict["GPS"] {
+    if let gpsDict = exifDict["GPS"] {
       if let altitudeStr = gpsDict["Altitude"],
         let latitudeStr = gpsDict["Latitude"],
         let longitudeStr = gpsDict["Longitude"]
