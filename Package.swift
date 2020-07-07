@@ -47,5 +47,9 @@ let package = Package(
         "SwiftExif",
       ]
     ),
+    .testTarget(
+      name: "MuninTests",
+      dependencies: ["Munin"]
+    ),
   ]
 )
