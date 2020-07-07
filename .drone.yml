@@ -1,14 +1,94 @@
 ---
 {
    "kind": "pipeline",
-   "name": "Kubernetes",
+   "name": "Docker build",
+   "node_selector": {
+      "drone": true
+   },
+   "steps": [
+      {
+         "environment": {
+            "DOCKER_BUILDKIT": 1
+         },
+         "image": "plugins/docker",
+         "name": "Build container image",
+         "pull": "always",
+         "trigger": {
+            "event": [
+               "pull_request"
+            ]
+         },
+         "when": {
+            "branch": {
+               "exclude": [
+                  "master"
+               ]
+            }
+         }
+      },
+      {
+         "environment": {
+            "DOCKER_BUILDKIT": 1
+         },
+         "image": "plugins/docker",
+         "name": "Publish image kradalby/munin",
+         "pull": "always",
+         "settings": {
+            "password": {
+               "from_secret": "docker_password"
+            },
+            "repo": "kradalby/munin",
+            "tags": [
+               "latest",
+               "${DRONE_COMMIT_SHA:0:8}"
+            ],
+            "username": {
+               "from_secret": "docker_username"
+            }
+         },
+         "when": {
+            "branch": [
+               "master"
+            ],
+            "event": [
+               "push"
+            ]
+         }
+      },
+      {
+         "image": "appleboy/drone-discord",
+         "name": "Notify Discord",
+         "pull": "always",
+         "settings": {
+            "message": "{{#success build.status}}\n✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{else}}\n@everyone\n❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{/success}}\n",
+            "webhook_id": {
+               "from_secret": "discord_webhook_id"
+            },
+            "webhook_token": {
+               "from_secret": "discord_webhook_token"
+            }
+         },
+         "when": {
+            "status": [
+               "success",
+               "failure"
+            ]
+         }
+      }
+   ],
+   "type": "kubernetes"
+}
+---
+{
+   "kind": "pipeline",
+   "name": "Swift build",
    "node_selector": {
       "drone": true
    },
    "steps": [
       {
          "commands": [
-           # "make test",
+            "make test",
             "make build"
          ],
          "image": "kradalby/swift:groovy",
