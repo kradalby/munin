@@ -186,6 +186,24 @@
 ---
 {
    "get": {
+      "name": "username",
+      "path": "docker"
+   },
+   "kind": "secret",
+   "name": "docker_username"
+}
+---
+{
+   "get": {
+      "name": "password",
+      "path": "docker"
+   },
+   "kind": "secret",
+   "name": "docker_password"
+}
+---
+{
+   "get": {
       "name": "deploy",
       "path": "ssh"
    },
