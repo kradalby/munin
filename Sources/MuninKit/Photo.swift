@@ -250,24 +250,6 @@ extension Photo {
       parents: parents
     )
 
-    if let width = photo.width, let height = photo.height {
-      if width > height {
-        photo.orientation = Orientation.landscape
-      } else {
-        photo.orientation = Orientation.portrait
-      }
-    }
-
-    let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
-
-    photo.scaledPhotos = config.resolutions.filter { $0 < maxResolution }.map({
-      ScaledPhoto(
-        url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
-        maxResolution: $0
-      )
-    }
-    )
-
     if let exif = exifDict["EXIF"] {
       if let width = exif["Pixel X Dimension"] {
         photo.width = Int(width)
@@ -312,6 +294,24 @@ extension Photo {
     } else {
       log.warning("Exif tag not found for photo, some metatags will be unavailable")
     }
+
+    if let width = photo.width, let height = photo.height {
+      if width > height {
+        photo.orientation = Orientation.landscape
+      } else {
+        photo.orientation = Orientation.portrait
+      }
+    }
+
+    let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
+
+    photo.scaledPhotos = config.resolutions.filter { $0 < maxResolution }.map({
+      ScaledPhoto(
+        url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
+        maxResolution: $0
+      )
+    }
+    )
 
     if let zero = exifDict["0"] {
       // photo.imageDescription = tiff["ImageDescription"] as? String // Not available
