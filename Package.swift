@@ -20,6 +20,8 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/kylef/Commander.git", from: "0.9.1"),
+    .package(url: "https://github.com/FabrizioBrancati/Queuer.git",
+             .upToNextMajor(from: "2.0.0")),
     .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.7"),
     .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
@@ -41,6 +43,7 @@ let package = Package(
     .target(
       name: "MuninKit",
       dependencies: [
+        "Queuer",
         .product(name: "Logger", package: "Logger.swift"),
         .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
@@ -53,3 +56,4 @@ let package = Package(
     ),
   ]
 )
+

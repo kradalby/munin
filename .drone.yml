@@ -130,7 +130,7 @@
                "dist/*"
             ],
             "strip_components": 1,
-            "target": "/storage/nfs/k8s/builds/munin/linux_x64",
+            "target": "/storage/serve/builds/munin/linux_x64",
             "username": "deploy"
          },
          "when": {

@@ -8,16 +8,17 @@
 import Config
 import Foundation
 import Logger
+import Queuer
 
-let concurrentQueue =
-  DispatchQueue(
-    label: "no.kradalby.gal.Gallery",
-    attributes: .concurrent
-  )
+// let concurrentQueue = OperationQueue()
+// // DispatchQueue(
+// //   label: "no.kradalby.gal.Gallery",
+// //   attributes: .concurrent
+// // )
 
-let concurrentPhotoEncodeGroup = DispatchGroup()
-// let concurrentPhotoReadJSONGroup = DispatchGroup()
-let concurrentPhotoReadDirectoryGroup = DispatchGroup()
+// let concurrentPhotoEncodeGroup = DispatchGroup()
+// // let concurrentPhotoReadJSONGroup = DispatchGroup()
+// let concurrentPhotoReadDirectoryGroup = DispatchGroup()
 
 var log = Logger(LogLevel.INFO)
 
@@ -31,6 +32,9 @@ public struct GalleryConfiguration: Configuration {
   var fileExtentions: [String]
   public var logLevel: Int
   public var diff: Bool
+  var concurrency: Int
+
+  var queue: Queuer
 
   enum CodingKeys: String, CodingKey {
     case name
@@ -42,6 +46,7 @@ public struct GalleryConfiguration: Configuration {
     case fileExtentions
     case logLevel
     case diff
+    case concurrency
   }
 
   public init(from decoder: Decoder) throws {
@@ -55,7 +60,17 @@ public struct GalleryConfiguration: Configuration {
     fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
     logLevel = try values.decode(Int.self, forKey: .logLevel)
     diff = try values.decode(Bool.self, forKey: .diff)
+    concurrency = try values.decode(Int.self, forKey: .concurrency)
+
+    if concurrency > 0 {
+      log.info("Setting concurrency to \(concurrency)")
+      self.queue = Queuer(
+        name: "MuninQueue", maxConcurrentOperationCount: concurrency, qualityOfService: .default)
+    }
+    self.queue = Queuer(
+      name: "MuninQueue", maxConcurrentOperationCount: Int.max, qualityOfService: .default)
   }
+
 }
 
 public struct Gallery {
@@ -69,6 +84,7 @@ public struct Gallery {
 
   // swiftlint:disable function_body_length
   public init(config: GalleryConfiguration) {
+
     self.config = config
 
     log = Logger(config.logLevel)
@@ -150,7 +166,8 @@ public struct Gallery {
       log.info("Adding images from diff")
       let addStart = Date()
       added.write(config: config, writeJson: false, writeImage: !jsonOnly)
-      concurrentPhotoEncodeGroup.wait()
+      // concurrentPhotoEncodeGroup.wait()
+      config.queue.waitUntilAllOperationsAreFinished()
       let addEnd = Date()
       print("Photos added in \(addEnd.timeIntervalSince(addStart)) seconds")
     }
@@ -165,7 +182,8 @@ public struct Gallery {
     } else {
       input.write(config: config, writeJson: true, writeImage: false)
     }
-    concurrentPhotoEncodeGroup.wait()
+    // concurrentPhotoEncodeGroup.wait()
+    config.queue.waitUntilAllOperationsAreFinished()
     let writeJsonEnd = Date()
     print("JSON data written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 

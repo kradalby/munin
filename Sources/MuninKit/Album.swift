@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Queuer
 
 // swiftlint:disable file_length
 struct Album: Hashable, Comparable {
@@ -199,11 +200,16 @@ extension Album {
 
       log.info("Album: \(name) has \(writeImage)")
       for photo in photos {
-        concurrentQueue.async {
-          concurrentPhotoEncodeGroup.enter()
+        // concurrentQueue.async {
+        //   concurrentPhotoEncodeGroup.enter()
+        //   photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
+        //   concurrentPhotoEncodeGroup.leave()
+        // }
+        let concurrentOperation = ConcurrentOperation { _ in
           photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
-          concurrentPhotoEncodeGroup.leave()
+
         }
+        config.queue.addOperation(concurrentOperation)
       }
 
     } catch {
