@@ -250,12 +250,26 @@ extension Photo {
       parents: parents
     )
 
+    if let image = Image(url: fileURL) {
+      photo.width = image.size.width
+      photo.height = image.size.height
+    }
+
     if let exif = exifDict["EXIF"] {
       if let width = exif["Pixel X Dimension"] {
-        photo.width = Int(width)
+        if let _ = photo.width {
+          log.trace("Width already set, ignoring EXIF width")
+        } else {
+          photo.width = Int(width)
+        }
       }
+
       if let height = exif["Pixel Y Dimension"] {
-        photo.height = Int(height)
+        if let _ = photo.height {
+          log.trace("Height already set, ignoring EXIF height")
+        } else {
+          photo.height = Int(height)
+        }
       }
 
       // Need parsing/raw

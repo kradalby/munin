@@ -70,7 +70,6 @@ public struct GalleryConfiguration: Configuration {
     self.queue = Queuer(
       name: "MuninQueue", maxConcurrentOperationCount: Int.max, qualityOfService: .default)
   }
-
 }
 
 public struct Gallery {
