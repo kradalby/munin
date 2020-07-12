@@ -6,6 +6,7 @@
 //
 
 import Config
+import Dispatch
 import Foundation
 import Logger
 import Progress

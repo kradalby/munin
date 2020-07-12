@@ -5,6 +5,7 @@
 //  Created by Kristoffer Andreas Dalby on 25/12/2017.
 //
 
+import Dispatch
 import Foundation
 
 #if CROSSPLATFORM || os(Linux)
