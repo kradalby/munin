@@ -8,6 +8,7 @@
 import Config
 import Foundation
 import Logger
+import Progress
 import Queuer
 
 // let concurrentQueue = OperationQueue()
@@ -177,14 +178,30 @@ public struct Gallery {
     let writeJsonStart = Date()
     if addedDiff == nil, removedDiff == nil {
       input.write(config: config, writeJson: true, writeImage: true)
-
     } else {
       input.write(config: config, writeJson: true, writeImage: false)
     }
+    let queueBuiltEnd = Date()
+    print(
+      "Operations queue built in \(queueBuiltEnd.timeIntervalSince(writeJsonStart)) seconds, with \(config.queue.operationCount) items"
+    )
+
     // concurrentPhotoEncodeGroup.wait()
+
+    let totalOperations = config.queue.operationCount
+    var bar = ProgressBar(
+      count: totalOperations,
+      configuration: [ProgressPercent(), ProgressBarLine(barLength: 60), ProgressIndex()])
+
+    while !config.queue.operations.isEmpty {
+      bar.setValue(totalOperations - config.queue.operationCount)
+    }
+
     config.queue.waitUntilAllOperationsAreFinished()
+    bar.setValue(totalOperations)
+
     let writeJsonEnd = Date()
-    print("JSON data written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
+    print("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
     let buildKeywordsStart = Date()
     buildKeywordsFromAlbum(album: input).forEach { $0.write(config: config) }

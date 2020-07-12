@@ -27,6 +27,8 @@ let package = Package(
     .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.2"),
+    .package(name: "Progress", url: "https://github.com/jkandzi/Progress.swift",
+             .upToNextMajor(from: "0.0.0"))
     // .package(path: "../SwiftExif"),
   ],
   targets: [
@@ -45,6 +47,7 @@ let package = Package(
       name: "MuninKit",
       dependencies: [
         "Queuer",
+        "Progress",
         .product(name: "Logger", package: "Logger.swift"),
         .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
