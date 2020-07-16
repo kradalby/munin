@@ -201,9 +201,13 @@ public struct Gallery {
     let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
 
     while !ctx.queues.write.operations.isEmpty {
+      let executionCount = ctx.queues.write.operations.filter({ $0.isExecuting }).count
       bar.update(
         step: totalOperations - ctx.queues.write.operationCount, total: totalOperations,
-        text: "Left: \(ctx.queues.write.operationCount)")
+        text: "Left: \(ctx.queues.write.operationCount), parallel: \(executionCount)")
+      usleep(
+        300000  // Sleep
+      )
     }
 
     ctx.queues.write.waitUntilAllOperationsAreFinished()
