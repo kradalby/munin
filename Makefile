@@ -9,7 +9,7 @@ generate:
 	swift test --generate-linuxmain
 
 build:
-	swift build
+	swift build -c debug --sanitize=thread
 
 build-release:
 	swift build --configuration release
@@ -18,7 +18,10 @@ test:
 	swift test
 
 build-cross:
-	swift build -Xswiftc '-DCROSSPLATFORM'
+	swift build -c debug --sanitize=thread -Xswiftc '-DCROSSPLATFORM'
+
+build-cross-release:
+	swift build --configuration release -Xswiftc '-DCROSSPLATFORM'
 
 dev:
 	swift package generate-xcodeproj
