@@ -1,10 +1,10 @@
 import Commander
 import Config
 import Foundation
-import Logger
+import Logging
 import MuninKit
 
-var log = Logger(LogLevel.INFO)
+let log = Logger(label: "no.kradalby.munin.main")
 
 let main = command(
   Option("config", default: "munin.json", description: "JSON based configuration file for munin"),
@@ -22,13 +22,13 @@ let main = command(
 
   let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
 
-  log = Logger(config.logLevel)
+  let ctx = Context(config: config)
 
-  let gallery = Gallery(config: config)
+  let gallery = Gallery(ctx: ctx)
 
   if !dry {
     let start = Date()
-    gallery.build(jsonOnly: json)
+    gallery.build(ctx: ctx, jsonOnly: json)
     let end = Date()
 
     let executionTime = end.timeIntervalSince(start)
@@ -36,7 +36,7 @@ let main = command(
     // TODO: Determine of this should be log or print
     print("Generated in: \(executionTime) seconds")
   }
-  let stats = gallery.statistics().toString()
+  let stats = gallery.statistics(ctx: ctx).toString()
   // TODO: Determine of this should be log or print
   print(stats)
 }

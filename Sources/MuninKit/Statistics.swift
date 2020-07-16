@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 
 public struct Statistics: Codable {
   var originalPhotos: Int
@@ -14,11 +15,11 @@ public struct Statistics: Codable {
   var keywords: Int
   var people: Int
 
-  init(gallery: Gallery) {
+  init(ctx: Context, gallery: Gallery) {
     originalPhotos = gallery.input.numberOfPhotos(travers: true)
     albums = gallery.input.numberOfAlbums(travers: true)
 
-    writtenPhotos = originalPhotos * gallery.config.resolutions.count
+    writtenPhotos = originalPhotos * ctx.config.resolutions.count
 
     keywords = gallery.input.keywords.count
     people = gallery.input.people.count
@@ -36,10 +37,10 @@ public struct Statistics: Codable {
       """
   }
 
-  public func write(config: GalleryConfiguration) {
+  public func write(ctx: Context) {
     log.info("Writing stats")
     let fileURL = URL(
-      fileURLWithPath: joinPath(paths: config.outputPath, config.name, "stats.json"))
+      fileURLWithPath: joinPath(paths: ctx.config.outputPath, ctx.config.name, "stats.json"))
 
     let encoder = JSONEncoder()
 

@@ -7,6 +7,7 @@
 
 import Dispatch
 import Foundation
+import Logging
 
 #if CROSSPLATFORM || os(Linux)
   import SwiftGD
@@ -106,11 +107,11 @@ extension Photo: AutoEquatable {
 }
 
 extension Photo {
-  func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
-    log.info("Photo: \(name) has \(writeImage)")
+  func write(ctx: Context, writeJson: Bool, writeImage: Bool) {
+    log.trace("Photo: \(name) has \(writeImage)")
     // Only write images and symlink if the user wants to
     if writeImage {
-      log.info("Writing image \(name)")
+      log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
       #if CROSSPLATFORM || os(Linux)
         if let image = Image(url: fileURL) {
@@ -120,7 +121,7 @@ extension Photo {
                 "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
               if !resizedImage.write(
                 to: URL(fileURLWithPath: scaledPhoto.url),
-                quality: Int(100 * config.jpegCompression))
+                quality: Int(100 * ctx.config.jpegCompression))
               {
                 log.error("Could not write image \(name) to \(scaledPhoto.url)")
               }
@@ -133,7 +134,7 @@ extension Photo {
             if let resizedImageData = resizeImageCoreGraphics(
               imageSource: imageSource,
               maxResolution: scaledPhoto.maxResolution,
-              compression: CGFloat(config.jpegCompression)
+              compression: CGFloat(ctx.config.jpegCompression)
             ) {
               log.trace(
                 "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
@@ -149,7 +150,7 @@ extension Photo {
       #endif
 
       let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
-      log.info("Symlinking original image \(name) to \(originalImageURL)")
+      log.trace("Symlinking original image \(name) to \(originalImageURL)")
       do {
         try createOrReplaceSymlink(
           source: joinPath(paths: relativeOriginialPath),
@@ -161,7 +162,7 @@ extension Photo {
     }
 
     if writeJson {
-      log.info("Writing metadata for image \(name)")
+      log.trace("Writing metadata for image \(name)")
       let encoder = JSONEncoder()
       if #available(OSX 10.12, *) {
         encoder.dateEncodingStrategy = .iso8601
@@ -178,7 +179,7 @@ extension Photo {
     }
   }
 
-  func destroy(config _: GalleryConfiguration) {
+  func destroy(ctx: Context) {
     let fileManager = FileManager()
     log.trace("Removing image \(name)")
     let jsonURL = URL(fileURLWithPath: url)
@@ -229,7 +230,7 @@ extension Photo {
     name: String,
     fileExtension: String,
     parents: [Parent],
-    config: GalleryConfiguration
+    ctx: Context
   ) -> Photo? {
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
@@ -320,7 +321,7 @@ extension Photo {
 
     let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
 
-    photo.scaledPhotos = config.resolutions.filter { $0 < maxResolution }.map({
+    photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map({
       ScaledPhoto(
         url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
         maxResolution: $0
@@ -354,15 +355,15 @@ extension Photo {
       // Add location names as keywords
       let stateKeyword = KeywordPointer(
         name: state,
-        url: "\(config.outputPath)/keywords/\(urlifyName(state)).json"
+        url: "\(ctx.config.outputPath)/keywords/\(urlifyName(state)).json"
       )
       let locationCodeKeyword = KeywordPointer(
         name: locationCode,
-        url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json"
+        url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationCode)).json"
       )
       let locationNameKeyword = KeywordPointer(
         name: locationName,
-        url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json"
+        url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationName)).json"
       )
 
       photo.keywords.insert(stateKeyword)
@@ -374,9 +375,9 @@ extension Photo {
       for keyword in keywords {
         let keywordPointer = KeywordPointer(
           name: keyword,
-          url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json"
+          url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
         )
-        if config.people.contains(keyword) {
+        if ctx.config.people.contains(keyword) {
           photo.people.insert(keywordPointer)
         } else {
           photo.keywords.insert(keywordPointer)
@@ -421,7 +422,7 @@ extension Photo {
     name: String,
     fileExtension: String,
     parents: [Parent],
-    config: GalleryConfiguration
+    ctx: Context
   ) -> Photo? {
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
@@ -462,7 +463,7 @@ extension Photo {
 
         let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
 
-        photo.scaledPhotos = config.resolutions.filter { $0 < maxResolution }.map({
+        photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map({
           ScaledPhoto(
             url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
             maxResolution: $0
@@ -513,15 +514,15 @@ extension Photo {
             // Add location names as keywords
             let stateKeyword = KeywordPointer(
               name: state,
-              url: "\(config.outputPath)/keywords/\(urlifyName(state)).json"
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(state)).json"
             )
             let locationCodeKeyword = KeywordPointer(
               name: locationCode,
-              url: "\(config.outputPath)/keywords/\(urlifyName(locationCode)).json"
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationCode)).json"
             )
             let locationNameKeyword = KeywordPointer(
               name: locationName,
-              url: "\(config.outputPath)/keywords/\(urlifyName(locationName)).json"
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationName)).json"
             )
 
             photo.keywords.insert(stateKeyword)
@@ -535,9 +536,9 @@ extension Photo {
             for keyword in keywords {
               let keywordPointer = KeywordPointer(
                 name: keyword,
-                url: "\(config.outputPath)/keywords/\(urlifyName(keyword)).json"
+                url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
               )
-              if config.people.contains(keyword) {
+              if ctx.config.people.contains(keyword) {
                 photo.people.insert(keywordPointer)
               } else {
                 photo.keywords.insert(keywordPointer)

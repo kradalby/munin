@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 
 func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Decodable {
   let fileManager = FileManager()

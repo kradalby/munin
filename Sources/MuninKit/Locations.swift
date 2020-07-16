@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Logging
 
 public struct Locations: Codable {
   var locations: [Location]
@@ -14,10 +15,10 @@ public struct Locations: Codable {
     locations = locationsFromAlbum(album: gallery.input)
   }
 
-  public func write(config: GalleryConfiguration) {
+  public func write(ctx: Context) {
     log.info("Writing locations")
     let fileURL = URL(
-      fileURLWithPath: joinPath(paths: config.outputPath, config.name, "locations.json"))
+      fileURLWithPath: joinPath(paths: ctx.config.outputPath, ctx.config.name, "locations.json"))
 
     let encoder = JSONEncoder()
 

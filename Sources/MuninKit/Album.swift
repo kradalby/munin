@@ -7,6 +7,7 @@
 
 import Dispatch
 import Foundation
+import Logging
 import Queuer
 
 // swiftlint:disable file_length
@@ -172,13 +173,13 @@ extension Album: Decodable {
 }
 
 extension Album {
-  public func write(config: GalleryConfiguration, writeJson: Bool, writeImage: Bool) {
+  public func write(ctx: Context, writeJson: Bool, writeImage: Bool) {
     let fileManager = FileManager()
     do {
       try fileManager.createDirectory(
         at: URL(fileURLWithPath: path), withIntermediateDirectories: true)
 
-      log.info("Writing metadata for album \(name)")
+      log.trace("Writing metadata for album \(name)")
       let encoder = JSONEncoder()
       if #available(OSX 10.12, *) {
         encoder.dateEncodingStrategy = .iso8601
@@ -196,21 +197,23 @@ extension Album {
       }
 
       for album in albums {
-        album.write(config: config, writeJson: writeJson, writeImage: writeImage)
+        // let op = ConcurrentOperation { _ in
+        album.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
+        // }
+        // ctx.queues.write.addOperation(op)
       }
 
-      log.info("Album: \(name) has \(writeImage)")
+      log.trace("Album: \(name) has \(writeImage)")
       for photo in photos {
         // concurrentQueue.async {
         //   concurrentPhotoEncodeGroup.enter()
-        //   photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
+        //   photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
         //   concurrentPhotoEncodeGroup.leave()
         // }
-        let concurrentOperation = ConcurrentOperation { _ in
-          photo.write(config: config, writeJson: writeJson, writeImage: writeImage)
-
+        let op = ConcurrentOperation { _ in
+          photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
         }
-        config.queue.addOperation(concurrentOperation)
+        ctx.queues.write.addOperation(op)
       }
 
     } catch {
@@ -218,17 +221,17 @@ extension Album {
     }
   }
 
-  public func destroy(config: GalleryConfiguration) {
+  public func destroy(ctx: Context) {
     //        let fm = FileManager()
 
     log.info("Inside: \(name)")
     log.info("Destroying: \(photos)")
     for photo in photos {
-      photo.destroy(config: config)
+      photo.destroy(ctx: ctx)
     }
 
     for album in albums {
-      album.destroy(config: config)
+      album.destroy(ctx: ctx)
     }
   }
 
@@ -315,13 +318,13 @@ extension Album {
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable function_body_length
 func readStateFromInputDirectory(
+  ctx: Context,
   atPath: String,
   outPath: String,
   name: String,
-  parents: [Parent],
-  config: GalleryConfiguration
+  parents: [Parent]
 ) -> Album {
-  log.info("Creating album from path: \(joinPath(paths: atPath))")
+  log.trace("Creating album from path: \(joinPath(paths: atPath))")
   let fileManager = FileManager()
 
   var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)), parents: parents)
@@ -339,36 +342,41 @@ func readStateFromInputDirectory(
       )
 
       if exists, isDirectory.boolValue {
-        //                concurrentPhotoReadDirectoryGroup.enter()
-        //                concurrentQueue.async {
+
+        // let op = ConcurrentOperation { _ in
 
         let childAlbum = readStateFromInputDirectory(
+          ctx: ctx,
           atPath: joinPath(paths: atPath, element),
           outPath: joinPath(paths: outPath, name),
           name: element,
-          parents: newParents,
-          config: config
+          parents: newParents
         )
         album.albums.insert(childAlbum)
         album.keywords = album.keywords.union(childAlbum.keywords)
         album.people = album.people.union(childAlbum.people)
-        //                }
-        //                concurrentPhotoReadDirectoryGroup.leave()
+
+        // }
+        // ctx.queues.read.addOperation(
+        //   op
+        // )
 
       } else if exists {
         let fileNameWithoutExt = fileNameWithoutExtension(
           atPath: joinPath(paths: atPath, element))
         if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
-          if config.fileExtentions.contains(fileExtension) {
+          if ctx.config.fileExtentions.contains(fileExtension) {
             //                        concurrentQueue.async {
             //                            concurrentPhotoReadDirectoryGroup.enter()
+
+            // let op = ConcurrentOperation { _ in
             if let photo = readPhotoFromPath(
               atPath: joinPath(paths: atPath, element),
               outPath: joinPath(paths: outPath, urlifyName(name)),
               name: fileNameWithoutExt,
               fileExtension: fileExtension,
               parents: newParents,
-              config: config
+              ctx: ctx
             ) {
               if photo.include() {
                 photos.append(photo)
@@ -376,8 +384,10 @@ func readStateFromInputDirectory(
                 log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
               }
             }
-            //                            concurrentPhotoReadDirectoryGroup.leave()
-            //                        }
+            // }
+            // ctx.queues.read.addOperation(
+            //   op
+            // )
 
           } else {
             log.warning(

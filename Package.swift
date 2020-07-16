@@ -23,12 +23,15 @@ let package = Package(
     .package(
       url: "https://github.com/FabrizioBrancati/Queuer.git",
       .upToNextMajor(from: "2.0.0")),
-    .package(url: "https://github.com/kradalby/Logger.swift.git", from: "0.0.7"),
     .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.2"),
-    .package(name: "Progress", url: "https://github.com/jkandzi/Progress.swift",
-             .upToNextMajor(from: "0.0.0"))
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.3.0"),
+    .package(
+      url: "https://github.com/apple/swift-tools-support-core.git",
+      .upToNextMajor(from: "0.0.0")),
+    // .package(url: "https://github.com/Ponyboy47/swift-log-file.git", .branch("master")),
+
     // .package(path: "../SwiftExif"),
   ],
   targets: [
@@ -38,7 +41,7 @@ let package = Package(
       name: "Munin",
       dependencies: [
         "MuninKit",
-        .product(name: "Logger", package: "Logger.swift"),
+        .product(name: "Logging", package: "swift-log"),
         .product(name: "Config", package: "Config.swift"),
         "Commander",
       ]
@@ -47,8 +50,9 @@ let package = Package(
       name: "MuninKit",
       dependencies: [
         "Queuer",
-        "Progress",
-        .product(name: "Logger", package: "Logger.swift"),
+        .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
+        // .product(name: "FileLogging", package: "swift-log-file"),
+        .product(name: "Logging", package: "swift-log"),
         .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
         "SwiftExif",

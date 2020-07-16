@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 
 struct Keyword: Hashable, Comparable {
   var name: String
@@ -68,13 +69,13 @@ extension Keyword: AutoEquatable {
 }
 
 extension Keyword {
-  func write(config _: GalleryConfiguration) {
+  func write(ctx: Context) {
     let fileManager = FileManager()
     let path = URL(fileURLWithPath: url).deletingLastPathComponent()
     do {
       try fileManager.createDirectory(at: path, withIntermediateDirectories: true)
 
-      log.info("Writing metadata for \(type(of: self)) \(name)")
+      log.trace("Writing metadata for \(type(of: self)) \(name)")
       let encoder = JSONEncoder()
 
       if let encodedData = try? encoder.encode(self) {

@@ -7,10 +7,20 @@
 
 import Config
 import Dispatch
+// import FileLogging
 import Foundation
-import Logger
-import Progress
+import Logging
 import Queuer
+import TSCBasic
+import TSCUtility
+
+// Create a factory which will point any newly created logs to the same file
+// let fileFactory = FileLogHandlerFactory(path: "munin.log")
+
+// Initialize the file log handler
+// LoggingSystem.bootstrap(fileFactory.makeFileLogHandler)
+
+let log = Logger(label: "no.kradalby.MuninKit")
 
 // let concurrentQueue = OperationQueue()
 // // DispatchQueue(
@@ -22,7 +32,44 @@ import Queuer
 // // let concurrentPhotoReadJSONGroup = DispatchGroup()
 // let concurrentPhotoReadDirectoryGroup = DispatchGroup()
 
-var log = Logger(LogLevel.INFO)
+struct Timings {
+  var readInputDirectory: TimeInterval?
+  var readOutputDirectory: TimeInterval?
+  var generateDiff: TimeInterval?
+}
+
+struct Queues {
+  var write: Queuer
+  var read: Queuer
+}
+
+public struct Context {
+  let config: GalleryConfiguration
+  var progress: Any?
+  var queues: Queues
+  var time: Timings?
+
+  public init(config: GalleryConfiguration) {
+    self.config = config
+
+    // LoggingSystem.bootstrap(StreamLogHandler.standardError)
+    // time = Timings()
+
+    let write =
+      config.concurrency > 0
+      ? Queuer(
+        name: "write", maxConcurrentOperationCount: config.concurrency,
+        qualityOfService: .default)
+      : Queuer(
+        name: "write", maxConcurrentOperationCount: Int.max, qualityOfService: .default)
+    let read = Queuer(
+      name: "read", maxConcurrentOperationCount: 1, qualityOfService: .default)
+
+    queues = Queues(
+      write: write, read: read)
+
+  }
+}
 
 public struct GalleryConfiguration: Configuration {
   var name: String
@@ -35,8 +82,6 @@ public struct GalleryConfiguration: Configuration {
   public var logLevel: Int
   public var diff: Bool
   var concurrency: Int
-
-  var queue: Queuer
 
   enum CodingKeys: String, CodingKey {
     case name
@@ -63,20 +108,10 @@ public struct GalleryConfiguration: Configuration {
     logLevel = try values.decode(Int.self, forKey: .logLevel)
     diff = try values.decode(Bool.self, forKey: .diff)
     concurrency = try values.decode(Int.self, forKey: .concurrency)
-
-    if concurrency > 0 {
-      log.info("Setting concurrency to \(concurrency)")
-      self.queue = Queuer(
-        name: "MuninQueue", maxConcurrentOperationCount: concurrency, qualityOfService: .default)
-    }
-    self.queue = Queuer(
-      name: "MuninQueue", maxConcurrentOperationCount: Int.max, qualityOfService: .default)
   }
 }
 
 public struct Gallery {
-  let config: GalleryConfiguration
-
   let input: Album
   let output: Album?
 
@@ -84,64 +119,40 @@ public struct Gallery {
   let removedDiff: Album?
 
   // swiftlint:disable function_body_length
-  public init(config: GalleryConfiguration) {
-
-    self.config = config
-
-    log = Logger(config.logLevel)
+  public init(ctx: Context) {
+    var time = Timings()
 
     // read input directory
     let inputStart = Date()
-    let input = readStateFromInputDirectory(
-      atPath: config.inputPath,
-      outPath: config.outputPath,
-      name: config.name,
-      parents: [],
-      config: config
+    input = readStateFromInputDirectory(
+      ctx: ctx,
+      atPath: ctx.config.inputPath,
+      outPath: ctx.config.outputPath,
+      name: ctx.config.name,
+      parents: []
     )
-    let inputEnd = Date()
-    // TODO: Determine of this should be log or print
-    print("Input directory read in \(inputEnd.timeIntervalSince(inputStart)) seconds")
+    time.readInputDirectory = Date().timeIntervalSince(inputStart)
+    print(ctx.queues.read.operationCount)
+    print(ctx.queues.read.operations)
+    ctx.queues.read.waitUntilAllOperationsAreFinished()
 
     let outputStart = Date()
     if let album = readStateFromOutputDirectory(
-      indexFileAtPath: "\(config.outputPath)/\(config.name)/index.json")
+      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     {
-      let output = album
-      let outputEnd = Date()
-      // TODO: Determine of this should be log or print
-      print("Output directory read in \(outputEnd.timeIntervalSince(outputStart)) seconds")
+      time.readOutputDirectory = Date().timeIntervalSince(outputStart)
 
-      log.debug("Input album differs from output album: \(input != output)")
-      //        log.debug("Input: \n\(self.input)")
-      //        if let out = self.output {
-      //            log.debug("Output: \n\(out)")
-      //        }
       let diffStart = Date()
+      let (added, removed) = diff(new: input, old: album)
+      time.generateDiff = Date().timeIntervalSince(diffStart)
 
-      let (added, removed) = diff(new: input, old: output)
+      // if config.diff {e
+      //   print(prettyPrintDiff(added, removed))
+      // }
 
-      let diffEnd = Date()
+      // ctx.time = time
 
-      if config.diff {
-        if let unwrappedAdded = added, let unwrappedRemoved = removed {
-          print("")
-          print("")
-          print("Added:".green)
-          //                    prettyPrintAlbum(unwrappedAdded)
-          prettyPrintAdded(unwrappedAdded)
-          print("")
-          print("")
-          print("Removed:".red)
-          //                    prettyPrintAlbum(unwrappedRemoved)
-          prettyPrintRemoved(unwrappedRemoved)
-          print("")
-        }
-      }
-      // TODO: Determine of this should be log or print
-      print("Diff generated in: \(diffEnd.timeIntervalSince(diffStart)) seconds")
-
-      self.output = output
+      output = album
       addedDiff = added
       removedDiff = removed
     } else {
@@ -150,15 +161,13 @@ public struct Gallery {
       removedDiff = nil
       log.info("Could not find any output album, assuming new is to be created")
     }
-
-    self.input = input
   }
 
-  public func build(jsonOnly: Bool) {
+  public func build(ctx: Context, jsonOnly: Bool) {
     if let removed = removedDiff {
       log.info("Removing images from diff")
       let removeStart = Date()
-      removed.destroy(config: config)
+      removed.destroy(ctx: ctx)
       let removeEnd = Date()
       print("Photos removed in \(removeEnd.timeIntervalSince(removeStart)) seconds")
     }
@@ -166,63 +175,87 @@ public struct Gallery {
     if let added = addedDiff {
       log.info("Adding images from diff")
       let addStart = Date()
-      added.write(config: config, writeJson: false, writeImage: !jsonOnly)
+      added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // concurrentPhotoEncodeGroup.wait()
-      config.queue.waitUntilAllOperationsAreFinished()
+      ctx.queues.write.waitUntilAllOperationsAreFinished()
       let addEnd = Date()
       print("Photos added in \(addEnd.timeIntervalSince(addStart)) seconds")
     }
 
-    log.info("----------------------------------------------------------------------------")
-
     // We have already changed the actual image files, so we only write json
     let writeJsonStart = Date()
     if addedDiff == nil, removedDiff == nil {
-      input.write(config: config, writeJson: true, writeImage: true)
+      input.write(ctx: ctx, writeJson: true, writeImage: true)
     } else {
-      input.write(config: config, writeJson: true, writeImage: false)
+      input.write(ctx: ctx, writeJson: true, writeImage: false)
     }
     let queueBuiltEnd = Date()
     print(
-      "Operations queue built in \(queueBuiltEnd.timeIntervalSince(writeJsonStart)) seconds, with \(config.queue.operationCount) items"
+      "Operations queue built in \(queueBuiltEnd.timeIntervalSince(writeJsonStart)) seconds, with \(ctx.queues.write.operationCount) items"
     )
 
     // concurrentPhotoEncodeGroup.wait()
 
-    let totalOperations = config.queue.operationCount
-    var bar = ProgressBar(
-      count: totalOperations,
-      configuration: [ProgressPercent(), ProgressBarLine(barLength: 60), ProgressIndex()])
+    let totalOperations = ctx.queues.write.operationCount
 
-    while !config.queue.operations.isEmpty {
-      bar.setValue(totalOperations - config.queue.operationCount)
+    let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
+
+    while !ctx.queues.write.operations.isEmpty {
+      bar.update(
+        step: totalOperations - ctx.queues.write.operationCount, total: totalOperations,
+        text: "Left: \(ctx.queues.write.operationCount)")
     }
 
-    config.queue.waitUntilAllOperationsAreFinished()
-    bar.setValue(totalOperations)
+    ctx.queues.write.waitUntilAllOperationsAreFinished()
+    bar.complete(success: ctx.queues.write.operations.isEmpty)
 
     let writeJsonEnd = Date()
     print("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
     let buildKeywordsStart = Date()
-    buildKeywordsFromAlbum(album: input).forEach { $0.write(config: config) }
-    buildPeopleFromAlbum(album: input).forEach { $0.write(config: config) }
+    buildKeywordsFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
+    buildPeopleFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
     let buildKeywordsEnd = Date()
     print(
       "Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds"
     )
 
-    statistics().write(config: config)
+    statistics(ctx: ctx).write(ctx: ctx)
 
     let locationStart = Date()
-    Locations(gallery: self).write(config: config)
+    Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
     print("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
   }
 
-  public func statistics() -> Statistics {
-    return Statistics(gallery: self)
+  public func statistics(ctx: Context) -> Statistics {
+    return Statistics(ctx: ctx, gallery: self)
   }
+}
+
+func prettyPrintDiff(added: Album?, removed: Album?) -> String {
+  var str = ""
+  if let a = added {
+    let astr = """
+
+      Added:
+      \(prettyPrintAdded(a))
+
+      """
+
+    str = str + astr
+  }
+  if let r = removed {
+    let rstr = """
+
+      Removed:
+      \(prettyPrintRemoved(r))
+
+      """
+
+    str = str + rstr
+  }
+  return str
 }
 
 func diff(new: Album, old: Album) -> (Album?, Album?) {
