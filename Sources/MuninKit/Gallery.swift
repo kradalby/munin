@@ -19,19 +19,10 @@ import TSCUtility
 // Initialize the file log handler
 // LoggingSystem.bootstrap(fileFactory.makeFileLogHandler)
 
-let log = Logger(label: "no.kradalby.MuninKit")
+var log = Logger(label: "no.kradalby.MuninKit")
 
+let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
 let photoWriteGroup = DispatchGroup()
-
-// let concurrentQueue = OperationQueue()
-// // DispatchQueue(
-// //   label: "no.kradalby.gal.Gallery",
-// //   attributes: .concurrent
-// // )
-
-// let concurrentPhotoEncodeGroup = DispatchGroup()
-// // let concurrentPhotoReadJSONGroup = DispatchGroup()
-// let concurrentPhotoReadDirectoryGroup = DispatchGroup()
 
 struct Timings {
   var readInputDirectory: TimeInterval?
@@ -39,40 +30,59 @@ struct Timings {
   var generateDiff: TimeInterval?
 }
 
-struct Queues {
-  var write: DispatchQueue
-  var writeGroup: DispatchGroup
-  // var read: Queuer
+class State {
+  let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
+
+  var photosToWrite: Int {
+    didSet {
+      render()
+    }
+  }
+  var photosWritten: Int {
+    didSet {
+      render()
+    }
+  }
+
+  init() {
+    photosToWrite = 0
+    photosWritten = 0
+  }
+
+  func incrementPhotosToWrite() {
+    photosToWrite += 1
+  }
+
+  func incrementPhotosWritten() {
+    photosWritten += 1
+  }
+
+  func render() {
+    bar.update(
+      step: photosWritten, total: photosToWrite,
+      text: "Writing: \(photosWritten) out of \(photosToWrite)")
+
+    if photosToWrite == photosWritten {
+      bar.complete(success: true)
+    }
+  }
 }
 
 public struct Context {
   let config: GalleryConfiguration
   var progress: Any?
-  var queues: Queues
   var time: Timings?
+  var state: State
 
   public init(config: GalleryConfiguration) {
     self.config = config
 
+    log.logLevel = .critical
+
     // LoggingSystem.bootstrap(StreamLogHandler.standardError)
     // time = Timings()
 
-    // let write =
-    //   config.concurrency > 0
-    //   ? Queuer(
-    //     name: "write", maxConcurrentOperationCount: config.concurrency,
-    //     qualityOfService: .default)
-    //   : Queuer(
-    //     name: "write", maxConcurrentOperationCount: Int.max, qualityOfService: .default)
-    // let read = Queuer(
-    //   name: "read", maxConcurrentOperationCount: 1, qualityOfService: .default)
-
-    let write = DispatchQueue(label: "write", qos: .userInitiated, attributes: .concurrent)
-    let writeGroup = DispatchGroup()
-
-    queues = Queues(
-      write: write, writeGroup: writeGroup)
-
+    state = State()
   }
 }
 
@@ -137,9 +147,6 @@ public struct Gallery {
       parents: []
     )
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
-    // print(ctx.queues.read.operationCount)
-    // print(ctx.queues.read.operations)
-    // ctx.queues.read.waitUntilAllOperationsAreFinished()
 
     let outputStart = Date()
     if let album = readStateFromOutputDirectory(
@@ -181,7 +188,6 @@ public struct Gallery {
       log.info("Adding images from diff")
       let addStart = Date()
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
-      // concurrentPhotoEncodeGroup.wait()
       photoWriteGroup.wait()
       let addEnd = Date()
       print("Photos added in \(addEnd.timeIntervalSince(addStart)) seconds")
@@ -194,29 +200,6 @@ public struct Gallery {
     } else {
       input.write(ctx: ctx, writeJson: true, writeImage: false)
     }
-    let queueBuiltEnd = Date()
-    // print(
-    //   "Operations queue built in \(queueBuiltEnd.timeIntervalSince(writeJsonStart)) seconds, with \(ctx.queues.write.operationCount) items"
-    // )
-
-    // // concurrentPhotoEncodeGroup.wait()
-
-    // let totalOperations = ctx.queues.writeGroup.
-
-    // let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
-
-    // repeat {
-    //   let executionCount = 0  // ctx.queues.write.operations.filter({ $0.isExecuting }).count
-    //   bar.update(
-    //     step: totalOperations - ctx.queues.write.operationCount, total: totalOperations,
-    //     text: "Left: \(ctx.queues.write.operationCount), parallel: \(executionCount)")
-    //   usleep(
-    //     300000  // Sleep
-    //   )
-    // } while !ctx.queues.write.operations.isEmpty
-
-    // ctx.queues.writeGroup.wait()
-    // bar.complete(success: ctx.queues.write.operations.isEmpty)
 
     photoWriteGroup.wait()
 

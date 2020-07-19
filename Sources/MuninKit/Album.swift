@@ -205,20 +205,19 @@ extension Album {
 
       log.trace("Album: \(name) has \(writeImage)")
       for photo in photos {
-        // concurrentQueue.async {
-        //   concurrentPhotoEncodeGroup.enter()
-        //   photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
-        //   concurrentPhotoEncodeGroup.leave()
-        // }
-        // let op = ConcurrentOperation { _ in
-        // photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
-        // }
-        // ctx.queues.write.addOperation(op)
-
         DispatchQueue.global(qos: .userInitiated).async {
+          stateQueue.async {
+            ctx.state.incrementPhotosToWrite()
+          }
+
           photoWriteGroup.enter()
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
           photoWriteGroup.leave()
+
+          stateQueue.sync {
+            ctx.state.incrementPhotosWritten()
+          }
+
         }
       }
 
@@ -228,8 +227,6 @@ extension Album {
   }
 
   public func destroy(ctx: Context) {
-    //        let fm = FileManager()
-
     log.info("Inside: \(name)")
     log.info("Destroying: \(photos)")
     for photo in photos {
@@ -359,10 +356,6 @@ func readStateFromInputDirectory(
           atPath: joinPath(paths: atPath, element))
         if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
           if ctx.config.fileExtentions.contains(fileExtension) {
-            //                        concurrentQueue.async {
-            //                            concurrentPhotoReadDirectoryGroup.enter()
-
-            // let op = ConcurrentOperation { _ in
             if let photo = readPhotoFromPath(
               atPath: joinPath(paths: atPath, element),
               outPath: joinPath(paths: outPath, urlifyName(name)),
@@ -377,10 +370,6 @@ func readStateFromInputDirectory(
                 log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
               }
             }
-            // }
-            // ctx.queues.read.addOperation(
-            //   op
-            // )
 
           } else {
             log.warning(
@@ -389,7 +378,6 @@ func readStateFromInputDirectory(
         }
       }
     }
-    //        concurrentPhotoReadDirectoryGroup.wait()
   }
 
   // Ensure that we have a stable order before building next/previous map.
