@@ -197,19 +197,12 @@ extension Album {
       }
 
       for album in albums {
-        // let op = ConcurrentOperation { _ in
         album.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
-        // }
-        // ctx.queues.write.addOperation(op)
       }
 
       log.trace("Album: \(name) has \(writeImage)")
       for photo in photos {
-        DispatchQueue.global(qos: .userInitiated).async {
-          stateQueue.async {
-            ctx.state.incrementPhotosToWrite()
-          }
-
+        photoQueue.async {
           photoWriteGroup.enter()
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
           photoWriteGroup.leave()
@@ -217,7 +210,6 @@ extension Album {
           stateQueue.sync {
             ctx.state.incrementPhotosWritten()
           }
-
         }
       }
 
@@ -333,8 +325,6 @@ func readStateFromInputDirectory(
 
       if exists, isDirectory.boolValue {
 
-        // let op = ConcurrentOperation { _ in
-
         let childAlbum = readStateFromInputDirectory(
           ctx: ctx,
           atPath: joinPath(paths: atPath, element),
@@ -345,11 +335,6 @@ func readStateFromInputDirectory(
         album.albums.insert(childAlbum)
         album.keywords = album.keywords.union(childAlbum.keywords)
         album.people = album.people.union(childAlbum.people)
-
-        // }
-        // ctx.queues.read.addOperation(
-        //   op
-        // )
 
       } else if exists {
         let fileNameWithoutExt = fileNameWithoutExtension(

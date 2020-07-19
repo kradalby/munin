@@ -22,6 +22,9 @@ import TSCUtility
 var log = Logger(label: "no.kradalby.MuninKit")
 
 let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
+let photoQueue = DispatchQueue(
+  label: "no.kradalby.MuninKit.photoQueue", qos: .userInitiated, attributes: [.concurrent])
+let photoToWriteGroup = DispatchGroup()
 let photoWriteGroup = DispatchGroup()
 
 struct Timings {
@@ -33,11 +36,7 @@ struct Timings {
 class State {
   let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
 
-  var photosToWrite: Int {
-    didSet {
-      render()
-    }
-  }
+  var photosToWrite: Int
   var photosWritten: Int {
     didSet {
       render()
@@ -49,8 +48,9 @@ class State {
     photosWritten = 0
   }
 
-  func incrementPhotosToWrite() {
-    photosToWrite += 1
+  func reset(photosToWrite: Int, photosWritten: Int) {
+    self.photosToWrite = photosToWrite
+    self.photosWritten = photosWritten
   }
 
   func incrementPhotosWritten() {
@@ -178,39 +178,37 @@ public struct Gallery {
   public func build(ctx: Context, jsonOnly: Bool) {
     if let removed = removedDiff {
       log.info("Removing images from diff")
-      let removeStart = Date()
       removed.destroy(ctx: ctx)
-      let removeEnd = Date()
-      print("Photos removed in \(removeEnd.timeIntervalSince(removeStart)) seconds")
     }
 
     if let added = addedDiff {
       log.info("Adding images from diff")
-      let addStart = Date()
+      ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
+      // Wait for all photos to be written to disk
       photoWriteGroup.wait()
-      let addEnd = Date()
-      print("Photos added in \(addEnd.timeIntervalSince(addStart)) seconds")
     }
 
-    // We have already changed the actual image files, so we only write json
+    ctx.state.reset(photosToWrite: input.numberOfPhotos(travers: true), photosWritten: 0)
     let writeJsonStart = Date()
     if addedDiff == nil, removedDiff == nil {
       input.write(ctx: ctx, writeJson: true, writeImage: true)
     } else {
+      // We have already changed the actual image files, so we only write json
       input.write(ctx: ctx, writeJson: true, writeImage: false)
     }
 
+    // Wait for all photos to be written to disk
     photoWriteGroup.wait()
 
     let writeJsonEnd = Date()
-    print("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
+    log.info("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
     let buildKeywordsStart = Date()
     buildKeywordsFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
     buildPeopleFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
     let buildKeywordsEnd = Date()
-    print(
+    log.info(
       "Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds"
     )
 
@@ -219,105 +217,10 @@ public struct Gallery {
     let locationStart = Date()
     Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
-    print("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
+    log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
   }
 
   public func statistics(ctx: Context) -> Statistics {
     return Statistics(ctx: ctx, gallery: self)
   }
-}
-
-func prettyPrintDiff(added: Album?, removed: Album?) -> String {
-  var str = ""
-  if let a = added {
-    let astr = """
-
-      Added:
-      \(prettyPrintAdded(a))
-
-      """
-
-    str = str + astr
-  }
-  if let r = removed {
-    let rstr = """
-
-      Removed:
-      \(prettyPrintRemoved(r))
-
-      """
-
-    str = str + rstr
-  }
-  return str
-}
-
-func diff(new: Album, old: Album) -> (Album?, Album?) {
-  if new == old {
-    return (nil, nil)
-  }
-
-  var removed = new.copyWithoutChildren()
-  var added = new.copyWithoutChildren()
-
-  removed.photos = old.photos.subtracting(new.photos)
-  added.photos = new.photos.subtracting(old.photos)
-
-  // Not changed
-  _ = new.albums.intersection(old.albums)
-  let onlyNewAlbums = new.albums.subtracting(old.albums)
-  let onlyOldAlbums = old.albums.subtracting(new.albums)
-
-  let changedAlbums = pairChangedAlbums(
-    newAlbums: Array(onlyNewAlbums), oldAlbums: Array(onlyOldAlbums))
-
-  for changed in changedAlbums {
-    if let newChangedAlbum = changed.0,
-      let oldChangedAlbum = changed.1
-    {
-      let (addedChild, removedChild) = diff(new: newChangedAlbum, old: oldChangedAlbum)
-
-      if let child = addedChild {
-        added.albums.insert(child)
-      }
-
-      if let child = removedChild {
-        removed.albums.insert(child)
-      }
-    } else if let newChangedAlbum = changed.0 {
-      added.albums.insert(newChangedAlbum)
-    } else if let oldChangedAlbum = changed.1 {
-      removed.albums.insert(oldChangedAlbum)
-    }
-  }
-
-  return (added, removed)
-}
-
-func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Album?)]) {
-  var pairs: [(Album?, Album?)] = []
-
-  for new in newAlbums {
-    if isAlbumInListByName(album: new, albums: oldAlbums) {
-      for old in oldAlbums where new.name == old.name {
-        pairs.append((new, old))
-      }
-    } else {
-      pairs.append((new, nil))
-    }
-  }
-  for old in oldAlbums {
-    if !isAlbumInListByName(album: old, albums: newAlbums) {
-      pairs.append((nil, old))
-    }
-  }
-
-  return pairs
-}
-
-func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
-  for item in albums where album.name == item.name {
-    return true
-  }
-  return false
 }

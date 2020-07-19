@@ -192,3 +192,98 @@ extension Collection {
     return indices.contains(index) ? self[index] : nil
   }
 }
+
+func prettyPrintDiff(added: Album?, removed: Album?) -> String {
+  var str = ""
+  if let a = added {
+    let astr = """
+
+      Added:
+      \(prettyPrintAdded(a))
+
+      """
+
+    str = str + astr
+  }
+  if let r = removed {
+    let rstr = """
+
+      Removed:
+      \(prettyPrintRemoved(r))
+
+      """
+
+    str = str + rstr
+  }
+  return str
+}
+
+func diff(new: Album, old: Album) -> (Album?, Album?) {
+  if new == old {
+    return (nil, nil)
+  }
+
+  var removed = new.copyWithoutChildren()
+  var added = new.copyWithoutChildren()
+
+  removed.photos = old.photos.subtracting(new.photos)
+  added.photos = new.photos.subtracting(old.photos)
+
+  // Not changed
+  _ = new.albums.intersection(old.albums)
+  let onlyNewAlbums = new.albums.subtracting(old.albums)
+  let onlyOldAlbums = old.albums.subtracting(new.albums)
+
+  let changedAlbums = pairChangedAlbums(
+    newAlbums: Array(onlyNewAlbums), oldAlbums: Array(onlyOldAlbums))
+
+  for changed in changedAlbums {
+    if let newChangedAlbum = changed.0,
+      let oldChangedAlbum = changed.1
+    {
+      let (addedChild, removedChild) = diff(new: newChangedAlbum, old: oldChangedAlbum)
+
+      if let child = addedChild {
+        added.albums.insert(child)
+      }
+
+      if let child = removedChild {
+        removed.albums.insert(child)
+      }
+    } else if let newChangedAlbum = changed.0 {
+      added.albums.insert(newChangedAlbum)
+    } else if let oldChangedAlbum = changed.1 {
+      removed.albums.insert(oldChangedAlbum)
+    }
+  }
+
+  return (added, removed)
+}
+
+func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Album?)]) {
+  var pairs: [(Album?, Album?)] = []
+
+  for new in newAlbums {
+    if isAlbumInListByName(album: new, albums: oldAlbums) {
+      for old in oldAlbums where new.name == old.name {
+        pairs.append((new, old))
+      }
+    } else {
+      pairs.append((new, nil))
+    }
+  }
+  for old in oldAlbums {
+    if !isAlbumInListByName(album: old, albums: newAlbums) {
+      pairs.append((nil, old))
+    }
+  }
+
+  return pairs
+}
+
+func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
+  for item in albums where album.name == item.name {
+    return true
+  }
+  return false
+}

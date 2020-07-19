@@ -33,11 +33,9 @@ let main = command(
 
     let executionTime = end.timeIntervalSince(start)
 
-    // TODO: Determine of this should be log or print
     print("Generated in: \(executionTime) seconds")
   }
   let stats = gallery.statistics(ctx: ctx).toString()
-  // TODO: Determine of this should be log or print
   print(stats)
 }
 
