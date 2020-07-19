@@ -210,10 +210,16 @@ extension Album {
         //   photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
         //   concurrentPhotoEncodeGroup.leave()
         // }
-        let op = ConcurrentOperation { _ in
+        // let op = ConcurrentOperation { _ in
+        // photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
+        // }
+        // ctx.queues.write.addOperation(op)
+
+        DispatchQueue.global(qos: .userInitiated).async {
+          photoWriteGroup.enter()
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
+          photoWriteGroup.leave()
         }
-        ctx.queues.write.addOperation(op)
       }
 
     } catch {
@@ -260,19 +266,6 @@ extension Album {
 }
 
 extension Album: AutoEquatable {
-  //    static func ==(lhs: Album, rhs: Album) -> Bool {
-  //        guard lhs.name == rhs.name else { return false }
-  //        guard lhs.url == rhs.url else { return false }
-  //        guard lhs.path == rhs.path else { return false }
-  //        guard lhs.photos == rhs.photos else { return false }
-  //        guard lhs.albums == rhs.albums else { return false }
-  //        guard lhs.keywords == rhs.keywords else { return false }
-  //        guard lhs.people == rhs.people else { return false }
-  //        guard lhs.parents == rhs.parents else { return false }
-  //
-  //        return true
-  //    }
-
   static func < (lhs: Album, rhs: Album) -> Bool {
     return lhs.name < rhs.name
   }
