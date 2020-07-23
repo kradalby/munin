@@ -213,6 +213,7 @@ extension Album {
           }
         }
       }
+      photoWriteGroup.wait()
 
     } catch {
       log.error("Failed creating directory \(path) with error: \n\(error)")
