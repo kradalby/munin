@@ -8,7 +8,6 @@
 import Dispatch
 import Foundation
 import Logging
-import Queuer
 
 // swiftlint:disable file_length
 struct Album: Hashable, Comparable {
