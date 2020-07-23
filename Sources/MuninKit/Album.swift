@@ -62,6 +62,7 @@ extension Album: Encodable {
       try photosContainer.encode(
         PhotoInAlbum(
           url: $0.url,
+          dateTime: $0.dateTime ?? $0.modifiedDate,
           originalImageURL: $0.originalImageURL,
           scaledPhotos: $0.scaledPhotos,
           gps: $0.gps
@@ -97,6 +98,7 @@ extension Album: Encodable {
 
 struct PhotoInAlbum: Codable {
   var url: String
+  var dateTime: Date
   var originalImageURL: String
   var scaledPhotos: [ScaledPhoto]
   var gps: GPS?

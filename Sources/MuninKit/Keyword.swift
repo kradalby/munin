@@ -34,6 +34,7 @@ extension Keyword: Encodable {
       try photosContainer.encode(
         PhotoInAlbum(
           url: $0.url,
+          dateTime: $0.dateTime ?? $0.modifiedDate,
           originalImageURL: $0.originalImageURL,
           scaledPhotos: $0.scaledPhotos,
           gps: $0.gps
