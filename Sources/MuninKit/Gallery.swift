@@ -26,6 +26,7 @@ let photoQueue = DispatchQueue(
   label: "no.kradalby.MuninKit.photoQueue", qos: .userInitiated, attributes: [.concurrent])
 let photoToWriteGroup = DispatchGroup()
 let photoWriteGroup = DispatchGroup()
+let photoToReadGroup = DispatchGroup()
 
 struct Timings {
   var readInputDirectory: TimeInterval?
@@ -45,7 +46,7 @@ class State {
 
   init() {
     photosToWrite = 0
-    photosWritten = 0
+    photosWritten = 1
   }
 
   func reset(photosToWrite: Int, photosWritten: Int) {
@@ -173,6 +174,7 @@ public struct Gallery {
       removedDiff = nil
       log.info("Could not find any output album, assuming new is to be created")
     }
+    print("Times: ", time)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {

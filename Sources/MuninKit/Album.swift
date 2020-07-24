@@ -309,63 +309,63 @@ func readStateFromInputDirectory(
   parents: [Parent]
 ) -> Album {
   log.trace("Creating album from path: \(joinPath(paths: atPath))")
-  let fileManager = FileManager()
 
   var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)), parents: parents)
   let parent = Parent(name: album.name, url: album.url)
   var newParents = parents
   newParents.append(parent)
 
+  let directories = FileManager.default.directoriesOfDirectory(atPath: joinPath(paths: atPath))
+  for directory in directories {
+    let childAlbum = readStateFromInputDirectory(
+      ctx: ctx,
+      atPath: joinPath(paths: atPath, directory),
+      outPath: joinPath(paths: outPath, name),
+      name: directory,
+      parents: newParents
+    )
+    album.albums.insert(childAlbum)
+    album.keywords = album.keywords.union(childAlbum.keywords)
+    album.people = album.people.union(childAlbum.people)
+  }
+
   var photos = [Photo]()
-  if let files = try? fileManager.contentsOfDirectory(atPath: joinPath(paths: atPath)) {
-    for element in files {
-      var isDirectory: ObjCBool = ObjCBool(false)
-      let exists = fileManager.fileExists(
-        atPath: joinPath(paths: atPath, element),
-        isDirectory: &isDirectory
-      )
+  let files = FileManager.default.filesOfDirectory(atPath: joinPath(paths: atPath))
+  for file in files {
+    let fileNameWithoutExt = fileNameWithoutExtension(
+      atPath: joinPath(paths: atPath, file))
+    if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, file)) {
+      if ctx.config.fileExtentions.contains(fileExtension) {
+        photoQueue.async {
+          photoToReadGroup.enter()
+          let maybePhoto = readPhotoFromPath(
+            atPath: joinPath(paths: atPath, file),
+            outPath: joinPath(paths: outPath, urlifyName(name)),
+            name: fileNameWithoutExt,
+            fileExtension: fileExtension,
+            parents: newParents,
+            ctx: ctx
+          )
 
-      if exists, isDirectory.boolValue {
-
-        let childAlbum = readStateFromInputDirectory(
-          ctx: ctx,
-          atPath: joinPath(paths: atPath, element),
-          outPath: joinPath(paths: outPath, name),
-          name: element,
-          parents: newParents
-        )
-        album.albums.insert(childAlbum)
-        album.keywords = album.keywords.union(childAlbum.keywords)
-        album.people = album.people.union(childAlbum.people)
-
-      } else if exists {
-        let fileNameWithoutExt = fileNameWithoutExtension(
-          atPath: joinPath(paths: atPath, element))
-        if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, element)) {
-          if ctx.config.fileExtentions.contains(fileExtension) {
-            if let photo = readPhotoFromPath(
-              atPath: joinPath(paths: atPath, element),
-              outPath: joinPath(paths: outPath, urlifyName(name)),
-              name: fileNameWithoutExt,
-              fileExtension: fileExtension,
-              parents: newParents,
-              ctx: ctx
-            ) {
+          stateQueue.sync {
+            if let photo = maybePhoto {
               if photo.include() {
                 photos.append(photo)
               } else {
                 log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
               }
             }
-
-          } else {
-            log.warning(
-              "File found, but it was not a photo, path: \(joinPath(paths: atPath, element))")
           }
+          photoToReadGroup.leave()
         }
+
+      } else {
+        log.warning(
+          "File found, but it was not a photo, path: \(joinPath(paths: atPath, file))")
       }
     }
   }
+  photoToReadGroup.wait()
 
   // Ensure that we have a stable order before building next/previous map.
   photos.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
