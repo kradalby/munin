@@ -147,6 +147,7 @@ public struct Gallery {
       name: ctx.config.name,
       parents: []
     )
+    photoToReadGroup.wait()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     let outputStart = Date()
