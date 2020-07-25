@@ -35,43 +35,76 @@ struct Timings {
 }
 
 class State {
-  let bar = PercentProgressAnimation(stream: TSCBasic.stdoutStream, header: "Writing images")
+  let writingProgress: PercentProgressAnimation
+  let readingProgress: ReadingProgressAnimation?
 
-  var photosToWrite: Int
+  var lastReadPhoto: String = ""
+  var photosToWrite: Int {
+    didSet {
+      renderReading()
+    }
+  }
   var photosWritten: Int {
     didSet {
-      render()
+      renderWriting()
     }
   }
 
   init() {
     photosToWrite = 0
-    photosWritten = 1
+    photosWritten = 0
+
+    writingProgress = PercentProgressAnimation(
+      stream: TSCBasic.stdoutStream, header: "Writing images")
+
+    if let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
+      readingProgress = ReadingProgressAnimation(terminal: terminal, header: "Finding images")
+    } else {
+      readingProgress = nil
+    }
   }
 
-  func reset(photosToWrite: Int, photosWritten: Int) {
-    self.photosToWrite = photosToWrite
+  func completeRead() {
+    if let progress = readingProgress {
+      progress.complete(
+        success: true)
+    }
+  }
+
+  func resetWrite(photosWritten: Int) {
     self.photosWritten = photosWritten
+  }
+
+  func updatePhotosToWrite(name: String) {
+    lastReadPhoto = name
+    photosToWrite += 1
   }
 
   func incrementPhotosWritten() {
     photosWritten += 1
   }
 
-  func render() {
-    bar.update(
+  func renderReading() {
+    if let progress = readingProgress {
+      progress.update(
+        step: photosToWrite, total: 0,
+        text: "Reading: \(lastReadPhoto)")
+    }
+  }
+
+  func renderWriting() {
+    writingProgress.update(
       step: photosWritten, total: photosToWrite,
       text: "Writing: \(photosWritten) out of \(photosToWrite)")
 
     if photosToWrite == photosWritten {
-      bar.complete(success: true)
+      writingProgress.complete(success: true)
     }
   }
 }
 
 public struct Context {
   let config: GalleryConfiguration
-  var progress: Any?
   var time: Timings?
   var state: State
 
@@ -148,6 +181,7 @@ public struct Gallery {
       parents: []
     )
     photoToReadGroup.wait()
+    ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     let outputStart = Date()
@@ -186,13 +220,13 @@ public struct Gallery {
 
     if let added = addedDiff {
       log.info("Adding images from diff")
-      ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
+      // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // Wait for all photos to be written to disk
       photoWriteGroup.wait()
     }
 
-    ctx.state.reset(photosToWrite: input.numberOfPhotos(travers: true), photosWritten: 0)
+    ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
     if addedDiff == nil, removedDiff == nil {
       input.write(ctx: ctx, writeJson: true, writeImage: true)

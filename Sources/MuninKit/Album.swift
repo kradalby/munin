@@ -355,6 +355,9 @@ func readStateFromInputDirectory(
                 log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
               }
             }
+
+            ctx.state.updatePhotosToWrite(name: joinPath(paths: atPath, file))
+
           }
           photoToReadGroup.leave()
         }

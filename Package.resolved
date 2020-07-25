@@ -65,6 +65,15 @@
         }
       },
       {
+        "package": "SwiftExif",
+        "repositoryURL": "https://github.com/kradalby/SwiftExif.git",
+        "state": {
+          "branch": null,
+          "revision": "b6a91489ab85a4bc85367702faeba3c936786f57",
+          "version": "0.0.3"
+        }
+      },
+      {
         "package": "SwiftGD",
         "repositoryURL": "https://github.com/twostraws/SwiftGD.git",
         "state": {

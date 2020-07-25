@@ -58,5 +58,9 @@ let package = Package(
       name: "MuninTests",
       dependencies: ["Munin"]
     ),
+    .testTarget(
+      name: "MuninKitTests",
+      dependencies: ["MuninKit"]
+    ),
   ]
 )
