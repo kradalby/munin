@@ -20,9 +20,9 @@ public final class ReadingProgressAnimation: ProgressAnimationProtocol {
 
   private func writeLong(_ text: String) {
     if text.utf8.count > terminal.width {
-      let prefix = "…"
-      terminal.write(prefix)
-      terminal.write(String(text.suffix(terminal.width - prefix.utf8.count)))
+      let suffix = "…"
+      terminal.write(String(text.prefix(terminal.width - suffix.utf8.count)))
+      terminal.write(suffix)
     } else {
       terminal.write(text)
     }
@@ -38,19 +38,6 @@ public final class ReadingProgressAnimation: ProgressAnimationProtocol {
     }
 
     terminal.clearLine()
-    // let percentage = step * 100 / total
-    // let paddedPercentage = percentage < 10 ? " \(percentage)" : "\(percentage)"
-    // let prefix = "\(paddedPercentage)% " + terminal.wrap("[", inColor: .green, bold: true)
-    // terminal.write(prefix)
-
-    // let barWidth = terminal.width - prefix.utf8.count
-    // let n = Int(Double(barWidth) * Double(percentage) / 100.0)
-
-    // terminal.write(
-    //   repeating(string: "=", count: n) + repeating(string: "-", count: barWidth - n),
-    //   inColor: .green)
-    // terminal.write("]", inColor: .green, bold: true)
-    // terminal.endLine()
     terminal.write("Found: ", inColor: .cyan, bold: true)
     terminal.write("[", inColor: .green, bold: true)
     terminal.write(String(step), inColor: .white)
@@ -62,6 +49,7 @@ public final class ReadingProgressAnimation: ProgressAnimationProtocol {
   }
 
   public func complete(success: Bool) {
+    terminal.endLine()
     terminal.endLine()
     terminal.endLine()
   }
