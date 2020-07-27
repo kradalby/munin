@@ -8,6 +8,13 @@ extension FileManager {
     return []
   }
 
+  func filesOfDirectoryByExtensions(atPath: String, extensions: [String]) -> [String] {
+    self.filesOfDirectory(atPath: atPath).filter {
+      extensions.contains(fileExtension(atPath: joinPath(paths: atPath, $0)) ?? "")
+    }
+
+  }
+
   func directoriesOfDirectory(atPath: String) -> [String] {
     if let contents = try? self.contentsOfDirectory(atPath: atPath) {
       return contents.filter { self.isDirectory(atPath: joinPath(paths: atPath, $0)) }

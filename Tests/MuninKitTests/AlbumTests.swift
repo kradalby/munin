@@ -23,9 +23,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 100)
+    XCTAssertEqual(photoCount, 102)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 9)
+    XCTAssertEqual(albumCount, 10)
   }
 
   // This is a silly test to ensure that concurrency does not

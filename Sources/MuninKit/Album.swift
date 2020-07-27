@@ -203,8 +203,8 @@ extension Album {
 
       log.trace("Album: \(name) has \(writeImage)")
       for photo in photos {
+        photoWriteGroup.enter()
         photoQueue.async {
-          photoWriteGroup.enter()
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
           photoWriteGroup.leave()
 
@@ -330,44 +330,44 @@ func readStateFromInputDirectory(
   }
 
   var photos = [Photo]()
-  let files = FileManager.default.filesOfDirectory(atPath: joinPath(paths: atPath))
+  let files = FileManager.default.filesOfDirectoryByExtensions(
+    atPath: joinPath(paths: atPath), extensions: ctx.config.fileExtentions
+  )
   for file in files {
     let fileNameWithoutExt = fileNameWithoutExtension(
       atPath: joinPath(paths: atPath, file))
     if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, file)) {
-      if ctx.config.fileExtentions.contains(fileExtension) {
-        photoQueue.async {
-          photoToReadGroup.enter()
-          let maybePhoto = readPhotoFromPath(
-            atPath: joinPath(paths: atPath, file),
-            outPath: joinPath(paths: outPath, urlifyName(name)),
-            name: fileNameWithoutExt,
-            fileExtension: fileExtension,
-            parents: newParents,
-            ctx: ctx
-          )
+      photoToReadGroup.enter()
+      photoQueue.async {
+        let maybePhoto = readPhotoFromPath(
+          atPath: joinPath(paths: atPath, file),
+          outPath: joinPath(paths: outPath, urlifyName(name)),
+          name: fileNameWithoutExt,
+          fileExtension: fileExtension,
+          parents: newParents,
+          ctx: ctx
+        )
 
-          stateQueue.sync {
-            photoToReadGroup2.enter()
-            if let photo = maybePhoto {
-              if photo.include() {
-                photos.append(photo)
-              } else {
-                log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-              }
+        stateQueue.sync {
+          photoToReadGroup2.enter()
+          if let photo = maybePhoto {
+            if photo.include() {
+              photos.append(photo)
+            } else {
+              log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
             }
-
-            ctx.state.updatePhotosToWrite(name: joinPath(paths: atPath, file))
-
-            photoToReadGroup2.leave()
           }
-          photoToReadGroup.leave()
-        }
 
-      } else {
-        log.warning(
-          "File found, but it was not a photo, path: \(joinPath(paths: atPath, file))")
+          ctx.state.updatePhotosToWrite(name: joinPath(paths: atPath, file))
+
+          photoToReadGroup2.leave()
+        }
+        photoToReadGroup.leave()
       }
+
+    } else {
+      log.warning(
+        "File found, but it was not a photo, path: \(joinPath(paths: atPath, file))")
     }
   }
   photoToReadGroup.wait()
