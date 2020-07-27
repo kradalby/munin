@@ -44,10 +44,4 @@ final class AlbumTests: XCTestCase {
       XCTAssertEqual(albumCount, 10)
     }
   }
-
-  static var __allTests = [
-    ("test", test),
-    ("testReadStateFromInputDirectory", testReadStateFromInputDirectory),
-    ("testReadStateFromInputDirectoryMultipleTime", testReadStateFromInputDirectoryMultipleTime),
-  ]
 }

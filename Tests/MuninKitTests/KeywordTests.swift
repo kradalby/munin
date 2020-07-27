@@ -29,9 +29,4 @@ final class KeywordTests: XCTestCase {
     XCTAssertTrue(strings.contains("Tel Aviv District"))
     XCTAssertTrue(strings.contains("Aishling Cooke"))
   }
-
-  static var __allTests = [
-    ("test", test),
-    ("testBuildKeywordsFromAlbum", testBuildKeywordsFromAlbum),
-  ]
 }
