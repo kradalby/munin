@@ -27,7 +27,6 @@ let photoQueue = DispatchQueue(
 let photoToWriteGroup = DispatchGroup()
 let photoWriteGroup = DispatchGroup()
 let photoToReadGroup = DispatchGroup()
-let photoToReadGroup2 = DispatchGroup()
 
 struct Timings {
   var readInputDirectory: TimeInterval?
@@ -182,7 +181,6 @@ public struct Gallery {
       parents: []
     )
     photoToReadGroup.wait()
-    photoToReadGroup2.wait()
     ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 

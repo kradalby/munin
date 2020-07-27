@@ -349,7 +349,6 @@ func readStateFromInputDirectory(
         )
 
         stateQueue.sync {
-          photoToReadGroup2.enter()
           if let photo = maybePhoto {
             if photo.include() {
               photos.append(photo)
@@ -360,7 +359,6 @@ func readStateFromInputDirectory(
 
           ctx.state.updatePhotosToWrite(name: joinPath(paths: atPath, file))
 
-          photoToReadGroup2.leave()
         }
         photoToReadGroup.leave()
       }
@@ -371,7 +369,6 @@ func readStateFromInputDirectory(
     }
   }
   photoToReadGroup.wait()
-  photoToReadGroup2.wait()
 
   // Ensure that we have a stable order before building next/previous map.
   photos.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
