@@ -53,6 +53,17 @@ extension LocationData: Equatable {
     }
 }
 
+// MARK: LocationDegree Equatable
+
+extension LocationDegree: Equatable {
+    static func == (lhs: LocationDegree, rhs: LocationDegree) -> Bool {
+        guard lhs.degrees == rhs.degrees else { return false }
+        guard lhs.minutes == rhs.minutes else { return false }
+        guard lhs.seconds == rhs.seconds else { return false }
+        return true
+    }
+}
+
 // MARK: Parent Equatable
 
 extension Parent: Equatable {
@@ -74,13 +85,17 @@ extension Photo: Equatable {
         guard lhs.scaledPhotos == rhs.scaledPhotos else { return false }
         guard lhs.parents == rhs.parents else { return false }
         guard lhs.aperture == rhs.aperture else { return false }
+        guard lhs.apertureFormatted == rhs.apertureFormatted else { return false }
         guard lhs.cameraMake == rhs.cameraMake else { return false }
         guard lhs.cameraModel == rhs.cameraModel else { return false }
         guard lhs.copyright == rhs.copyright else { return false }
         guard lhs.dateTime == rhs.dateTime else { return false }
         guard lhs.exposureTime == rhs.exposureTime else { return false }
+        guard lhs.exposureTimeFormatted == rhs.exposureTimeFormatted else { return false }
         guard lhs.fNumber == rhs.fNumber else { return false }
+        guard lhs.fNumberFormatted == rhs.fNumberFormatted else { return false }
         guard lhs.focalLength == rhs.focalLength else { return false }
+        guard lhs.focalLengthFormatted == rhs.focalLengthFormatted else { return false }
         guard lhs.gps == rhs.gps else { return false }
         guard lhs.height == rhs.height else { return false }
         guard lhs.imageDescription == rhs.imageDescription else { return false }
@@ -88,10 +103,12 @@ extension Photo: Equatable {
         guard lhs.lensModel == rhs.lensModel else { return false }
         guard lhs.location == rhs.location else { return false }
         guard lhs.meteringMode == rhs.meteringMode else { return false }
+        guard lhs.meteringModeFormatted == rhs.meteringModeFormatted else { return false }
         guard lhs.modifiedDate == rhs.modifiedDate else { return false }
         guard lhs.orientation == rhs.orientation else { return false }
         guard lhs.owner == rhs.owner else { return false }
         guard lhs.shutterSpeed == rhs.shutterSpeed else { return false }
+        guard lhs.shutterSpeedFormatted == rhs.shutterSpeedFormatted else { return false }
         guard lhs.width == rhs.width else { return false }
         guard lhs.keywords == rhs.keywords else { return false }
         guard lhs.people == rhs.people else { return false }

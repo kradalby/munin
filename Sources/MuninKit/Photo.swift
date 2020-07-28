@@ -26,13 +26,17 @@ struct Photo: Codable, Comparable, Hashable {
 
   // Metadata
   var aperture: Double?
+  var apertureFormatted: String?
   var cameraMake: String?
   var cameraModel: String?
   var copyright: String?
   var dateTime: Date?
   var exposureTime: Double?
+  var exposureTimeFormatted: String?
   var fNumber: Double?
+  var fNumberFormatted: String?
   var focalLength: Double?
+  var focalLengthFormatted: String?
   var gps: GPS?
   var height: Int?
   var imageDescription: String?
@@ -40,10 +44,12 @@ struct Photo: Codable, Comparable, Hashable {
   var lensModel: String?
   var location: LocationData?
   var meteringMode: Int?
+  var meteringModeFormatted: String?
   var modifiedDate: Date
   var orientation: Orientation?
   var owner: String?
   var shutterSpeed: Double?
+  var shutterSpeedFormatted: String?
   var width: Int?
 
   var keywords: Set<KeywordPointer>
@@ -239,6 +245,7 @@ extension Photo {
 
     let exifImage = SwiftExif.Image(imagePath: fileURL)
     let exifDict = exifImage.Exif()
+    let exifRawDict = exifImage.ExifRaw()
     let iptcDict = exifImage.Iptc()
 
     var photo = Photo(
@@ -252,9 +259,32 @@ extension Photo {
       parents: parents
     )
 
+    // Use GD to check for the width/height
     if let image = Image(url: fileURL) {
       photo.width = image.size.width
       photo.height = image.size.height
+    }
+
+    if let exif = exifRawDict["EXIF"] {
+      if let aperture = exif["Aperture"] {
+        photo.aperture = Double(aperture)
+      }
+
+      if let fNumber = exif["F-Number"] {
+        photo.fNumber = Double(fNumber)
+      }
+      if let meteringMode = exif["Metering Mode"] {
+        photo.meteringMode = Int(meteringMode)
+      }
+      if let shutterSpeed = exif["Shutter Speed"] {
+        photo.shutterSpeed = Double(shutterSpeed)
+      }
+      if let focalLength = exif["Focal Length"] {
+        photo.focalLength = Double(focalLength)
+      }
+      if let exposureTime = exif["Exposure Time"] {
+        photo.exposureTime = Double(exposureTime)
+      }
     }
 
     if let exif = exifDict["EXIF"] {
@@ -274,26 +304,25 @@ extension Photo {
         }
       }
 
-      // Need parsing/raw
       if let aperture = exif["Aperture"] {
-        photo.aperture = Double(aperture)
+        photo.apertureFormatted = aperture
       }
+
       if let fNumber = exif["F-Number"] {
-        photo.fNumber = Double(fNumber)
+        photo.fNumberFormatted = fNumber
       }
       if let meteringMode = exif["Metering Mode"] {
-        photo.meteringMode = Int(meteringMode)
+        photo.meteringModeFormatted = meteringMode
       }
       if let shutterSpeed = exif["Shutter Speed"] {
-        photo.shutterSpeed = Double(shutterSpeed)
+        photo.shutterSpeedFormatted = shutterSpeed
       }
       if let focalLength = exif["Focal Length"] {
-        photo.focalLength = Double(focalLength)
+        photo.focalLengthFormatted = focalLength
       }
       if let exposureTime = exif["Exposure Time"] {
-        photo.exposureTime = Double(exposureTime)
+        photo.exposureTimeFormatted = exposureTime
       }
-      // Need parsing/raw
 
       if let isoSpeedStr = exif["ISO Speed Ratings"] {
         if let isoSpeed = Int(isoSpeedStr) {
@@ -330,16 +359,14 @@ extension Photo {
     )
 
     if let zero = exifDict["0"] {
-      // photo.imageDescription = tiff["ImageDescription"] as? String // Not available
       photo.cameraMake = zero["Manufacturer"]
       photo.cameraModel = zero["Model"]
-      photo.copyright = zero["Copyright"]
+      photo.copyright = zero["Artist"] ?? zero["Copyright"]
 
     } else {
       log.warning("'0' (zero) tag not found for photo, some metatags will be unavailable")
     }
 
-    // Not currently available
     // Add location data if available
     if let city = iptcDict["City"] as? String,
       let state = iptcDict["Province/State"] as? String,
@@ -391,15 +418,17 @@ extension Photo {
         let longitudeStr = gpsDict["Longitude"]
       {
         if let altitude = Double(altitudeStr),
-          let latitude = Double(latitudeStr),  // Different format
-          let longitude = Double(longitudeStr),  // Different format
+          let latitude = LocationDegree.fromString(latitudeStr),
+          let longitude = LocationDegree.fromString(longitudeStr),
           let longitudeRef = gpsDict["East or West Longitude"],
           let latitudeRef = gpsDict["North or South Latitude"]
         {
           photo.gps = GPS(
             altitude: altitude,
-            latitude: latitudeRef == "N" ? latitude : latitude * -1,
-            longitude: longitudeRef == "E" ? longitude : longitude * -1
+            latitude: latitudeRef == "N"
+              ? latitude.toDecimal()
+              : latitude.toDecimal() * -1,
+            longitude: longitudeRef == "E" ? longitude.toDecimal() : longitude.toDecimal() * -1
           )
         }
 
