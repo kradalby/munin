@@ -78,6 +78,7 @@ extension Keyword {
 
       log.trace("Writing metadata for \(type(of: self)) \(name)")
       let encoder = JSONEncoder()
+      encoder.dateEncodingStrategy = .iso8601
 
       if let encodedData = try? encoder.encode(self) {
         do {

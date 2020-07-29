@@ -182,9 +182,7 @@ extension Album {
 
       log.trace("Writing metadata for album \(name)")
       let encoder = JSONEncoder()
-      if #available(OSX 10.12, *) {
-        encoder.dateEncodingStrategy = .iso8601
-      }
+      encoder.dateEncodingStrategy = .iso8601
 
       if writeJson {
         if let encodedData = try? encoder.encode(self) {

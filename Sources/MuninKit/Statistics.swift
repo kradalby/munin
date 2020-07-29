@@ -43,6 +43,7 @@ public struct Statistics: Codable {
       fileURLWithPath: joinPath(paths: ctx.config.outputPath, ctx.config.name, "stats.json"))
 
     let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
 
     if let encodedData = try? encoder.encode(self) {
       do {
