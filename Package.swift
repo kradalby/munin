@@ -8,7 +8,7 @@ import PackageDescription
 let package = Package(
   name: "Munin",
   platforms: [
-    .macOS(.v10_12),
+    .macOS(.v10_12)
     // .linux
   ],
   products: [
