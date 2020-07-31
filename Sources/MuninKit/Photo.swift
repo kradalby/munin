@@ -9,11 +9,11 @@ import Dispatch
 import Foundation
 import Logging
 
-#if CROSSPLATFORM || os(Linux)
+#if CORE_GRAPHICS
+  import ImageIO
+#else
   import SwiftGD
   import SwiftExif
-#else
-  import ImageIO
 #endif
 
 struct Photo: Codable, Comparable, Hashable {
@@ -119,22 +119,7 @@ extension Photo {
     if writeImage {
       log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
-      #if CROSSPLATFORM || os(Linux)
-        if let image = Image(url: fileURL) {
-          for scaledPhoto in scaledPhotos {
-            if let resizedImage = image.resizedTo(width: scaledPhoto.maxResolution) {
-              log.trace(
-                "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-              if !resizedImage.write(
-                to: URL(fileURLWithPath: scaledPhoto.url),
-                quality: Int(100 * ctx.config.jpegCompression))
-              {
-                log.error("Could not write image \(name) to \(scaledPhoto.url)")
-              }
-            }
-          }
-        }
-      #else
+      #if CORE_GRAPHICS
         if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
           for scaledPhoto in scaledPhotos {
             if let resizedImageData = resizeImageCoreGraphics(
@@ -149,6 +134,21 @@ extension Photo {
               } catch {
                 log.error(
                   "Could not write image \(name) to \(scaledPhoto.url) with error: \n\(error)")
+              }
+            }
+          }
+        }
+      #else
+        if let image = Image(url: fileURL) {
+          for scaledPhoto in scaledPhotos {
+            if let resizedImage = image.resizedTo(width: scaledPhoto.maxResolution) {
+              log.trace(
+                "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+              if !resizedImage.write(
+                to: URL(fileURLWithPath: scaledPhoto.url),
+                quality: Int(100 * ctx.config.jpegCompression))
+              {
+                log.error("Could not write image \(name) to \(scaledPhoto.url)")
               }
             }
           }
@@ -227,7 +227,177 @@ extension Photo {
   }
 }
 
-#if CROSSPLATFORM || os(Linux)
+#if CORE_GRAPHICS
+
+  // swiftlint:disable cyclomatic_complexity
+  // swiftlint:disable function_body_length
+  // swiftlint:disable function_parameter_count
+  func readPhotoFromPath(
+    atPath: String,
+    outPath: String,
+    name: String,
+    fileExtension: String,
+    parents: [Parent],
+    ctx: Context
+  ) -> Photo? {
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+
+    let fileURL = URL(fileURLWithPath: atPath)
+    if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
+      // Get md5 of original
+      //        log.trace("Calculating md5 hash for original image \(name)")
+      //        if let imageFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
+      //            let md5 = MD5()
+      //            let hash = md5.calculate(for: imageFile.bytes)
+      //            print(hash.toHexString())
+      //        }
+
+      let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
+      if let dict = imageProperties as? [String: Any] {
+        var photo = Photo(
+          name: name,
+          url: "\(joinPath(paths: outPath, name)).json",
+          originalImageURL: "\(joinPath(paths: outPath, name))_original.\(fileExtension)",
+          originalImagePath: atPath,
+          scaledPhotos: [],
+          // If no modifiation date is available, use now.
+          modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
+          parents: parents
+        )
+
+        photo.width = dict["PixelWidth"] as? Int
+        photo.height = dict["PixelHeight"] as? Int
+
+        if let width = photo.width, let height = photo.height {
+          if width > height {
+            photo.orientation = Orientation.landscape
+          } else {
+            photo.orientation = Orientation.portrait
+          }
+        }
+
+        let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
+
+        photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map({
+          ScaledPhoto(
+            url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
+            maxResolution: $0
+          )
+        }
+        )
+
+        if let exif = dict["{Exif}"] as? [String: Any] {
+          photo.aperture = exif["ApertureValue"] as? Double
+          photo.fNumber = exif["FNumber"] as? Double
+          photo.meteringMode = exif["MeteringMode"] as? Int
+          photo.shutterSpeed = exif["ShutterSpeedValue"] as? Double
+          photo.focalLength = exif["FocalLength"] as? Double
+          photo.exposureTime = exif["ExposureTime"] as? Double
+          if let dateTime = exif["DateTimeOriginal"] as? String {
+            photo.dateTime = dateFormatter.date(from: dateTime)
+          }
+
+          if let isoSpeed = exif["ISOSpeedRatings"] as? [Int] {
+            photo.isoSpeed = Set(isoSpeed)
+          }
+        } else {
+          log.warning("Exif tag not found for photo, some metatags will be unavailable")
+        }
+
+        if let tiff = dict["{TIFF}"] as? [String: Any] {
+          photo.imageDescription = tiff["ImageDescription"] as? String
+          photo.cameraMake = tiff["Make"] as? String
+          photo.cameraModel = tiff["Model"] as? String
+
+        } else {
+          log.warning("TIFF tag not found for photo, some metatags will be unavailable")
+        }
+
+        if let iptc = dict["{IPTC}"] as? [String: Any] {
+          // Add location data if available
+          if let city = iptc["City"] as? String,
+            let state = iptc["Province/State"] as? String,
+            let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
+            let locationName = iptc["Country/PrimaryLocationName"] as? String
+          {
+            photo.location = LocationData(
+              city: city,
+              state: state,
+              locationCode: locationCode,
+              locationName: locationName)
+
+            // Add location names as keywords
+            let stateKeyword = KeywordPointer(
+              name: state,
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(state)).json"
+            )
+            let locationCodeKeyword = KeywordPointer(
+              name: locationCode,
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationCode)).json"
+            )
+            let locationNameKeyword = KeywordPointer(
+              name: locationName,
+              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationName)).json"
+            )
+
+            photo.keywords.insert(stateKeyword)
+            photo.keywords.insert(locationCodeKeyword)
+            photo.keywords.insert(locationNameKeyword)
+          }
+
+          photo.copyright = iptc["CopyrightNotice"] as? String
+
+          if let keywords = iptc["Keywords"] as? [String] {
+            for keyword in keywords {
+              let keywordPointer = KeywordPointer(
+                name: keyword,
+                url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
+              )
+              if ctx.config.people.contains(keyword) {
+                photo.people.insert(keywordPointer)
+              } else {
+                photo.keywords.insert(keywordPointer)
+              }
+            }
+          }
+        } else {
+          log.warning("IPTC tag not found for photo, some metatags will be unavailable")
+        }
+
+        if let exifAux = dict["{ExifAux}"] as? [String: Any] {
+          photo.lensModel = exifAux["LensModel"] as? String
+          photo.owner = exifAux["OwnerName"] as? String
+
+        } else {
+          log.warning("ExifAux tag not found for photo, some metatags will be unavailable")
+        }
+
+        if let gpsDict = dict["{GPS}"] as? [String: Any] {
+          if let altitude = gpsDict["Altitude"] as? Double,
+            let latitude = gpsDict["Latitude"] as? Double,
+            let longitude = gpsDict["Longitude"] as? Double,
+            let longitudeRef = gpsDict["LongitudeRef"] as? String,
+            let latitudeRef = gpsDict["LatitudeRef"] as? String
+          {
+            photo.gps = GPS(
+              altitude: altitude,
+              latitude: latitudeRef == "N" ? latitude : latitude * -1,
+              longitude: longitudeRef == "E" ? longitude : longitude * -1
+            )
+          }
+        } else {
+          log.warning("GPS tag not found for photo, some metatags will be unavailable")
+        }
+
+        return photo
+      }
+    }
+    return nil
+  }
+
+#else
+
   func readPhotoFromPath(
     atPath: String,
     outPath: String,
@@ -437,174 +607,6 @@ extension Photo {
     }
 
     return photo
-  }
-
-#else
-  // swiftlint:disable cyclomatic_complexity
-  // swiftlint:disable function_body_length
-  // swiftlint:disable function_parameter_count
-  func readPhotoFromPath(
-    atPath: String,
-    outPath: String,
-    name: String,
-    fileExtension: String,
-    parents: [Parent],
-    ctx: Context
-  ) -> Photo? {
-    let dateFormatter = DateFormatter()
-    dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-
-    let fileURL = URL(fileURLWithPath: atPath)
-    if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil) {
-      // Get md5 of original
-      //        log.trace("Calculating md5 hash for original image \(name)")
-      //        if let imageFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
-      //            let md5 = MD5()
-      //            let hash = md5.calculate(for: imageFile.bytes)
-      //            print(hash.toHexString())
-      //        }
-
-      let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
-      if let dict = imageProperties as? [String: Any] {
-        var photo = Photo(
-          name: name,
-          url: "\(joinPath(paths: outPath, name)).json",
-          originalImageURL: "\(joinPath(paths: outPath, name))_original.\(fileExtension)",
-          originalImagePath: atPath,
-          scaledPhotos: [],
-          // If no modifiation date is available, use now.
-          modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
-          parents: parents
-        )
-
-        photo.width = dict["PixelWidth"] as? Int
-        photo.height = dict["PixelHeight"] as? Int
-
-        if let width = photo.width, let height = photo.height {
-          if width > height {
-            photo.orientation = Orientation.landscape
-          } else {
-            photo.orientation = Orientation.portrait
-          }
-        }
-
-        let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
-
-        photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map({
-          ScaledPhoto(
-            url: "\(joinPath(paths: outPath, name))_\($0).\(fileExtension)",
-            maxResolution: $0
-          )
-        }
-        )
-
-        if let exif = dict["{Exif}"] as? [String: Any] {
-          photo.aperture = exif["ApertureValue"] as? Double
-          photo.fNumber = exif["FNumber"] as? Double
-          photo.meteringMode = exif["MeteringMode"] as? Int
-          photo.shutterSpeed = exif["ShutterSpeedValue"] as? Double
-          photo.focalLength = exif["FocalLength"] as? Double
-          photo.exposureTime = exif["ExposureTime"] as? Double
-          if let dateTime = exif["DateTimeOriginal"] as? String {
-            photo.dateTime = dateFormatter.date(from: dateTime)
-          }
-
-          if let isoSpeed = exif["ISOSpeedRatings"] as? [Int] {
-            photo.isoSpeed = Set(isoSpeed)
-          }
-        } else {
-          log.warning("Exif tag not found for photo, some metatags will be unavailable")
-        }
-
-        if let tiff = dict["{TIFF}"] as? [String: Any] {
-          photo.imageDescription = tiff["ImageDescription"] as? String
-          photo.cameraMake = tiff["Make"] as? String
-          photo.cameraModel = tiff["Model"] as? String
-
-        } else {
-          log.warning("TIFF tag not found for photo, some metatags will be unavailable")
-        }
-
-        if let iptc = dict["{IPTC}"] as? [String: Any] {
-          // Add location data if available
-          if let city = iptc["City"] as? String,
-            let state = iptc["Province/State"] as? String,
-            let locationCode = iptc["Country/PrimaryLocationCode"] as? String,
-            let locationName = iptc["Country/PrimaryLocationName"] as? String
-          {
-            photo.location = LocationData(
-              city: city,
-              state: state,
-              locationCode: locationCode,
-              locationName: locationName)
-
-            // Add location names as keywords
-            let stateKeyword = KeywordPointer(
-              name: state,
-              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(state)).json"
-            )
-            let locationCodeKeyword = KeywordPointer(
-              name: locationCode,
-              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationCode)).json"
-            )
-            let locationNameKeyword = KeywordPointer(
-              name: locationName,
-              url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationName)).json"
-            )
-
-            photo.keywords.insert(stateKeyword)
-            photo.keywords.insert(locationCodeKeyword)
-            photo.keywords.insert(locationNameKeyword)
-          }
-
-          photo.copyright = iptc["CopyrightNotice"] as? String
-
-          if let keywords = iptc["Keywords"] as? [String] {
-            for keyword in keywords {
-              let keywordPointer = KeywordPointer(
-                name: keyword,
-                url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
-              )
-              if ctx.config.people.contains(keyword) {
-                photo.people.insert(keywordPointer)
-              } else {
-                photo.keywords.insert(keywordPointer)
-              }
-            }
-          }
-        } else {
-          log.warning("IPTC tag not found for photo, some metatags will be unavailable")
-        }
-
-        if let exifAux = dict["{ExifAux}"] as? [String: Any] {
-          photo.lensModel = exifAux["LensModel"] as? String
-          photo.owner = exifAux["OwnerName"] as? String
-
-        } else {
-          log.warning("ExifAux tag not found for photo, some metatags will be unavailable")
-        }
-
-        if let gpsDict = dict["{GPS}"] as? [String: Any] {
-          if let altitude = gpsDict["Altitude"] as? Double,
-            let latitude = gpsDict["Latitude"] as? Double,
-            let longitude = gpsDict["Longitude"] as? Double,
-            let longitudeRef = gpsDict["LongitudeRef"] as? String,
-            let latitudeRef = gpsDict["LatitudeRef"] as? String
-          {
-            photo.gps = GPS(
-              altitude: altitude,
-              latitude: latitudeRef == "N" ? latitude : latitude * -1,
-              longitude: longitudeRef == "E" ? longitude : longitude * -1
-            )
-          }
-        } else {
-          log.warning("GPS tag not found for photo, some metatags will be unavailable")
-        }
-
-        return photo
-      }
-    }
-    return nil
   }
 
 #endif

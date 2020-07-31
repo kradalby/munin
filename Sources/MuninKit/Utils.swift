@@ -73,7 +73,7 @@ func pathWithoutFileName(atPath: String) -> String {
   return url.deletingLastPathComponent().relativeString
 }
 
-#if os(macOS) && !CROSSPLATFORM
+#if CORE_GRAPHICS
   func resizeImageCoreGraphics(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat)
     -> Data?
   {

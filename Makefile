@@ -17,11 +17,11 @@ build-release:
 test:
 	swift test
 
-build-cross:
-	swift build -c debug --sanitize=thread -Xswiftc '-DCROSSPLATFORM'
+build-core-graphics:
+	swift build -c debug --sanitize=thread -Xswiftc '-DCORE_GRAPHICS'
 
-build-cross-release:
-	swift build --configuration release -Xswiftc '-DCROSSPLATFORM'
+build-core-graphics-release:
+	swift build --configuration release -Xswiftc '-DCORE_GRAPHICS'
 
 dev:
 	swift package generate-xcodeproj

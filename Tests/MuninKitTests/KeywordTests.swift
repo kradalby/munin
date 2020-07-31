@@ -20,7 +20,7 @@ final class KeywordTests: XCTestCase {
 
     let keywords = buildKeywordsFromAlbum(album: album)
 
-    XCTAssertEqual(keywords.count, 79)
+    XCTAssertEqual(keywords.count, 77)
 
     let strings = keywords.map { $0.name }
 
