@@ -8,15 +8,14 @@ Munin does not come with a frontend, and encourages you to "bring your own" or p
 
 Munin uses ImageIO for reading image metadata and encoding of images which currently makes it macOS only. The grand central dispatch infrastructure is used to parallellise a lot of the tasks to speed up encoding on multi processor machines.
 
-
 ## Features
 
 - Organise your album as folders
 - Generate albums fast!
-    - Generate only changed albums/images
-    - Encode with all available cores
-    - Reuse original images by symlinking ([example](example/content/root/2018/2018-03-10_Alkmaar/20180310-133656-IMG_6007_original.jpg))
-    - Generate multiple sizes for responsive usage
+  - Generate only changed albums/images
+  - Encode with all available cores
+  - Reuse original images by symlinking ([example](example/content/root/2018/2018-03-10_Alkmaar/20180310-133656-IMG_6007_original.jpg))
+  - Generate multiple sizes for responsive usage
 - Structure EXIF and other metadata as JSON ([example]())
 - Structure image by keywords ([example]())
 - Structure image by people ([example]())
@@ -38,26 +37,23 @@ Usage:
         --dry [default: false] - Dry-run, do not write gallery
         --json [default: false] - Write only JSON files, no images, useful for updating data with new munin features
 
-
 ### Configuration
+
 Munin is configured with a simple json file:
 
 ```json
 {
-    "name": "root",
-    "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
-    "jpegCompression": 0.75,
-    "inputPath": "album",
-    "outputPath": "content",
-    "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
-    "logLevel": 1,
-    "diff": true,
-    "people": [
-        "Kristoffer Andreas Dalby"
-    ]
+  "name": "root",
+  "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
+  "jpegCompression": 0.75,
+  "inputPath": "album",
+  "outputPath": "content",
+  "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
+  "logLevel": 1,
+  "diff": true,
+  "people": ["Kristoffer Andreas Dalby"]
 }
 ```
-
 
 ## Install
 
@@ -66,9 +62,11 @@ Munin is configured with a simple json file:
     mint run kradalby/munin
 
 ### Building yourself
+
 This installation will put the binary to `~/bin` which needs to be in your path. If you would like to install it elsewhere, take a look at the `Makefile`
 
 Requirements:
+
 - Swift 5
 - Xcode 10.2
 - git
@@ -82,8 +80,8 @@ Build and install:
     cd munin
     make install
 
-
 ## Development
+
 Please see the requirements in [Building yourself](#Building yourself).
 
 Generate a Xcode project:
@@ -94,6 +92,7 @@ Generate a Xcode project:
 or bring your favourite editor.
 
 ### Code style
+
 When developing on the project, be sure to follow the standard setup of [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
 
 All linters can be run with:
