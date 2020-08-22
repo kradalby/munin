@@ -45,6 +45,9 @@
          "image": "plugins/docker",
          "name": "Build container image",
          "pull": "always",
+         "settings": {
+            "repo": "build-only"
+         },
          "trigger": {
             "event": [
                "pull_request"
