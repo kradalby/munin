@@ -4,9 +4,9 @@
 
 Munin is a static "api" image gallery generator. Munin will take a folder structure and turn it into a linked json api with responsive images. The idea is that the input folder structure will act as the "state" or "source of truth" and will be compared to the currently generated gallery and a diff will be generated. The first run will create a new gallery and the consecutive runs will only encode thumbnails and json files for new images/folders.
 
-Munin does not come with a frontend, and encourages you to "bring your own" or pair it with [Hugin](https://github.com/kradalby/hugin).
+Munin does not come with a frontend, and encourages you to "build your own" or pair it with [Hugin](https://github.com/kradalby/hugin).
 
-Munin uses ImageIO for reading image metadata and encoding of images which currently makes it macOS only. The grand central dispatch infrastructure is used to parallellise a lot of the tasks to speed up encoding on multi processor machines.
+Munin uses [libgd](https://libgd.github.io) (via [SwiftGD](https://github.com/twostraws/SwiftGD)), [libexif](https://libexif.github.io) and [libiptcdata](http://libiptcdata.sourceforge.net) to read, resize, write images and their metadata. Munin runs on both macOS and Linux.
 
 ## Features
 
@@ -59,7 +59,23 @@ Munin is configured with a simple json file:
 
 ### Installing with [mint](https://github.com/yonaskolb/Mint)
 
-    mint run kradalby/munin
+```bash
+mint run kradalby/munin --help
+```
+
+### Docker
+
+You can run Munin in a Docker container, but it requires you to mount some folders into the container.
+
+```bash
+docker run --rm -ti kradalby/munin:latest --help
+```
+
+Wrap the Docker command in a script that can handle the mounting for you:
+
+```bash
+
+```
 
 ### Building yourself
 
@@ -67,8 +83,8 @@ This installation will put the binary to `~/bin` which needs to be in your path.
 
 Requirements:
 
-- Swift 5
-- Xcode 10.2
+- Linux (Ubuntu 20.10 tested) or macOS (10.15 tested)
+- Swift 5.2
 - git
 
 Clone:
@@ -93,10 +109,18 @@ or bring your favourite editor.
 
 ### Code style
 
-When developing on the project, be sure to follow the standard setup of [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+When developing on the project, be sure to follow the standard setup of [SwiftLint](https://github.com/realm/SwiftLint) and [swift-format](https://github.com/apple/swift-format)
 
 All linters can be run with:
 
-    make lint
+```bash
+make lint
+```
+
+All formatters can be run with:
+
+```bash
+make fmt
+```
 
 All linters are ran on the CI whenever a change is comitted.
