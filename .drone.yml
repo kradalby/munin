@@ -1,9 +1,19 @@
 ---
 {
+   "dns_config": {
+      "nameservers": [
+         "1.1.1.1",
+         "1.0.0.1"
+      ]
+   },
    "kind": "pipeline",
    "name": "Docker build",
    "node_selector": {
       "drone": true
+   },
+   "platform": {
+      "arch": "amd64",
+      "os": "linux"
    },
    "steps": [
       {
@@ -11,13 +21,13 @@
             "npm install prettier",
             "npx prettier --check \"**/*.{ts,js,md,yaml,yml,sass,css,scss}\""
          ],
-         "image": "node:lts",
+         "image": "node:lts-buster",
          "name": "Prettier lint",
          "pull": "always"
       },
       {
          "commands": [
-            "git clone -b swift-5.2-branch https://github.com/apple/swift-format.git /tmp/swift-format",
+            "git clone -b swift-5.3-branch https://github.com/apple/swift-format.git /tmp/swift-format",
             "cd /tmp/swift-format",
             "swift build --configuration release",
             "cd -",
@@ -75,6 +85,7 @@
             "repo": "kradalby/munin",
             "tags": [
                "latest",
+               "latest-${DRONE_STAGE_OS}-${DRONE_STAGE_ARCH}",
                "${DRONE_COMMIT_SHA:0:8}"
             ],
             "username": {
@@ -115,10 +126,20 @@
 }
 ---
 {
+   "dns_config": {
+      "nameservers": [
+         "1.1.1.1",
+         "1.0.0.1"
+      ]
+   },
    "kind": "pipeline",
    "name": "Swift build",
    "node_selector": {
       "drone": true
+   },
+   "platform": {
+      "arch": "amd64",
+      "os": "linux"
    },
    "steps": [
       {
@@ -126,13 +147,13 @@
             "npm install prettier",
             "npx prettier --check \"**/*.{ts,js,md,yaml,yml,sass,css,scss}\""
          ],
-         "image": "node:lts",
+         "image": "node:lts-buster",
          "name": "Prettier lint",
          "pull": "always"
       },
       {
          "commands": [
-            "git clone -b swift-5.2-branch https://github.com/apple/swift-format.git /tmp/swift-format",
+            "git clone -b swift-5.3-branch https://github.com/apple/swift-format.git /tmp/swift-format",
             "cd /tmp/swift-format",
             "swift build --configuration release",
             "cd -",
