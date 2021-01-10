@@ -1,303 +1,217 @@
 ---
 {
-   "dns_config": {
-      "nameservers": [
-         "1.1.1.1",
-         "1.0.0.1"
-      ]
-   },
-   "kind": "pipeline",
-   "name": "Docker build",
-   "node_selector": {
-      "drone": true
-   },
-   "platform": {
-      "arch": "amd64",
-      "os": "linux"
-   },
-   "steps": [
+  "dns_config": { "nameservers": ["1.1.1.1", "1.0.0.1"] },
+  "kind": "pipeline",
+  "name": "Docker build",
+  "node_selector": { "drone": true },
+  "platform": { "arch": "amd64", "os": "linux" },
+  "steps":
+    [
       {
-         "commands": [
+        "commands":
+          [
             "npm install prettier",
-            "npx prettier --check \"**/*.{ts,js,md,yaml,yml,sass,css,scss}\""
-         ],
-         "image": "node:lts-buster",
-         "name": "Prettier lint",
-         "pull": "always"
+            'npx prettier --check "**/*.{ts,js,md,yaml,yml,sass,css,scss}"',
+          ],
+        "image": "node:lts-buster",
+        "name": "Prettier lint",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "git clone -b swift-5.3-branch https://github.com/apple/swift-format.git /tmp/swift-format",
             "cd /tmp/swift-format",
             "swift build --configuration release",
             "cd -",
             "/tmp/swift-format/.build/release/swift-format format --recursive  Sources/ Package.swift",
-            "/tmp/swift-format/.build/release/swift-format lint --recursive  Sources/ Package.swift"
-         ],
-         "image": "swift:latest",
-         "name": "Swift lint",
-         "pull": "always"
+            "/tmp/swift-format/.build/release/swift-format lint --recursive  Sources/ Package.swift",
+          ],
+        "image": "swift:latest",
+        "name": "Swift lint",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "apt update",
             "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
-            "make test"
-         ],
-         "image": "kradalby/swift:groovy",
-         "name": "Swift test",
-         "pull": "always"
+            "make test",
+          ],
+        "image": "kradalby/swift:groovy",
+        "name": "Swift test",
+        "pull": "always",
       },
       {
-         "environment": {
-            "DOCKER_BUILDKIT": 1
-         },
-         "image": "plugins/docker",
-         "name": "Build container image",
-         "pull": "always",
-         "settings": {
-            "repo": "build-only"
-         },
-         "trigger": {
-            "event": [
-               "pull_request"
-            ]
-         },
-         "when": {
-            "branch": {
-               "exclude": [
-                  "master"
-               ]
-            }
-         }
+        "environment": { "DOCKER_BUILDKIT": 1 },
+        "image": "plugins/docker",
+        "name": "Build container image",
+        "pull": "always",
+        "settings": { "repo": "build-only" },
+        "trigger": { "event": ["pull_request"] },
+        "when": { "branch": { "exclude": ["master"] } },
       },
       {
-         "environment": {
-            "DOCKER_BUILDKIT": 1
-         },
-         "image": "plugins/docker",
-         "name": "Publish image kradalby/munin",
-         "pull": "always",
-         "settings": {
-            "password": {
-               "from_secret": "docker_password"
-            },
+        "environment": { "DOCKER_BUILDKIT": 1 },
+        "image": "plugins/docker",
+        "name": "Publish image kradalby/munin",
+        "pull": "always",
+        "settings":
+          {
+            "password": { "from_secret": "docker_password" },
             "repo": "kradalby/munin",
-            "tags": [
-               "latest",
-               "latest-${DRONE_STAGE_OS}-${DRONE_STAGE_ARCH}",
-               "${DRONE_COMMIT_SHA:0:8}"
-            ],
-            "username": {
-               "from_secret": "docker_username"
-            }
-         },
-         "when": {
-            "branch": [
-               "master"
-            ],
-            "event": [
-               "push"
-            ]
-         }
+            "tags":
+              [
+                "latest",
+                "latest-${DRONE_STAGE_OS}-${DRONE_STAGE_ARCH}",
+                "${DRONE_COMMIT_SHA:0:8}",
+              ],
+            "username": { "from_secret": "docker_username" },
+          },
+        "when": { "branch": ["master"], "event": ["push"] },
       },
       {
-         "image": "appleboy/drone-discord",
-         "name": "Notify Discord",
-         "pull": "always",
-         "settings": {
+        "image": "appleboy/drone-discord",
+        "name": "Notify Discord",
+        "pull": "always",
+        "settings":
+          {
             "message": "{{#success build.status}}\n✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{else}}\n@everyone\n❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{/success}}\n",
-            "webhook_id": {
-               "from_secret": "discord_webhook_id"
-            },
-            "webhook_token": {
-               "from_secret": "discord_webhook_token"
-            }
-         },
-         "when": {
-            "status": [
-               "success",
-               "failure"
-            ]
-         }
-      }
-   ],
-   "type": "kubernetes"
+            "webhook_id": { "from_secret": "discord_webhook_id" },
+            "webhook_token": { "from_secret": "discord_webhook_token" },
+          },
+        "when": { "status": ["success", "failure"] },
+      },
+    ],
+  "type": "kubernetes",
 }
 ---
 {
-   "dns_config": {
-      "nameservers": [
-         "1.1.1.1",
-         "1.0.0.1"
-      ]
-   },
-   "kind": "pipeline",
-   "name": "Swift build",
-   "node_selector": {
-      "drone": true
-   },
-   "platform": {
-      "arch": "amd64",
-      "os": "linux"
-   },
-   "steps": [
+  "dns_config": { "nameservers": ["1.1.1.1", "1.0.0.1"] },
+  "kind": "pipeline",
+  "name": "Swift build",
+  "node_selector": { "drone": true },
+  "platform": { "arch": "amd64", "os": "linux" },
+  "steps":
+    [
       {
-         "commands": [
+        "commands":
+          [
             "npm install prettier",
-            "npx prettier --check \"**/*.{ts,js,md,yaml,yml,sass,css,scss}\""
-         ],
-         "image": "node:lts-buster",
-         "name": "Prettier lint",
-         "pull": "always"
+            'npx prettier --check "**/*.{ts,js,md,yaml,yml,sass,css,scss}"',
+          ],
+        "image": "node:lts-buster",
+        "name": "Prettier lint",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "git clone -b swift-5.3-branch https://github.com/apple/swift-format.git /tmp/swift-format",
             "cd /tmp/swift-format",
             "swift build --configuration release",
             "cd -",
             "/tmp/swift-format/.build/release/swift-format format --recursive  Sources/ Package.swift",
-            "/tmp/swift-format/.build/release/swift-format lint --recursive  Sources/ Package.swift"
-         ],
-         "image": "swift:latest",
-         "name": "Swift lint",
-         "pull": "always"
+            "/tmp/swift-format/.build/release/swift-format lint --recursive  Sources/ Package.swift",
+          ],
+        "image": "swift:latest",
+        "name": "Swift lint",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "apt update",
             "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
-            "make test"
-         ],
-         "image": "kradalby/swift:groovy",
-         "name": "Swift test",
-         "pull": "always"
+            "make test",
+          ],
+        "image": "kradalby/swift:groovy",
+        "name": "Swift test",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "apt update",
             "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
-            "make build"
-         ],
-         "image": "kradalby/swift:groovy",
-         "name": "Swift build",
-         "pull": "always"
+            "make build",
+          ],
+        "image": "kradalby/swift:groovy",
+        "name": "Swift build",
+        "pull": "always",
       },
       {
-         "commands": [
+        "commands":
+          [
             "apt update",
             "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
             "make build-release",
             "mkdir -p dist/",
-            "mv .build/release/munin dist/"
-         ],
-         "image": "kradalby/swift:groovy",
-         "name": "Swift release",
-         "pull": "always",
-         "when": {
-            "branch": [
-               "master"
-            ],
-            "event": [
-               "push"
-            ]
-         }
+            "mv .build/release/munin dist/",
+          ],
+        "image": "kradalby/swift:groovy",
+        "name": "Swift release",
+        "pull": "always",
+        "when": { "branch": ["master"], "event": ["push"] },
       },
       {
-         "environment": {
-            "SSH_KEY": {
-               "from_secret": "ssh_key"
-            }
-         },
-         "image": "appleboy/drone-scp",
-         "name": "Deploy to builds",
-         "pull": "always",
-         "settings": {
+        "environment": { "SSH_KEY": { "from_secret": "ssh_key" } },
+        "image": "appleboy/drone-scp",
+        "name": "Deploy to builds",
+        "pull": "always",
+        "settings":
+          {
             "host": "storage.terra.fap.no",
             "rm": true,
-            "source": [
-               "dist/*"
-            ],
+            "source": ["dist/*"],
             "strip_components": 1,
             "target": "/storage/serve/builds/munin/linux_x64",
-            "username": "deploy"
-         },
-         "when": {
-            "branch": [
-               "master"
-            ],
-            "event": [
-               "push"
-            ]
-         }
+            "username": "deploy",
+          },
+        "when": { "branch": ["master"], "event": ["push"] },
       },
       {
-         "image": "appleboy/drone-discord",
-         "name": "Notify Discord",
-         "pull": "always",
-         "settings": {
+        "image": "appleboy/drone-discord",
+        "name": "Notify Discord",
+        "pull": "always",
+        "settings":
+          {
             "message": "{{#success build.status}}\n✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{else}}\n@everyone\n❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝  Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n🌐  {{ build.link }}\n\n✅  duration: {{duration build.started build.finished}}\n✅  started: {{datetime build.started \"2006/01/02 15:04\" \"UTC\"}}\n✅  finished: {{datetime build.finished \"2006/01/02 15:04\" \"UTC\"}}\n\n{{/success}}\n",
-            "webhook_id": {
-               "from_secret": "discord_webhook_id"
-            },
-            "webhook_token": {
-               "from_secret": "discord_webhook_token"
-            }
-         },
-         "when": {
-            "status": [
-               "success",
-               "failure"
-            ]
-         }
-      }
-   ],
-   "type": "kubernetes"
+            "webhook_id": { "from_secret": "discord_webhook_id" },
+            "webhook_token": { "from_secret": "discord_webhook_token" },
+          },
+        "when": { "status": ["success", "failure"] },
+      },
+    ],
+  "type": "kubernetes",
 }
 ---
 {
-   "get": {
-      "name": "id",
-      "path": "discord-build"
-   },
-   "kind": "secret",
-   "name": "discord_webhook_id"
+  "get": { "name": "id", "path": "discord-build" },
+  "kind": "secret",
+  "name": "discord_webhook_id",
 }
 ---
 {
-   "get": {
-      "name": "token",
-      "path": "discord-build"
-   },
-   "kind": "secret",
-   "name": "discord_webhook_token"
+  "get": { "name": "token", "path": "discord-build" },
+  "kind": "secret",
+  "name": "discord_webhook_token",
 }
 ---
 {
-   "get": {
-      "name": "username",
-      "path": "docker"
-   },
-   "kind": "secret",
-   "name": "docker_username"
+  "get": { "name": "username", "path": "docker" },
+  "kind": "secret",
+  "name": "docker_username",
 }
 ---
 {
-   "get": {
-      "name": "password",
-      "path": "docker"
-   },
-   "kind": "secret",
-   "name": "docker_password"
+  "get": { "name": "password", "path": "docker" },
+  "kind": "secret",
+  "name": "docker_password",
 }
 ---
 {
-   "get": {
-      "name": "deploy",
-      "path": "ssh"
-   },
-   "kind": "secret",
-   "name": "ssh_key"
+  "get": { "name": "deploy", "path": "ssh" },
+  "kind": "secret",
+  "name": "ssh_key",
 }
-...
