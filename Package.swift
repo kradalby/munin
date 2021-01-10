@@ -1,7 +1,19 @@
-// swift-tools-version:5.2
+// swift-tools-version:5.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 // https://theswiftdev.com/the-swift-package-manifest-file/
+
+var linkerSettings: [LinkerSetting]? {
+  #if os(Linux)
+  return [
+    .linkedLibrary("gd"),
+    .linkedLibrary("iptcdata"),
+    .linkedLibrary("exif"),
+  ]
+  #else
+  return nil
+  #endif
+}
 
 import PackageDescription
 
@@ -46,6 +58,7 @@ let package = Package(
         .product(name: "Config", package: "Config.swift"),
         "Commander",
       ]
+      // linkerSettings: linkerSettings
     ),
     .target(
       name: "MuninKit",
