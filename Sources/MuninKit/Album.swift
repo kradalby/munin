@@ -219,6 +219,7 @@ extension Album {
   }
 
   public func destroy(ctx: Context) {
+    let fileManager = FileManager()
     log.info("Inside: \(name)")
     log.info("Destroying: \(photos)")
     for photo in photos {
@@ -228,6 +229,65 @@ extension Album {
     for album in albums {
       album.destroy(ctx: ctx)
     }
+
+    do {
+      try fileManager.removeItem(at: url)
+    } catch {
+      log.error("Could not remove album json \(name) at path \(url)")
+    }
+
+    do {
+      try fileManager.removeItem(at: path)
+    } catch {
+      log.error("Could not remove album \(name) at path \(path)")
+    }
+  }
+
+  // TODO: Tests
+  public func clean(ctx: Context) {
+    let fileManager = FileManager()
+    let unrefFiles = unreferencedFiles()
+
+    log.info("Cleaning album \(name) of unreferenced files: \(unrefFiles)")
+
+    for album in albums {
+      album.clean(ctx: ctx)
+    }
+
+    for file in unrefFiles {
+      do {
+        try fileManager.removeItem(at: file)
+      } catch {
+        log.error("Could not remove album \(name) at path \(path)")
+      }
+    }
+  }
+
+  // TODO: Tests
+  func expectedFiles() -> [URL] {
+    let jsonURL = URL(fileURLWithPath: url)
+    let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
+
+    let expectedFiles = [jsonURL, symlinkedImageURL]
+
+    // We get the list of files expected for each Photo as that is
+    // relevant for this folder directly, we do not recurse to the
+    // next album in case of nested albums as that is a folder and
+    // not files.
+    for photo in photos {
+      expectedFiles += photo.expectedFiles()
+    }
+
+    return expectedFiles
+  }
+
+  // TODO: Tests
+  func unreferencedFiles() -> [URL] {
+    let fileManager = FileManager()
+    let expectedFiles = self.expectedFiles()
+    let actualFiles = fileManager.filesOfDirectory(path).map {URL(fileURLWithPath: $0)}
+
+    return actualFiles.subtracting(expectedFiles)
   }
 
   func copyWithoutChildren() -> Album {

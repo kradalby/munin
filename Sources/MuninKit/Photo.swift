@@ -104,6 +104,21 @@ enum Orientation: String, Codable {
 
 extension Photo: AutoEquatable {
   static func < (lhs: Photo, rhs: Photo) -> Bool {
+    // Sort by date (exif, taken date) if it is available
+    if let lhsDateTime = lhs.dateTime, let rhsDateTime = rhs.dateTime {
+      return lhsDateTime < rhsDateTime
+    }
+
+    // If only one has a date, consider that the winner
+    if let lhsDateTime = lhs.dateTime {
+      return true
+    }
+
+    if let rhsDateTime = rhs.dateTime {
+      return false
+    }
+
+    // Fallback to name
     return lhs.name < rhs.name
   }
 
@@ -208,6 +223,21 @@ extension Photo {
         log.error("Could not remove image \(name) at path \(scaledPhoto.url)")
       }
     }
+  }
+
+  // TODO: Tests
+  func expectedFiles(ctx: Context) -> [URL]{
+    let fileManager = FileManager()
+    let jsonURL = URL(fileURLWithPath: url)
+    let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
+    let expectedFiles = [jsonURL, symlinkedImageURL]
+
+    for scaledPhoto in scaledPhotos {
+      let fileURL = URL(fileURLWithPath: scaledPhoto.url)
+      expectedFiles.append(fileURL)
+    }
+
+    return expectedFiles
   }
 
   func depth() -> Int {
