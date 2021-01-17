@@ -60,8 +60,8 @@
         "repositoryURL": "https://github.com/apple/swift-tools-support-core.git",
         "state": {
           "branch": null,
-          "revision": "25fc6eaec5d9f79b79419c5bdaa04e434cbcd568",
-          "version": "0.1.8"
+          "revision": "243beea77d20db46647a3de4765c96e2c801c7c7",
+          "version": "0.1.12"
         }
       },
       {
@@ -69,8 +69,8 @@
         "repositoryURL": "https://github.com/kradalby/SwiftExif.git",
         "state": {
           "branch": null,
-          "revision": "4de4c89a351b1d1e9fb1eaf1f7126ee25518e9a7",
-          "version": "0.0.4"
+          "revision": "ed991f0d6e76d8db9416a2547edf09cc29063cfa",
+          "version": "0.0.5"
         }
       },
       {

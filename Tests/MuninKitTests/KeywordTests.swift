@@ -4,6 +4,10 @@ import XCTest
 @testable import MuninKit
 
 final class KeywordTests: XCTestCase {
+  let albumPath = "example/album/"
+  let outPath = "example/content/"
+  let configPath = "example/munin.json"
+
   func test() {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct

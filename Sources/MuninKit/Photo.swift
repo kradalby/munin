@@ -77,6 +77,24 @@ struct Photo: Codable, Comparable, Hashable {
     keywords = []
     people = []
   }
+
+  // Intended for sort testing.
+  init(
+    name: String,
+    dateTime: Date? = nil
+  ) {
+    self.name = name
+    self.url = ""
+    self.originalImageURL = ""
+    self.originalImagePath = ""
+    self.scaledPhotos = []
+    self.parents = []
+    self.modifiedDate = Date()
+    self.dateTime = dateTime
+    isoSpeed = []
+    keywords = []
+    people = []
+  }
 }
 
 struct ScaledPhoto: Codable, AutoEquatable {
@@ -110,11 +128,11 @@ extension Photo: AutoEquatable {
     }
 
     // If only one has a date, consider that the winner
-    if let lhsDateTime = lhs.dateTime {
+    if let _ = lhs.dateTime {
       return true
     }
 
-    if let rhsDateTime = rhs.dateTime {
+    if let _ = rhs.dateTime {
       return false
     }
 
@@ -225,17 +243,11 @@ extension Photo {
     }
   }
 
-  // TODO: Tests
-  func expectedFiles(ctx: Context) -> [URL]{
-    let fileManager = FileManager()
+  func expectedFiles() -> [URL] {
     let jsonURL = URL(fileURLWithPath: url)
     let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
-    let expectedFiles = [jsonURL, symlinkedImageURL]
-
-    for scaledPhoto in scaledPhotos {
-      let fileURL = URL(fileURLWithPath: scaledPhoto.url)
-      expectedFiles.append(fileURL)
-    }
+    let expectedFiles =
+      [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
 
     return expectedFiles
   }

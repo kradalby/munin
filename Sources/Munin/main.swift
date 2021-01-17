@@ -12,15 +12,20 @@ let main = command(
     "dry",
     default: false,
     description: "Dry-run, do not write gallery"),
+  Flag(
+    "progress",
+    default: true,
+    description: "Show progress of finding photos and generating gallery"),
   //    Flag("diff", default: false, description: "Show what will be added and removed"),
   Flag(
     "json",
     default: false,
     description:
       "Write only JSON files, no images, useful for updating data with new munin features")
-) { config, dry, json in
+) { config, dry, progress, json in
 
-  let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
+  var config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
+  config.progress = progress
 
   let ctx = Context(config: config)
 

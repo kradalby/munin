@@ -3,19 +3,19 @@
 
 // https://theswiftdev.com/the-swift-package-manifest-file/
 
+import PackageDescription
+
 var linkerSettings: [LinkerSetting]? {
   #if os(Linux)
-  return [
-    .linkedLibrary("gd"),
-    .linkedLibrary("iptcdata"),
-    .linkedLibrary("exif"),
-  ]
+    return [
+      .linkedLibrary("gd"),
+      .linkedLibrary("iptcdata"),
+      .linkedLibrary("exif"),
+    ]
   #else
-  return nil
+    return nil
   #endif
 }
-
-import PackageDescription
 
 let package = Package(
   name: "Munin",

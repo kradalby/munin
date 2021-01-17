@@ -231,13 +231,13 @@ extension Album {
     }
 
     do {
-      try fileManager.removeItem(at: url)
+      try fileManager.removeItem(atPath: url)
     } catch {
       log.error("Could not remove album json \(name) at path \(url)")
     }
 
     do {
-      try fileManager.removeItem(at: path)
+      try fileManager.removeItem(atPath: path)
     } catch {
       log.error("Could not remove album \(name) at path \(path)")
     }
@@ -263,31 +263,44 @@ extension Album {
     }
   }
 
-  // TODO: Tests
   func expectedFiles() -> [URL] {
     let jsonURL = URL(fileURLWithPath: url)
-    let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
 
-    let expectedFiles = [jsonURL, symlinkedImageURL]
+    // TODO: replace this with expectedFiles in Keywords, Locations and Stats
+    let rootFiles =
+      parents.isEmpty
+      ? [
+        URL(fileURLWithPath: joinPath(paths: path, "stats.json")),
+        URL(fileURLWithPath: joinPath(paths: path, "locations.json")),
+      ] : []
 
     // We get the list of files expected for each Photo as that is
     // relevant for this folder directly, we do not recurse to the
     // next album in case of nested albums as that is a folder and
     // not files.
-    for photo in photos {
-      expectedFiles += photo.expectedFiles()
-    }
+    let expectedFiles = [jsonURL] + photos.flatMap { $0.expectedFiles() } + rootFiles
 
     return expectedFiles
   }
 
-  // TODO: Tests
   func unreferencedFiles() -> [URL] {
     let fileManager = FileManager()
     let expectedFiles = self.expectedFiles()
-    let actualFiles = fileManager.filesOfDirectory(path).map {URL(fileURLWithPath: $0)}
+    let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
+      URL(fileURLWithPath: joinPath(paths: path, $0))
+    }
 
-    return actualFiles.subtracting(expectedFiles)
+    return actualFiles.filter { !expectedFiles.contains($0) }
+  }
+
+  func missingFiles() -> [URL] {
+    let fileManager = FileManager()
+    let expectedFiles = self.expectedFiles()
+    let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
+      URL(fileURLWithPath: joinPath(paths: path, $0))
+    }
+
+    return expectedFiles.filter { !actualFiles.contains($0) }
   }
 
   func copyWithoutChildren() -> Album {
