@@ -1,382 +1,326 @@
 {
-  "photos": [],
-  "people": [
+  "name": "DK",
+  "url": "content/keywords/DK.json",
+  "photos": [
     {
-      "name": "Christina Toldbo",
-      "url": "content/keywords/Christina_Toldbo.json"
-    },
-    {
-      "name": "Csaba Jéger",
-      "url": "content/keywords/Csaba_Jéger.json"
-    },
-    {
-      "name": "Danielle O'Driscoll",
-      "url": "content/keywords/Danielle_O'Driscoll.json"
-    },
-    {
-      "name": "Dharmesh Tailor",
-      "url": "content/keywords/Dharmesh_Tailor.json"
-    },
-    {
-      "name": "Kristoffer Andreas Dalby",
-      "url": "content/keywords/Kristoffer_Andreas_Dalby.json"
-    },
-    {
-      "name": "Kristoffer Andréas B Dalby",
-      "url": "content/keywords/Kristoffer_Andréas_B_Dalby.json"
-    },
-    {
-      "name": "Marlies Arnhof",
-      "url": "content/keywords/Marlies_Arnhof.json"
-    },
-    {
-      "name": "Monica Pas",
-      "url": "content/keywords/Monica_Pas.json"
-    },
-    {
-      "name": "Peter Vaník",
-      "url": "content/keywords/Peter_Vaník.json"
-    },
-    {
-      "name": "Rohan Ramasamy",
-      "url": "content/keywords/Rohan_Ramasamy.json"
-    }
-  ],
-  "albums": [
-    {
-      "url": "content/root/2018/2018-03-10_Alkmaar/index.json",
-      "name": "2018-03-10 Alkmaar",
+      "gps": {
+        "latitude": 56.14929166666666,
+        "longitude": 10.202116666666665,
+        "altitude": 24
+      },
+      "dateTime": "2017-12-19T13:21:34Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_original.jpg",
       "scaledPhotos": [
         {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_180.jpg",
-          "maxResolution": 180
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_1200.jpg",
+          "maxResolution": 1200
         },
         {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_220.jpg",
-          "maxResolution": 220
-        },
-        {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_340.jpg",
-          "maxResolution": 340
-        },
-        {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_576.jpg",
-          "maxResolution": 576
-        },
-        {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_768.jpg",
-          "maxResolution": 768
-        },
-        {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_992.jpg",
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_992.jpg",
           "maxResolution": 992
         },
         {
-          "url": "content/root/2018/2018-03-10_Alkmaar/20180310-165128-IMG_6036_1200.jpg",
-          "maxResolution": 1200
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132134-20171219-IMG_5239_180.jpg",
+          "maxResolution": 180
         }
       ]
     },
     {
-      "url": "content/root/2018/2018-04-22_Biking_to_Lisse/index.json",
-      "name": "2018-04-22 Biking to Lisse",
+      "gps": {
+        "latitude": 56.14929166666666,
+        "longitude": 10.202116666666665,
+        "altitude": 24
+      },
+      "dateTime": "2017-12-19T13:22:12Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_original.jpg",
       "scaledPhotos": [
         {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_180.jpg",
-          "maxResolution": 180
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_1200.jpg",
+          "maxResolution": 1200
         },
         {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_220.jpg",
-          "maxResolution": 220
-        },
-        {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_340.jpg",
-          "maxResolution": 340
-        },
-        {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_576.jpg",
-          "maxResolution": 576
-        },
-        {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_768.jpg",
-          "maxResolution": 768
-        },
-        {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_992.jpg",
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_992.jpg",
           "maxResolution": 992
         },
         {
-          "url": "content/root/2018/2018-04-22_Biking_to_Lisse/20180421-135606-IMG_7020_1200.jpg",
-          "maxResolution": 1200
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132212-20171219-IMG_5241_180.jpg",
+          "maxResolution": 180
         }
       ]
     },
     {
-      "url": "content/root/2018/2018-06-02_Paris/index.json",
-      "name": "2018-06-02 Paris",
+      "gps": {
+        "latitude": 56.15078611111111,
+        "longitude": 10.203294444444444,
+        "altitude": 11
+      },
+      "dateTime": "2017-12-19T13:24:18Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_original.jpg",
       "scaledPhotos": [
         {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_180.jpg",
-          "maxResolution": 180
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_1200.jpg",
+          "maxResolution": 1200
         },
         {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_220.jpg",
-          "maxResolution": 220
-        },
-        {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_340.jpg",
-          "maxResolution": 340
-        },
-        {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_576.jpg",
-          "maxResolution": 576
-        },
-        {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_768.jpg",
-          "maxResolution": 768
-        },
-        {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_992.jpg",
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_992.jpg",
           "maxResolution": 992
         },
         {
-          "url": "content/root/2018/2018-06-02_Paris/20180602-173347-IMG_7890_1200.jpg",
-          "maxResolution": 1200
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-132418-20171219-IMG_5242_180.jpg",
+          "maxResolution": 180
         }
       ]
     },
     {
-      "url": "content/root/2018/2018-10-25_French_Guiana/index.json",
-      "name": "2018-10-25 French Guiana",
+      "gps": {
+        "latitude": 56.159166666666664,
+        "longitude": 10.189891666666666,
+        "altitude": 16
+      },
+      "dateTime": "2017-12-19T14:18:31Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_original.jpg",
       "scaledPhotos": [
         {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_180.jpg",
-          "maxResolution": 180
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_1200.jpg",
+          "maxResolution": 1200
         },
         {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_220.jpg",
-          "maxResolution": 220
-        },
-        {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_340.jpg",
-          "maxResolution": 340
-        },
-        {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_576.jpg",
-          "maxResolution": 576
-        },
-        {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_768.jpg",
-          "maxResolution": 768
-        },
-        {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_992.jpg",
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_992.jpg",
           "maxResolution": 992
         },
         {
-          "url": "content/root/2018/2018-10-25_French_Guiana/20181026-092028-IMG_0107_1200.jpg",
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-141831-20171219-IMG_5244_180.jpg",
+          "maxResolution": 180
+        }
+      ]
+    },
+    {
+      "gps": {
+        "latitude": 56.16156111111111,
+        "longitude": 10.206291666666665,
+        "altitude": 15
+      },
+      "dateTime": "2017-12-19T14:38:10Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_original.jpg",
+      "scaledPhotos": [
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_1200.jpg",
           "maxResolution": 1200
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_992.jpg",
+          "maxResolution": 992
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-143810-20171219-IMG_5246-2_180.jpg",
+          "maxResolution": 180
+        }
+      ]
+    },
+    {
+      "gps": {
+        "latitude": 56.159327777777776,
+        "longitude": 10.208708333333332,
+        "altitude": 5
+      },
+      "dateTime": "2017-12-19T14:41:41Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_original.jpg",
+      "scaledPhotos": [
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_1200.jpg",
+          "maxResolution": 1200
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_992.jpg",
+          "maxResolution": 992
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144141-20171219-IMG_5248_180.jpg",
+          "maxResolution": 180
+        }
+      ]
+    },
+    {
+      "gps": {
+        "latitude": 56.158325,
+        "longitude": 10.213163888888888,
+        "altitude": 22
+      },
+      "dateTime": "2017-12-19T14:49:31Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_original.jpg",
+      "scaledPhotos": [
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_1200.jpg",
+          "maxResolution": 1200
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_992.jpg",
+          "maxResolution": 992
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250_180.jpg",
+          "maxResolution": 180
+        }
+      ]
+    },
+    {
+      "gps": {
+        "latitude": 56.158325,
+        "longitude": 10.213163888888888,
+        "altitude": 22
+      },
+      "dateTime": "2017-12-19T14:49:31Z",
+      "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2.json",
+      "originalImageURL": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_original.jpg",
+      "scaledPhotos": [
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_1200.jpg",
+          "maxResolution": 1200
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_992.jpg",
+          "maxResolution": 992
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_768.jpg",
+          "maxResolution": 768
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_576.jpg",
+          "maxResolution": 576
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_340.jpg",
+          "maxResolution": 340
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_220.jpg",
+          "maxResolution": 220
+        },
+        {
+          "url": "content/root/2017/2017-12-19_Aarhus/20171219-144931-20171219-IMG_5250-2_180.jpg",
+          "maxResolution": 180
         }
       ]
     }
-  ],
-  "keywords": [
-    {
-      "name": "2018",
-      "url": "content/keywords/2018.json"
-    },
-    {
-      "name": "Aishling Cooke",
-      "url": "content/keywords/Aishling_Cooke.json"
-    },
-    {
-      "name": "Alkmaar",
-      "url": "content/keywords/Alkmaar.json"
-    },
-    {
-      "name": "Ariane",
-      "url": "content/keywords/Ariane.json"
-    },
-    {
-      "name": "Ariane 5",
-      "url": "content/keywords/Ariane_5.json"
-    },
-    {
-      "name": "Biking",
-      "url": "content/keywords/Biking.json"
-    },
-    {
-      "name": "Blomencorso",
-      "url": "content/keywords/Blomencorso.json"
-    },
-    {
-      "name": "CNES",
-      "url": "content/keywords/CNES.json"
-    },
-    {
-      "name": "CSG",
-      "url": "content/keywords/CSG.json"
-    },
-    {
-      "name": "Cayenne",
-      "url": "content/keywords/Cayenne.json"
-    },
-    {
-      "name": "Cheese",
-      "url": "content/keywords/Cheese.json"
-    },
-    {
-      "name": "Cheese museum",
-      "url": "content/keywords/Cheese_museum.json"
-    },
-    {
-      "name": "Chicago",
-      "url": "content/keywords/Chicago.json"
-    },
-    {
-      "name": "Csaba Jeger",
-      "url": "content/keywords/Csaba_Jeger.json"
-    },
-    {
-      "name": "Denisa Dosenovicova",
-      "url": "content/keywords/Denisa_Dosenovicova.json"
-    },
-    {
-      "name": "Dutch weekend adventures",
-      "url": "content/keywords/Dutch_weekend_adventures.json"
-    },
-    {
-      "name": "ESA",
-      "url": "content/keywords/ESA.json"
-    },
-    {
-      "name": "Eiffel",
-      "url": "content/keywords/Eiffel.json"
-    },
-    {
-      "name": "FR",
-      "url": "content/keywords/FR.json"
-    },
-    {
-      "name": "Flower fields",
-      "url": "content/keywords/Flower_fields.json"
-    },
-    {
-      "name": "Flower parade",
-      "url": "content/keywords/Flower_parade.json"
-    },
-    {
-      "name": "Flowers",
-      "url": "content/keywords/Flowers.json"
-    },
-    {
-      "name": "France",
-      "url": "content/keywords/France.json"
-    },
-    {
-      "name": "French Guiana",
-      "url": "content/keywords/French_Guiana.json"
-    },
-    {
-      "name": "Group",
-      "url": "content/keywords/Group.json"
-    },
-    {
-      "name": "Lunch",
-      "url": "content/keywords/Lunch.json"
-    },
-    {
-      "name": "Marcel Štefko",
-      "url": "content/keywords/Marcel_Štefko.json"
-    },
-    {
-      "name": "Marius Enerly",
-      "url": "content/keywords/Marius_Enerly.json"
-    },
-    {
-      "name": "Market",
-      "url": "content/keywords/Market.json"
-    },
-    {
-      "name": "NL",
-      "url": "content/keywords/NL.json"
-    },
-    {
-      "name": "Netherland",
-      "url": "content/keywords/Netherland.json"
-    },
-    {
-      "name": "Netherlands",
-      "url": "content/keywords/Netherlands.json"
-    },
-    {
-      "name": "Noord-Holland",
-      "url": "content/keywords/Noord-Holland.json"
-    },
-    {
-      "name": "Notre dame",
-      "url": "content/keywords/Notre_dame.json"
-    },
-    {
-      "name": "Paris",
-      "url": "content/keywords/Paris.json"
-    },
-    {
-      "name": "Slav squat",
-      "url": "content/keywords/Slav_squat.json"
-    },
-    {
-      "name": "Space",
-      "url": "content/keywords/Space.json"
-    },
-    {
-      "name": "Spaceport",
-      "url": "content/keywords/Spaceport.json"
-    },
-    {
-      "name": "Train",
-      "url": "content/keywords/Train.json"
-    },
-    {
-      "name": "YGT",
-      "url": "content/keywords/YGT.json"
-    },
-    {
-      "name": "Zuid-Holland",
-      "url": "content/keywords/Zuid-Holland.json"
-    },
-    {
-      "name": "coast",
-      "url": "content/keywords/coast.json"
-    },
-    {
-      "name": "fish",
-      "url": "content/keywords/fish.json"
-    },
-    {
-      "name": "fishermen",
-      "url": "content/keywords/fishermen.json"
-    },
-    {
-      "name": "fishers",
-      "url": "content/keywords/fishers.json"
-    },
-    {
-      "name": "model",
-      "url": "content/keywords/model.json"
-    },
-    {
-      "name": "Île-de-France",
-      "url": "content/keywords/Île-de-France.json"
-    }
-  ],
-  "parents": [
-    {
-      "name": "root",
-      "url": "content/root/index.json"
-    }
-  ],
-  "path": "content/root/2018",
-  "name": "2018",
-  "url": "content/root/2018/index.json"
+  ]
 }
