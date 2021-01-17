@@ -8,6 +8,7 @@
   "logLevel": 5,
   "diff": true,
   "concurrency": -1,
+  "progress": true,
   "people": [
     "Tri M. Nguyen",
     "Christina Toldbo",
