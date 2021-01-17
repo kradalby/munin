@@ -35,7 +35,7 @@ struct Timings {
 }
 
 class State {
-  let writingProgress: PercentProgressAnimation
+  let writingProgress: PercentProgressAnimation?
   let readingProgress: ReadingProgressAnimation?
 
   var lastReadPhoto: String = ""
@@ -50,14 +50,16 @@ class State {
     }
   }
 
-  init() {
+  init(progress: Bool) {
     photosToWrite = 0
     photosWritten = 0
 
-    writingProgress = PercentProgressAnimation(
-      stream: TSCBasic.stdoutStream, header: "Writing images")
+    writingProgress =
+      progress
+      ? PercentProgressAnimation(
+        stream: TSCBasic.stdoutStream, header: "Writing images") : nil
 
-    if let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
+    if progress, let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
       readingProgress = ReadingProgressAnimation(terminal: terminal, header: "Finding images")
     } else {
       readingProgress = nil
@@ -93,12 +95,14 @@ class State {
   }
 
   func renderWriting() {
-    writingProgress.update(
-      step: photosWritten, total: photosToWrite,
-      text: "Writing: \(photosWritten) out of \(photosToWrite)")
+    if let progress = writingProgress {
+      progress.update(
+        step: photosWritten, total: photosToWrite,
+        text: "Writing: \(photosWritten) out of \(photosToWrite)")
 
-    if photosToWrite == photosWritten {
-      writingProgress.complete(success: true)
+      if photosToWrite == photosWritten {
+        progress.complete(success: true)
+      }
     }
   }
 }
@@ -116,11 +120,11 @@ public struct Context {
     // LoggingSystem.bootstrap(StreamLogHandler.standardError)
     // time = Timings()
 
-    state = State()
+    state = State(progress: config.progress)
   }
 }
 
-public struct GalleryConfiguration: Configuration {
+public struct GalleryConfiguration: Configuration, Decodable {
   var name: String
   var people: [String]
   var resolutions: [Int]
@@ -131,33 +135,7 @@ public struct GalleryConfiguration: Configuration {
   public var logLevel: Int
   public var diff: Bool
   var concurrency: Int
-
-  enum CodingKeys: String, CodingKey {
-    case name
-    case people
-    case resolutions
-    case jpegCompression
-    case inputPath
-    case outputPath
-    case fileExtentions
-    case logLevel
-    case diff
-    case concurrency
-  }
-
-  public init(from decoder: Decoder) throws {
-    let values = try decoder.container(keyedBy: CodingKeys.self)
-    name = try values.decode(String.self, forKey: .name)
-    people = try values.decode([String].self, forKey: .people)
-    resolutions = try values.decode([Int].self, forKey: .resolutions)
-    jpegCompression = try values.decode(Double.self, forKey: .jpegCompression)
-    inputPath = try values.decode(String.self, forKey: .inputPath)
-    outputPath = try values.decode(String.self, forKey: .outputPath)
-    fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
-    logLevel = try values.decode(Int.self, forKey: .logLevel)
-    diff = try values.decode(Bool.self, forKey: .diff)
-    concurrency = try values.decode(Int.self, forKey: .concurrency)
-  }
+  public var progress: Bool
 }
 
 public struct Gallery {
