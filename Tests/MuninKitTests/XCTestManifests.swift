@@ -26,12 +26,10 @@ extension GalleryTests {
     // to regenerate.
     static let __allTests__GalleryTests = [
         ("test", test),
+        ("testClean", testClean),
         ("testDiffGalleryAddedAlbum", testDiffGalleryAddedAlbum),
         ("testDiffGalleryAddedPhotos", testDiffGalleryAddedPhotos),
-        ("testDiffGalleryAddedToSource", testDiffGalleryAddedToSource),
-        ("testDiffGalleryAddedToTarget", testDiffGalleryAddedToTarget),
         ("testDiffGalleryNoDiff", testDiffGalleryNoDiff),
-        ("testDiffGalleryRemovedFromSource", testDiffGalleryRemovedFromSource),
         ("testReadInputGallery", testReadInputGallery),
         ("testReadInputOutputGallery", testReadInputOutputGallery),
     ]
