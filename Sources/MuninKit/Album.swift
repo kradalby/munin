@@ -10,7 +10,7 @@ import Foundation
 import Logging
 
 // swiftlint:disable file_length
-struct Album: Hashable, Comparable {
+struct Album: Hashable, Comparable, Diffable {
   var name: String
   var url: String
   var path: String
@@ -23,12 +23,12 @@ struct Album: Hashable, Comparable {
   init(name: String, path: String, parents: [Parent]) {
     self.name = name
     self.path = path
-    url = joinPath(paths: path, "index.json")
+    url = joinPath(path, "index.json")
     photos = []
     albums = []
     keywords = Set()
     people = Set()
-    self.parents = parents
+    self.parents = parents.sorted()
   }
 
   enum CodingKeys: String, CodingKey {
@@ -49,21 +49,21 @@ extension Album: Encodable {
     try container.encode(name, forKey: .name)
     try container.encode(url, forKey: .url)
     try container.encode(path, forKey: .path)
-    try container.encode(keywords, forKey: .keywords)
-    try container.encode(people, forKey: .people)
-    try container.encode(parents, forKey: .parents)
+    try container.encode(Array(keywords).sorted(), forKey: .keywords)
+    try container.encode(Array(people).sorted(), forKey: .people)
+    try container.encode(parents.sorted(), forKey: .parents)
 
     var photosContainer = container.nestedUnkeyedContainer(
       forKey: .photos
     )
 
-    try photos.forEach {
+    try Array(photos).sorted().forEach {
       try photosContainer.encode(
         PhotoInAlbum(
           url: $0.url,
           dateTime: $0.dateTime ?? $0.modifiedDate,
           originalImageURL: $0.originalImageURL,
-          scaledPhotos: $0.scaledPhotos,
+          scaledPhotos: $0.scaledPhotos.sorted(),
           gps: $0.gps
         )
       )
@@ -73,10 +73,10 @@ extension Album: Encodable {
       forKey: .albums
     )
 
-    try albums.forEach {
+    try Array(albums).sorted().forEach {
       let scaledPhotos = $0.firstImageInAlbum()?.scaledPhotos ?? []
       try albumsContainer.encode(
-        AlbumInAlbum(url: $0.url, name: $0.name, scaledPhotos: scaledPhotos))
+        AlbumInAlbum(url: $0.url, name: $0.name, scaledPhotos: scaledPhotos.sorted()))
     }
 
     //        var keywordsContainer = container.nestedUnkeyedContainer(
@@ -109,12 +109,18 @@ struct AlbumInAlbum: Codable {
   var scaledPhotos: [ScaledPhoto]
 }
 
-struct Parent: Codable, AutoEquatable {
+struct Parent: Codable, AutoEquatable, Comparable {
   var name: String
   var url: String
 
   static func < (lhs: Parent, rhs: Parent) -> Bool {
     return lhs.name < rhs.name
+  }
+}
+
+extension Parent: CustomStringConvertible {
+  var description: String {
+    return "Parent: \(name)"
   }
 }
 
@@ -243,7 +249,6 @@ extension Album {
     }
   }
 
-  // TODO: Tests
   public func clean(ctx: Context) {
     let fileManager = FileManager()
     let unrefFiles = unreferencedFiles()
@@ -270,8 +275,8 @@ extension Album {
     let rootFiles =
       parents.isEmpty
       ? [
-        URL(fileURLWithPath: joinPath(paths: path, "stats.json")),
-        URL(fileURLWithPath: joinPath(paths: path, "locations.json")),
+        URL(fileURLWithPath: joinPath(path, "stats.json")),
+        URL(fileURLWithPath: joinPath(path, "locations.json")),
       ] : []
 
     // We get the list of files expected for each Photo as that is
@@ -287,7 +292,7 @@ extension Album {
     let fileManager = FileManager()
     let expectedFiles = self.expectedFiles()
     let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
-      URL(fileURLWithPath: joinPath(paths: path, $0))
+      URL(fileURLWithPath: joinPath(path, $0))
     }
 
     return actualFiles.filter { !expectedFiles.contains($0) }
@@ -297,7 +302,7 @@ extension Album {
     let fileManager = FileManager()
     let expectedFiles = self.expectedFiles()
     let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
-      URL(fileURLWithPath: joinPath(paths: path, $0))
+      URL(fileURLWithPath: joinPath(path, $0))
     }
 
     return expectedFiles.filter { !actualFiles.contains($0) }
@@ -314,8 +319,16 @@ extension Album {
     return newAlbum
   }
 
+  func changedPhotos(_ other: Album) -> Set<Photo> {
+    return other.photos.subtracting(photos)
+  }
+
+  func changedAlbums(_ other: Album) -> Set<Album> {
+    return other.albums.subtracting(albums)
+  }
+
   func firstImageInAlbum() -> Photo? {
-    for photo in photos where photo.orientation == Orientation.landscape {
+    for photo in photos.sorted() where photo.orientation == Orientation.landscape {
       return photo
     }
 
@@ -370,6 +383,13 @@ extension Album {
   }
 }
 
+extension Album: CustomStringConvertible {
+  var description: String {
+    // let photos = Array(self.photos.map { String(describing: $0) }).joined(separator: "\n  ")
+    return "Album: \(name), photos: \(String(describing: photos))"
+  }
+}
+
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable function_body_length
 func readStateFromInputDirectory(
@@ -379,19 +399,19 @@ func readStateFromInputDirectory(
   name: String,
   parents: [Parent]
 ) -> Album {
-  log.trace("Creating album from path: \(joinPath(paths: atPath))")
+  log.trace("Creating album from path: \(joinPath(atPath))")
 
-  var album = Album(name: name, path: joinPath(paths: outPath, urlifyName(name)), parents: parents)
+  var album = Album(name: name, path: joinPath(outPath, urlifyName(name)), parents: parents)
   let parent = Parent(name: album.name, url: album.url)
   var newParents = parents
   newParents.append(parent)
 
-  let directories = FileManager.default.directoriesOfDirectory(atPath: joinPath(paths: atPath))
+  let directories = FileManager.default.directoriesOfDirectory(atPath: joinPath(atPath))
   for directory in directories {
     let childAlbum = readStateFromInputDirectory(
       ctx: ctx,
-      atPath: joinPath(paths: atPath, directory),
-      outPath: joinPath(paths: outPath, name),
+      atPath: joinPath(atPath, directory),
+      outPath: joinPath(outPath, name),
       name: directory,
       parents: newParents
     )
@@ -402,17 +422,17 @@ func readStateFromInputDirectory(
 
   var photos = [Photo]()
   let files = FileManager.default.filesOfDirectoryByExtensions(
-    atPath: joinPath(paths: atPath), extensions: ctx.config.fileExtentions
+    atPath: joinPath(atPath), extensions: ctx.config.fileExtentions
   )
   for file in files {
     let fileNameWithoutExt = fileNameWithoutExtension(
-      atPath: joinPath(paths: atPath, file))
-    if let fileExtension = fileExtension(atPath: joinPath(paths: atPath, file)) {
+      atPath: joinPath(atPath, file))
+    if let fileExtension = fileExtension(atPath: joinPath(atPath, file)) {
       photoToReadGroup.enter()
       photoQueue.async {
         let maybePhoto = readPhotoFromPath(
-          atPath: joinPath(paths: atPath, file),
-          outPath: joinPath(paths: outPath, urlifyName(name)),
+          atPath: joinPath(atPath, file),
+          outPath: joinPath(outPath, urlifyName(name)),
           name: fileNameWithoutExt,
           fileExtension: fileExtension,
           parents: newParents,
@@ -428,7 +448,7 @@ func readStateFromInputDirectory(
             }
           }
 
-          ctx.state.updatePhotosToWrite(name: joinPath(paths: atPath, file))
+          ctx.state.updatePhotosToWrite(name: joinPath(atPath, file))
 
         }
         photoToReadGroup.leave()
@@ -436,7 +456,7 @@ func readStateFromInputDirectory(
 
     } else {
       log.warning(
-        "File found, but it was not a photo, path: \(joinPath(paths: atPath, file))")
+        "File found, but it was not a photo, path: \(joinPath(atPath, file))")
     }
   }
   photoToReadGroup.wait()

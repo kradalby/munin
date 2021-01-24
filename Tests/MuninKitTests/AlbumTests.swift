@@ -137,6 +137,97 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(missing, expectedFiles)
   }
 
+  func testChangedPhotos() {
+    var input = Album(name: "root", path: "", parents: [])
+    var current = Album(name: "root", path: "", parents: [])
+    let ph1 = Photo(
+      name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
+      modifiedDate: Date(timeIntervalSince1970: 1_610_472_000), parents: [])
+    let ph2 = Photo(name: "photo2")
+    let ph3 = Photo(name: "photo3")
+    let ph4 = Photo(name: "photo4")
+    let ph1_2 = Photo(
+      name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
+      modifiedDate: Date(timeIntervalSince1970: 1_610_471_000), parents: [])
+
+    input.photos = [ph1, ph2]
+    current.photos = [ph3, ph4]
+    XCTAssertEqual(current.changedPhotos(input), [ph1, ph2])
+
+    input.photos = [ph1, ph2, ph3]
+    current.photos = [ph3, ph4]
+    XCTAssertEqual(current.changedPhotos(input), [ph1, ph2])
+
+    input.photos = [ph1_2, ph3]
+    current.photos = [ph1, ph3, ph2, ph4]
+    XCTAssertEqual(
+      current.changedPhotos(input).map { $0.name }.sorted(), ["photo1"])
+
+    input.photos = [ph1_2, ph3, ph2, ph4]
+    current.photos = [ph1, ph3]
+    XCTAssertEqual(
+      current.changedPhotos(input).map { $0.name }.sorted(), ["photo1", "photo2", "photo4"])
+  }
+
+  func testChangedAlbums() {
+    var input = Album(name: "root", path: "", parents: [])
+    var current = Album(name: "root", path: "", parents: [])
+
+    let child1 = Album(name: "child1", path: "", parents: [])
+    let child2 = Album(name: "child2", path: "", parents: [])
+    let child3 = Album(name: "child3", path: "", parents: [])
+    var child1_2 = Album(name: "child1", path: "", parents: [])
+    child1_2.photos = [Photo(name: "photo4")]
+    var child1_3 = Album(name: "child1", path: "", parents: [])
+    child1_3.photos = [Photo(name: "photo2")]
+
+    input.albums = [child1, child2]
+    current.albums = [child3]
+    XCTAssertEqual(current.changedAlbums(input), [child1, child2])
+
+    input.albums = [child1, child2]
+    current.albums = [child2, child3]
+    XCTAssertEqual(current.changedAlbums(input), [child1])
+
+    input.albums = [child1_2, child3]
+    current.albums = [child1, child2]
+    XCTAssertEqual(
+      current.changedAlbums(input).map { $0.name }.sorted(), ["child1", "child3"])
+
+    var parentOfChild1 = Album(name: "parentOfChild1", path: "", parents: [])
+    var parentOfChild1_3 = Album(name: "parentOfChild1", path: "", parents: [])
+
+    parentOfChild1.albums = [child1]
+    parentOfChild1_3.albums = [child1_3]
+
+    var parentOfParentOfChild1 = Album(name: "parentOfParentOfChild1", path: "", parents: [])
+    var parentOfParentOfChild1_3 = Album(name: "parentOfParentOfChild1", path: "", parents: [])
+
+    parentOfParentOfChild1.albums = [parentOfChild1]
+    parentOfParentOfChild1_3.albums = [parentOfChild1_3]
+
+    input.albums = [parentOfParentOfChild1_3]
+    current.albums = [parentOfParentOfChild1]
+    XCTAssertEqual(
+      current.changedAlbums(input).map { $0.name }.sorted(), ["parentOfParentOfChild1"])
+
+  }
+
+  func testChangedAlbumsInputHasChildAlbum() {
+    // input has a new child
+    var input2 = Album(name: "root", path: "", parents: [])
+    var current2 = Album(name: "root", path: "", parents: [])
+
+    let child_2 = Album(name: "child1", path: "", parents: [])
+    input2.albums = [child_2]
+    let changed2 = current2.changedAlbums(input2)
+    XCTAssertNotNil(changed2)
+    XCTAssertEqual(changed2.count, 1)
+    XCTAssertEqual(Array(changed2)[0], child_2)
+  }
+
+  func testClean() {}
+
   // This is a silly test to ensure that concurrency does not
   // cause inconsistent reads of the albums
   // func testReadStateFromInputDirectoryMultipleTime() {

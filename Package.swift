@@ -69,7 +69,8 @@ let package = Package(
         .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
         "SwiftExif",
-      ]
+      ],
+      exclude: ["Templates"]
     ),
     .testTarget(
       name: "MuninTests",

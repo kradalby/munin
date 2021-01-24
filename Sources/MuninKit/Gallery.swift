@@ -142,8 +142,7 @@ public struct Gallery {
   let input: Album
   let output: Album?
 
-  let addedDiff: Album?
-  let removedDiff: Album?
+  let addedContent: Album?
 
   // swiftlint:disable function_body_length
   public init(ctx: Context) {
@@ -163,40 +162,33 @@ public struct Gallery {
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     let outputStart = Date()
-    if let album = readStateFromOutputDirectory(
+    if let outputAlbum = readStateFromOutputDirectory(
       indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     {
       time.readOutputDirectory = Date().timeIntervalSince(outputStart)
 
       let diffStart = Date()
-      let (added, removed) = diff(new: input, old: album)
+      let added = computeChangedPhotos(input: input, output: outputAlbum)
       time.generateDiff = Date().timeIntervalSince(diffStart)
 
-      // if config.diff {e
-      //   print(prettyPrintDiff(added, removed))
-      // }
+      if let a = added, ctx.config.diff {
+        prettyPrintAlbum(a)
+      }
 
       // ctx.time = time
 
-      output = album
-      addedDiff = added
-      removedDiff = removed
+      output = outputAlbum
+      addedContent = added
     } else {
       output = nil
-      addedDiff = nil
-      removedDiff = nil
+      addedContent = nil
       log.info("Could not find any output album, assuming new is to be created")
     }
     print("Times: ", time)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {
-    if let removed = removedDiff {
-      log.info("Removing images from diff")
-      removed.destroy(ctx: ctx)
-    }
-
-    if let added = addedDiff {
+    if let added = addedContent {
       log.info("Adding images from diff")
       // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
@@ -206,7 +198,7 @@ public struct Gallery {
 
     ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
-    if addedDiff == nil, removedDiff == nil {
+    if addedContent == nil {
       input.write(ctx: ctx, writeJson: true, writeImage: true)
     } else {
       // We have already changed the actual image files, so we only write json

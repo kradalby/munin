@@ -48,11 +48,11 @@ func createOrReplaceSymlink(source: String, destination: String) throws {
   try fileManager.createSymbolicLink(atPath: destination, withDestinationPath: source)
 }
 
-func joinPath(paths: String...) -> String {
+func joinPath(_ paths: String...) -> String {
   return paths.filter { $0 != "" }.joined(separator: "/")
 }
 
-func joinPath(paths: [String]) -> String {
+func joinPath(_ paths: [String]) -> String {
   return paths.filter { $0 != "" }.joined(separator: "/")
 }
 
@@ -72,48 +72,6 @@ func pathWithoutFileName(atPath: String) -> String {
   let url = URL(fileURLWithPath: atPath)
   return url.deletingLastPathComponent().relativeString
 }
-
-#if CORE_GRAPHICS
-  func resizeImageCoreGraphics(imageSource: CGImageSource, maxResolution: Int, compression: CGFloat)
-    -> Data?
-  {
-    // get source properties so we retain metadata (EXIF) for the downsized image
-    if var metaData = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any],
-      let width = metaData[kCGImagePropertyPixelWidth as String] as? Int,
-      let height = metaData[kCGImagePropertyPixelHeight as String] as? Int
-    {
-      let srcMaxResolution = max(width, height)
-
-      // if source resolution is larger than the scaled resolution, scale down image
-      if srcMaxResolution >= maxResolution {
-        let scaleOptions =
-          [
-            kCGImageSourceThumbnailMaxPixelSize as String: maxResolution,
-            kCGImageSourceCreateThumbnailFromImageAlways as String: true,
-          ] as [String: Any]
-
-        if let scaledImage = CGImageSourceCreateThumbnailAtIndex(
-          imageSource, 0, scaleOptions as CFDictionary)
-        {
-          // add compression ratio to desitnation options
-          metaData[kCGImageDestinationLossyCompressionQuality as String] = compression
-
-          // create new jpeg
-          let newImageData = NSMutableData()
-          if let cgImageDestination = CGImageDestinationCreateWithData(
-            newImageData, kUTTypeJPEG, 1, nil)
-          {
-            CGImageDestinationAddImage(cgImageDestination, scaledImage, metaData as CFDictionary)
-            CGImageDestinationFinalize(cgImageDestination)
-
-            return newImageData as Data
-          }
-        }
-      }
-    }
-    return nil
-  }
-#endif
 
 extension Date {
   var millisecondsSince1970: Int64 {
@@ -142,17 +100,17 @@ func fileModificationDate(url: URL) -> Date? {
   }
 }
 
-func prettyPrintAlbum(_ album: Album) {
+func prettyPrintAlbum(_ album: Album, marker: String = "") {
   let indentCharacter = "  "
   func prettyPrintAlbumRecursive(_ album: Album, indent: Int) {
     let indentString = String(repeating: indentCharacter, count: indent)
     let indentChildString = String(repeating: indentCharacter, count: indent + 1)
 
     // TODO: Determine of this should be log or print
-    print("\(indentString)Album: \(album.name): \(album.path)")
+    print("\(indentString) \(marker) Album: \(album.name)")
     for photo in album.photos {
       // TODO: Determine of this should be log or print
-      print("\(indentChildString)Photo: \(photo.name): \(photo.url)")
+      print("\(indentChildString) \(marker) Photo: \(photo.name)")
     }
     for childAlbum in album.albums {
       prettyPrintAlbumRecursive(childAlbum, indent: indent + 1)
@@ -162,7 +120,7 @@ func prettyPrintAlbum(_ album: Album) {
 }
 
 func prettyPrintAdded(_ album: Album) {
-  prettyPrintAlbumCompact(album, marker: "[+]".green)
+  prettyPrintAlbum(album, marker: "[+]".green)
 }
 
 func prettyPrintRemoved(_ album: Album) {
@@ -193,92 +151,75 @@ extension Collection {
   }
 }
 
-func prettyPrintDiff(added: Album?, removed: Album?) -> String {
-  var str = ""
-  if let a = added {
-    let astr = """
+// func prettyPrintAdded(added: Album?) -> String {
+//   var str = ""
+//   if let a = added {
+//     let astr = """
 
-      Added:
-      \(prettyPrintAdded(a))
+//       Added:
+//       \(prettyPrintAdded(a))
 
-      """
+//       """
 
-    str = str + astr
+//     str = str + astr
+//   }
+//   return str
+// }
+
+func computeChangedPhotos(input: Album, output: Album) -> Album? {
+  if input == output {
+    return nil
   }
-  if let r = removed {
-    let rstr = """
 
-      Removed:
-      \(prettyPrintRemoved(r))
+  var changed = input.copyWithoutChildren()
+  changed.photos = output.changedPhotos(input)
 
-      """
+  // print("----------------------------")
+  // output.photos.forEach {
+  //   print("output: \($0.name)")
+  // }
+  // input.photos.forEach {
+  //   print("input: \($0.name)")
+  // }
+  // changed.photos.forEach {
+  //   print("changed: \($0.name)")
+  // }
 
-    str = str + rstr
-  }
-  return str
+  changed.albums = Set(
+    output.changedAlbums(input).compactMap { changedAlbum in
+      if let outputAlbum = findAlbumByName(name: changedAlbum.name, album: output) {
+        if let computedChange = computeChangedPhotos(input: changedAlbum, output: outputAlbum) {
+          return computedChange
+        }
+      }
+      // If there is no output album present, then it is a new album.
+      return changedAlbum
+    })
+
+  return changed
 }
 
-func diff(new: Album, old: Album) -> (Album?, Album?) {
-  if new == old {
-    return (nil, nil)
-  }
-
-  var removed = new.copyWithoutChildren()
-  var added = new.copyWithoutChildren()
-
-  removed.photos = old.photos.subtracting(new.photos)
-  added.photos = new.photos.subtracting(old.photos)
-
-  // Not changed
-  _ = new.albums.intersection(old.albums)
-  let onlyNewAlbums = new.albums.subtracting(old.albums)
-  let onlyOldAlbums = old.albums.subtracting(new.albums)
-
-  let changedAlbums = pairChangedAlbums(
-    newAlbums: Array(onlyNewAlbums), oldAlbums: Array(onlyOldAlbums))
-
-  for changed in changedAlbums {
-    if let newChangedAlbum = changed.0,
-      let oldChangedAlbum = changed.1
-    {
-      let (addedChild, removedChild) = diff(new: newChangedAlbum, old: oldChangedAlbum)
-
-      if let child = addedChild {
-        added.albums.insert(child)
-      }
-
-      if let child = removedChild {
-        removed.albums.insert(child)
-      }
-    } else if let newChangedAlbum = changed.0 {
-      added.albums.insert(newChangedAlbum)
-    } else if let oldChangedAlbum = changed.1 {
-      removed.albums.insert(oldChangedAlbum)
+// Recursively search through a list of albums and their children to find
+// an album by name.
+func findAlbumByName(name: String, albums: [Album]) -> Album? {
+  for album in albums {
+    if let found = findAlbumByName(name: name, album: album) {
+      return found
     }
   }
-
-  return (added, removed)
+  return nil
 }
 
-func pairChangedAlbums(newAlbums: [Album], oldAlbums: [Album]) -> ([(Album?, Album?)]) {
-  var pairs: [(Album?, Album?)] = []
-
-  for new in newAlbums {
-    if isAlbumInListByName(album: new, albums: oldAlbums) {
-      for old in oldAlbums where new.name == old.name {
-        pairs.append((new, old))
-      }
-    } else {
-      pairs.append((new, nil))
+func findAlbumByName(name: String, album: Album) -> Album? {
+  if album.name == name {
+    return album
+  }
+  for alb in album.albums {
+    if let found = findAlbumByName(name: name, album: alb) {
+      return found
     }
   }
-  for old in oldAlbums {
-    if !isAlbumInListByName(album: old, albums: newAlbums) {
-      pairs.append((nil, old))
-    }
-  }
-
-  return pairs
+  return nil
 }
 
 func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
