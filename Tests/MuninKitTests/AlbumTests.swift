@@ -216,7 +216,7 @@ final class AlbumTests: XCTestCase {
   func testChangedAlbumsInputHasChildAlbum() {
     // input has a new child
     var input2 = Album(name: "root", path: "", parents: [])
-    var current2 = Album(name: "root", path: "", parents: [])
+    let current2 = Album(name: "root", path: "", parents: [])
 
     let child_2 = Album(name: "child1", path: "", parents: [])
     input2.albums = [child_2]

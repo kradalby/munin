@@ -139,8 +139,16 @@ public struct GalleryConfiguration: Configuration, Decodable {
 }
 
 public struct Gallery {
-  let input: Album
-  let output: Album?
+  var input: Album
+  var output: Album?
+
+  mutating func setInput(_ input: Album) {
+    self.input = input
+  }
+
+  mutating func setOutput(_ output: Album) {
+    self.output = output
+  }
 
   let addedContent: Album?
 
@@ -189,7 +197,7 @@ public struct Gallery {
 
   public func build(ctx: Context, jsonOnly: Bool) {
     if let added = addedContent {
-      log.info("Adding images from diff")
+      log.info("Adding new photos")
       // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // Wait for all photos to be written to disk
@@ -225,6 +233,10 @@ public struct Gallery {
     Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
     log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
+  }
+
+  public func clean(ctx: Context) {
+    input.clean(ctx: ctx)
   }
 
   public func statistics(ctx: Context) -> Statistics {

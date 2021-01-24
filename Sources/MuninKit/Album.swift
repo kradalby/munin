@@ -252,20 +252,30 @@ extension Album {
   public func clean(ctx: Context) {
     let fileManager = FileManager()
     let unrefFiles = unreferencedFiles()
+    let unrefFolders = unreferencedFolders()
 
     log.info("Cleaning album \(name) of unreferenced files: \(unrefFiles)")
+    log.info("Cleaning album \(name) of unreferenced folders: \(unrefFiles)")
 
     for album in albums {
       album.clean(ctx: ctx)
     }
 
-    for file in unrefFiles {
+    for file in unrefFiles + unrefFolders {
       do {
         try fileManager.removeItem(at: file)
       } catch {
         log.error("Could not remove album \(name) at path \(path)")
       }
     }
+  }
+
+  func expectedFolders() -> [URL] {
+    // let folderPath = URL(fileURLWithPath: path)
+
+    let expectedFiles = albums.map { URL(fileURLWithPath: $0.path) }
+
+    return expectedFiles
   }
 
   func expectedFiles() -> [URL] {
@@ -286,6 +296,16 @@ extension Album {
     let expectedFiles = [jsonURL] + photos.flatMap { $0.expectedFiles() } + rootFiles
 
     return expectedFiles
+  }
+
+  func unreferencedFolders() -> [URL] {
+    let fileManager = FileManager()
+    let expectedFolders = self.expectedFolders()
+    let actualFolders = fileManager.directoriesOfDirectory(atPath: path).map {
+      URL(fileURLWithPath: joinPath(path, $0))
+    }
+
+    return actualFolders.filter { !expectedFolders.contains($0) }
   }
 
   func unreferencedFiles() -> [URL] {
