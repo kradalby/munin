@@ -7,6 +7,21 @@ final class KeywordTests: XCTestCase {
   let albumPath = "example/album/"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
+  var config: GalleryConfiguration!
+  var ctx: Context!
+
+  override func setUp() {
+    super.setUp()
+    config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: configPath)
+    config.progress = false
+    ctx = Context(config: config)
+  }
+
+  override func tearDown() {
+    config = nil
+    ctx = nil
+    super.tearDown()
+  }
 
   func test() {
     // This is an example of a functional test case.
@@ -16,9 +31,6 @@ final class KeywordTests: XCTestCase {
   }
 
   func testBuildKeywordsFromAlbum() {
-    let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: configPath)
-    let ctx = Context(config: config)
-
     let album = readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
