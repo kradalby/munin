@@ -7,6 +7,7 @@ publish: build
 generate:
 	sourcery
 	swift test --generate-linuxmain
+	make fmt
 
 build:
 	swift build -c debug --sanitize=thread

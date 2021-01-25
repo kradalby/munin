@@ -1,8 +1,6 @@
 // Generated using Sourcery 1.0.2 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
-
-
 // MARK: Album Equatable
 extension Album: Equatable {
   static func == (lhs: Album, rhs: Album) -> Bool {
