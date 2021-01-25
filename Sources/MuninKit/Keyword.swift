@@ -30,7 +30,7 @@ extension Keyword: Encodable {
       forKey: .photos
     )
 
-    try photos.forEach {
+    try Array(photos).sorted().forEach {
       try photosContainer.encode(
         PhotoInAlbum(
           url: $0.url,
@@ -94,6 +94,12 @@ extension Keyword {
   }
 }
 
+extension Keyword: CustomStringConvertible {
+  var description: String {
+    return "Keyword: \(name), photos: \(String(describing: photos))"
+  }
+}
+
 func buildKeywordsFromAlbum(album: Album) -> [Keyword] {
   var temporary: [String: Keyword] = [:]
 
@@ -108,7 +114,7 @@ func buildKeywordsFromAlbum(album: Album) -> [Keyword] {
       }
     }
   }
-  return temporary.values.map { $0 }
+  return temporary.values.map { $0 }.sorted()
 }
 
 func buildPeopleFromAlbum(album: Album) -> [Keyword] {
@@ -125,7 +131,7 @@ func buildPeopleFromAlbum(album: Album) -> [Keyword] {
       }
     }
   }
-  return temporary.values.map { $0 }
+  return temporary.values.map { $0 }.sorted()
 }
 
 struct KeywordPointer: Hashable, Comparable, Codable {
@@ -152,5 +158,11 @@ struct KeywordPointer: Hashable, Comparable, Codable {
 
   static func == (lhs: KeywordPointer, rhs: Keyword) -> Bool {
     return rhs == lhs
+  }
+}
+
+extension KeywordPointer: CustomStringConvertible {
+  var description: String {
+    return "KeywordPointer: \(name)"
   }
 }

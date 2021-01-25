@@ -7,6 +7,7 @@ publish: build
 generate:
 	sourcery
 	swift test --generate-linuxmain
+	make fmt
 
 build:
 	swift build -c debug --sanitize=thread
@@ -16,12 +17,6 @@ build-release:
 
 test:
 	swift test
-
-build-core-graphics:
-	swift build -c debug --sanitize=thread -Xswiftc '-DCORE_GRAPHICS'
-
-build-core-graphics-release:
-	swift build --configuration release -Xswiftc '-DCORE_GRAPHICS'
 
 dev:
 	swift package generate-xcodeproj

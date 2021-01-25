@@ -15,10 +15,15 @@ public struct Locations: Codable {
     locations = locationsFromAlbum(album: gallery.input)
   }
 
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(Array(locations).sorted(), forKey: .locations)
+  }
+
   public func write(ctx: Context) {
     log.info("Writing locations")
     let fileURL = URL(
-      fileURLWithPath: joinPath(paths: ctx.config.outputPath, ctx.config.name, "locations.json"))
+      fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
 
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
@@ -34,10 +39,16 @@ public struct Locations: Codable {
   }
 }
 
-struct Location: Codable {
+struct Location: Codable, Comparable {
   var url: String
   var gps: GPS
   var scaledPhotos: [ScaledPhoto]
+}
+
+extension Location {
+  static func < (lhs: Location, rhs: Location) -> Bool {
+    return lhs.url < rhs.url
+  }
 }
 
 func locationsFromAlbum(album: Album) -> [Location] {

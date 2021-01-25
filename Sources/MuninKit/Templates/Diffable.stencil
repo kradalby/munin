@@ -1,0 +1,14 @@
+{% for type in types.implementing.Diffable %}
+
+// MARK: {{ type.name }} Diffable
+
+{# extension {{type.name}} {
+  func printDiff(other: {{type.name}}) {
+    {% for variable in type.storedVariables %}
+    if self.{{variable.name}} != other.{{variable.name}} {
+      print("{{variable.name}} differs, self: \(self.{{variable.name}}), other: \(other.{{variable.name}})")
+    }
+    {% endfor %}
+  }
+} #}
+{% endfor %}

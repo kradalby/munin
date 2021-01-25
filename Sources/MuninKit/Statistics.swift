@@ -40,7 +40,7 @@ public struct Statistics: Codable {
   public func write(ctx: Context) {
     log.info("Writing stats")
     let fileURL = URL(
-      fileURLWithPath: joinPath(paths: ctx.config.outputPath, ctx.config.name, "stats.json"))
+      fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
 
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601

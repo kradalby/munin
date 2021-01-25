@@ -35,7 +35,7 @@ struct Timings {
 }
 
 class State {
-  let writingProgress: PercentProgressAnimation
+  let writingProgress: PercentProgressAnimation?
   let readingProgress: ReadingProgressAnimation?
 
   var lastReadPhoto: String = ""
@@ -50,14 +50,16 @@ class State {
     }
   }
 
-  init() {
+  init(progress: Bool) {
     photosToWrite = 0
     photosWritten = 0
 
-    writingProgress = PercentProgressAnimation(
-      stream: TSCBasic.stdoutStream, header: "Writing images")
+    writingProgress =
+      progress
+      ? PercentProgressAnimation(
+        stream: TSCBasic.stdoutStream, header: "Writing images") : nil
 
-    if let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
+    if progress, let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
       readingProgress = ReadingProgressAnimation(terminal: terminal, header: "Finding images")
     } else {
       readingProgress = nil
@@ -93,12 +95,14 @@ class State {
   }
 
   func renderWriting() {
-    writingProgress.update(
-      step: photosWritten, total: photosToWrite,
-      text: "Writing: \(photosWritten) out of \(photosToWrite)")
+    if let progress = writingProgress {
+      progress.update(
+        step: photosWritten, total: photosToWrite,
+        text: "Writing: \(photosWritten) out of \(photosToWrite)")
 
-    if photosToWrite == photosWritten {
-      writingProgress.complete(success: true)
+      if photosToWrite == photosWritten {
+        progress.complete(success: true)
+      }
     }
   }
 }
@@ -116,56 +120,80 @@ public struct Context {
     // LoggingSystem.bootstrap(StreamLogHandler.standardError)
     // time = Timings()
 
-    state = State()
+    state = State(progress: config.progress)
   }
 }
 
-public struct GalleryConfiguration: Configuration {
+public struct GalleryConfiguration: Configuration, Decodable {
   var name: String
   var people: [String]
+  var peopleFiles: [String]
   var resolutions: [Int]
   var jpegCompression: Double
   var inputPath: String
   var outputPath: String
-  var fileExtentions: [String]
-  public var logLevel: Int
-  public var diff: Bool
+  var fileExtensions: [String]
   var concurrency: Int
 
-  enum CodingKeys: String, CodingKey {
-    case name
-    case people
-    case resolutions
-    case jpegCompression
-    case inputPath
-    case outputPath
-    case fileExtentions
-    case logLevel
-    case diff
-    case concurrency
+  var logLevel: Int
+  var diff: Bool
+  var progress: Bool
+
+  public mutating func initHook() {
+    combinePeople()
   }
 
-  public init(from decoder: Decoder) throws {
-    let values = try decoder.container(keyedBy: CodingKeys.self)
-    name = try values.decode(String.self, forKey: .name)
-    people = try values.decode([String].self, forKey: .people)
-    resolutions = try values.decode([Int].self, forKey: .resolutions)
-    jpegCompression = try values.decode(Double.self, forKey: .jpegCompression)
-    inputPath = try values.decode(String.self, forKey: .inputPath)
-    outputPath = try values.decode(String.self, forKey: .outputPath)
-    fileExtentions = try values.decode([String].self, forKey: .fileExtentions)
-    logLevel = try values.decode(Int.self, forKey: .logLevel)
-    diff = try values.decode(Bool.self, forKey: .diff)
-    concurrency = try values.decode(Int.self, forKey: .concurrency)
+  mutating func setLogLevel(_ logLevel: Int) {
+    self.logLevel = logLevel
+  }
+
+  mutating func setDiff(_ diff: Bool) {
+    self.diff = diff
+  }
+
+  public mutating func setProgress(_ progress: Bool) {
+    self.progress = progress
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case name, people, peopleFiles, resolutions, jpegCompression, inputPath, outputPath,
+      fileExtensions, logLevel, diff, concurrency, progress
+  }
+
+  var combinedPeople: Set<String> = []
+  // TODO: test
+  mutating func combinePeople() {
+    let peopleFromFiles: [[String]] = peopleFiles.compactMap { file in
+      if let peopleFile = readAndDecodeJsonFile(PeopleFile.self, atPath: file) {
+        return peopleFile.people
+      }
+      return nil
+    }
+    combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
+  }
+
+  func allPeople() -> Set<String> {
+    return combinedPeople
   }
 }
 
-public struct Gallery {
-  let input: Album
-  let output: Album?
+struct PeopleFile: Decodable {
+  let people: [String]
+}
 
-  let addedDiff: Album?
-  let removedDiff: Album?
+public struct Gallery {
+  var input: Album
+  var output: Album?
+
+  mutating func setInput(_ input: Album) {
+    self.input = input
+  }
+
+  mutating func setOutput(_ output: Album) {
+    self.output = output
+  }
+
+  let addedContent: Album?
 
   // swiftlint:disable function_body_length
   public init(ctx: Context) {
@@ -185,41 +213,34 @@ public struct Gallery {
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     let outputStart = Date()
-    if let album = readStateFromOutputDirectory(
+    if let outputAlbum = readStateFromOutputDirectory(
       indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     {
       time.readOutputDirectory = Date().timeIntervalSince(outputStart)
 
       let diffStart = Date()
-      let (added, removed) = diff(new: input, old: album)
+      let added = computeChangedPhotos(input: input, output: outputAlbum)
       time.generateDiff = Date().timeIntervalSince(diffStart)
 
-      // if config.diff {e
-      //   print(prettyPrintDiff(added, removed))
-      // }
+      if let a = added, ctx.config.diff {
+        prettyPrintAlbum(a)
+      }
 
       // ctx.time = time
 
-      output = album
-      addedDiff = added
-      removedDiff = removed
+      output = outputAlbum
+      addedContent = added
     } else {
       output = nil
-      addedDiff = nil
-      removedDiff = nil
+      addedContent = nil
       log.info("Could not find any output album, assuming new is to be created")
     }
     print("Times: ", time)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {
-    if let removed = removedDiff {
-      log.info("Removing images from diff")
-      removed.destroy(ctx: ctx)
-    }
-
-    if let added = addedDiff {
-      log.info("Adding images from diff")
+    if let added = addedContent {
+      log.info("Adding new photos")
       // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // Wait for all photos to be written to disk
@@ -228,7 +249,7 @@ public struct Gallery {
 
     ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
-    if addedDiff == nil, removedDiff == nil {
+    if addedContent == nil {
       input.write(ctx: ctx, writeJson: true, writeImage: true)
     } else {
       // We have already changed the actual image files, so we only write json
@@ -255,6 +276,10 @@ public struct Gallery {
     Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
     log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
+  }
+
+  public func clean(ctx: Context) {
+    input.clean(ctx: ctx)
   }
 
   public func statistics(ctx: Context) -> Statistics {

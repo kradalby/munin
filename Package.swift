@@ -3,19 +3,19 @@
 
 // https://theswiftdev.com/the-swift-package-manifest-file/
 
+import PackageDescription
+
 var linkerSettings: [LinkerSetting]? {
   #if os(Linux)
-  return [
-    .linkedLibrary("gd"),
-    .linkedLibrary("iptcdata"),
-    .linkedLibrary("exif"),
-  ]
+    return [
+      .linkedLibrary("gd"),
+      .linkedLibrary("iptcdata"),
+      .linkedLibrary("exif"),
+    ]
   #else
-  return nil
+    return nil
   #endif
 }
-
-import PackageDescription
 
 let package = Package(
   name: "Munin",
@@ -36,7 +36,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/kylef/Commander.git", from: "0.9.1"),
-    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
+    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.3"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.5"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.0"),
@@ -69,7 +69,8 @@ let package = Package(
         .product(name: "Config", package: "Config.swift"),
         "SwiftGD",
         "SwiftExif",
-      ]
+      ],
+      exclude: ["Templates"]
     ),
     .testTarget(
       name: "MuninTests",
