@@ -1,8 +1,9 @@
 // Generated using Sourcery 1.0.2 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
-// MARK: Album Equatable
 
+
+// MARK: Album Equatable
 extension Album: Equatable {
   static func == (lhs: Album, rhs: Album) -> Bool {
     guard lhs.name == rhs.name else {
@@ -34,7 +35,6 @@ extension Album: Equatable {
 }
 
 // MARK: GPS Equatable
-
 extension GPS: Equatable {
   static func == (lhs: GPS, rhs: GPS) -> Bool {
     guard lhs.altitude ==~ rhs.altitude else {
@@ -51,7 +51,6 @@ extension GPS: Equatable {
 }
 
 // MARK: Keyword Equatable
-
 extension Keyword: Equatable {
   static func == (lhs: Keyword, rhs: Keyword) -> Bool {
     guard lhs.name == rhs.name else {
@@ -68,7 +67,6 @@ extension Keyword: Equatable {
 }
 
 // MARK: LocationData Equatable
-
 extension LocationData: Equatable {
   static func == (lhs: LocationData, rhs: LocationData) -> Bool {
     guard lhs.city == rhs.city else {
@@ -88,7 +86,6 @@ extension LocationData: Equatable {
 }
 
 // MARK: LocationDegree Equatable
-
 extension LocationDegree: Equatable {
   static func == (lhs: LocationDegree, rhs: LocationDegree) -> Bool {
     guard lhs.degrees ==~ rhs.degrees else {
@@ -105,7 +102,6 @@ extension LocationDegree: Equatable {
 }
 
 // MARK: Parent Equatable
-
 extension Parent: Equatable {
   static func == (lhs: Parent, rhs: Parent) -> Bool {
     guard lhs.name == rhs.name else {
@@ -119,7 +115,6 @@ extension Parent: Equatable {
 }
 
 // MARK: Photo Equatable
-
 extension Photo: Equatable {
   static func == (lhs: Photo, rhs: Photo) -> Bool {
     guard lhs.name == rhs.name else {
@@ -235,7 +230,6 @@ extension Photo: Equatable {
 }
 
 // MARK: ScaledPhoto Equatable
-
 extension ScaledPhoto: Equatable {
   static func == (lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
     guard lhs.url == rhs.url else {
