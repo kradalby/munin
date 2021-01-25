@@ -36,7 +36,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/kylef/Commander.git", from: "0.9.1"),
-    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.2"),
+    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.3"),
     .package(url: "https://github.com/twostraws/SwiftGD.git", from: "2.5.0"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.5"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.0"),
