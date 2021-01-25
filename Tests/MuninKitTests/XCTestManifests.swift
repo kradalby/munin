@@ -42,6 +42,8 @@ extension KeywordTests {
     static let __allTests__KeywordTests = [
         ("test", test),
         ("testBuildKeywordsFromAlbum", testBuildKeywordsFromAlbum),
+        ("testPeopleFiles", testPeopleFiles),
+        ("testPeopleFilesAuto", testPeopleFilesAuto),
     ]
 }
 

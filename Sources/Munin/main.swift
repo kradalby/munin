@@ -22,10 +22,10 @@ let main = command(
     default: false,
     description:
       "Write only JSON files, no images, useful for updating data with new munin features")
-) { config, dry, progress, diff, json in
+) { config, dry, progress, _, json in
 
   var config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
-  config.progress = progress
+  config.setProgress(progress)
 
   let ctx = Context(config: config)
 

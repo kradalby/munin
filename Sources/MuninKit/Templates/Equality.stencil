@@ -3,12 +3,12 @@
 // MARK: {{ type.name }} Equatable
 
 extension {{type.name}}: Equatable {
-    static func == (lhs: {{type.name}}, rhs: {{type.name}}) -> Bool {
-        {% for variable in type.storedVariables %}guard lhs.{{variable.name}} {% if variable.typeName.unwrappedTypeName == "Double" %}==~{% else %}=={% endif %} rhs.{{variable.name}} else { 
-            return false 
-        }
-        {% endfor %}
-        return true
+  static func == (lhs: {{type.name}}, rhs: {{type.name}}) -> Bool {
+    {% for variable in type.storedVariables %}guard lhs.{{variable.name}} {% if variable.typeName.unwrappedTypeName == "Double" %}==~{% else %}=={% endif %} rhs.{{variable.name}} else { 
+        return false 
     }
+    {% endfor %}
+    return true
+  }
 }
 {% endfor %}

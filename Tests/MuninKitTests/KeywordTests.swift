@@ -7,6 +7,7 @@ final class KeywordTests: XCTestCase {
   let albumPath = "example/album/"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
+  let peoplePath = "example/people.json"
   var config: GalleryConfiguration!
   var ctx: Context!
 
@@ -44,5 +45,29 @@ final class KeywordTests: XCTestCase {
     XCTAssertTrue(strings.contains("Århus"))
     XCTAssertTrue(strings.contains("Tel Aviv District"))
     XCTAssertTrue(strings.contains("Aishling Cooke"))
+  }
+
+  func testPeopleFiles() {
+    config = GalleryConfiguration(
+      name: "peopleFilesTest",
+      people: ["Man Person", "BoJo Trump", "Ola Nordmann"],
+      peopleFiles: [peoplePath],
+      resolutions: [100, 200, 300],
+      jpegCompression: 0.1,
+      inputPath: albumPath,
+      outputPath: outPath,
+      fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
+      concurrency: -1,
+      logLevel: 1,
+      diff: false,
+      progress: false
+    )
+    XCTAssertEqual(config.allPeople().count, 0)
+    config.combinePeople()
+    XCTAssertEqual(config.allPeople().count, 4)
+  }
+
+  func testPeopleFilesAuto() {
+    XCTAssertEqual(config.allPeople().count, 16)
   }
 }

@@ -442,7 +442,7 @@ func readStateFromInputDirectory(
 
   var photos = [Photo]()
   let files = FileManager.default.filesOfDirectoryByExtensions(
-    atPath: joinPath(atPath), extensions: ctx.config.fileExtentions
+    atPath: joinPath(atPath), extensions: ctx.config.fileExtensions
   )
   for file in files {
     let fileNameWithoutExt = fileNameWithoutExtension(

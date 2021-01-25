@@ -6,6 +6,7 @@ import XCTest
 
 final class GalleryTests: XCTestCase {
   let albumPath = "example/album/"
+  let peoplePath = "example/people.json"
   var config: GalleryConfiguration!
   var ctx: Context!
   var testName: String!
@@ -28,14 +29,15 @@ final class GalleryTests: XCTestCase {
     config = GalleryConfiguration(
       name: testName,
       people: [],
+      peopleFiles: [peoplePath],
       resolutions: [100, 200, 300],
       jpegCompression: 0.1,
       inputPath: albumPath,
       outputPath: testDirectoryPath,
-      fileExtentions: ["jpg", "jpeg", "JPG", "JPEG"],
+      fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
+      concurrency: -1,
       logLevel: 1,
       diff: false,
-      concurrency: -1,
       progress: false
     )
 

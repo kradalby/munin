@@ -433,7 +433,7 @@ func readPhotoFromPath(
         name: keyword,
         url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
       )
-      if ctx.config.people.contains(keyword) {
+      if ctx.config.allPeople().contains(keyword) {
         photo.people.append(keywordPointer)
       } else {
         photo.keywords.append(keywordPointer)

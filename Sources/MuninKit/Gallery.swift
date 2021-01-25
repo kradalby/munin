@@ -127,15 +127,58 @@ public struct Context {
 public struct GalleryConfiguration: Configuration, Decodable {
   var name: String
   var people: [String]
+  var peopleFiles: [String]
   var resolutions: [Int]
   var jpegCompression: Double
   var inputPath: String
   var outputPath: String
-  var fileExtentions: [String]
-  public var logLevel: Int
-  public var diff: Bool
+  var fileExtensions: [String]
   var concurrency: Int
-  public var progress: Bool
+
+  var logLevel: Int
+  var diff: Bool
+  var progress: Bool
+
+  public mutating func initHook() {
+    combinePeople()
+  }
+
+  mutating func setLogLevel(_ logLevel: Int) {
+    self.logLevel = logLevel
+  }
+
+  mutating func setDiff(_ diff: Bool) {
+    self.diff = diff
+  }
+
+  public mutating func setProgress(_ progress: Bool) {
+    self.progress = progress
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case name, people, peopleFiles, resolutions, jpegCompression, inputPath, outputPath,
+      fileExtensions, logLevel, diff, concurrency, progress
+  }
+
+  var combinedPeople: Set<String> = []
+  // TODO: test
+  mutating func combinePeople() {
+    let peopleFromFiles: [[String]] = peopleFiles.compactMap { file in
+      if let peopleFile = readAndDecodeJsonFile(PeopleFile.self, atPath: file) {
+        return peopleFile.people
+      }
+      return nil
+    }
+    combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
+  }
+
+  func allPeople() -> Set<String> {
+    return combinedPeople
+  }
+}
+
+struct PeopleFile: Decodable {
+  let people: [String]
 }
 
 public struct Gallery {
