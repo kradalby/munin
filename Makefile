@@ -41,5 +41,8 @@ fmt:
 run: build
 	./.build/x86_64-apple-macosx/debug/munin
 
-run-cross: build-cross
-	./.build/x86_64-apple-macosx/debug/munin
+reset-lsp:
+	swift package reset
+	swift package update
+	killall sourcekit-lsp
+

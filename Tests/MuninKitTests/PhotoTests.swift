@@ -7,6 +7,7 @@ final class PhotoTests: XCTestCase {
   let photoPath = "example/album/2017/2017-12-22 Juleferie/20171222-132846-20171222-IMG_5259.jpg"
   let photo2Path = "example/album/2017/2017-12-22 Juleferie/20171224-165120-20171224-IMG_5284.jpg"
   let photo3Path = "example/album/2017/2017-12-19 Aarhus/20171219-143810-20171219-IMG_5246-2.jpg"
+  let photo4Path = "example/album/Misc/portrait_mm.jpeg"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
 
@@ -35,6 +36,12 @@ final class PhotoTests: XCTestCase {
 
     let photo3 = readPhotoFromPath(
       atPath: photo3Path, outPath: outPath, name: "test3", fileExtension: "jpg", parents: [],
+      ctx: ctx
+    )
+
+    // Rotation issue photo
+    let photo4 = readPhotoFromPath(
+      atPath: photo4Path, outPath: outPath, name: "test4", fileExtension: "jpeg", parents: [],
       ctx: ctx
     )
 
@@ -67,6 +74,15 @@ final class PhotoTests: XCTestCase {
     XCTAssertEqual(
       photo3?.keywords.map { $0.name }.sorted(),
       ["Denmark", "2017", "Århus", "Central Denmark Region", "DK", "Street art"].sorted())
+
+    XCTAssertEqual(photo4?.name, "test4")
+    XCTAssertEqual(photo4?.url, "example/content//test4.json")
+    XCTAssertEqual(photo4?.scaledPhotos.count, 8)
+    XCTAssertEqual(photo4?.aperture, 1.696)
+    XCTAssertEqual(photo4?.orientation, Orientation.portrait)
+    XCTAssertEqual(photo4?.people.map { $0.name }.sorted(), [])
+    XCTAssertEqual(
+      photo4?.keywords.map { $0.name }.sorted(), ["Martin Peter Meuche", "Spring"].sorted())
   }
 
   func testExpectedFiles() {

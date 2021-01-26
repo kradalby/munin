@@ -1,7 +1,6 @@
 {% for type in types.implementing.Diffable %}
 
 // MARK: {{ type.name }} Diffable
-
 {# extension {{type.name}} {
   func printDiff(other: {{type.name}}) {
     {% for variable in type.storedVariables %}

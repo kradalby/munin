@@ -147,7 +147,7 @@ public struct GalleryConfiguration: Configuration, Decodable {
     self.logLevel = logLevel
   }
 
-  mutating func setDiff(_ diff: Bool) {
+  public mutating func setDiff(_ diff: Bool) {
     self.diff = diff
   }
 
@@ -223,7 +223,7 @@ public struct Gallery {
       time.generateDiff = Date().timeIntervalSince(diffStart)
 
       if let a = added, ctx.config.diff {
-        prettyPrintAlbum(a)
+        prettyPrintAdded(a)
       }
 
       // ctx.time = time

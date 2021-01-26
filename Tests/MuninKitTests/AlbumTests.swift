@@ -33,7 +33,7 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 102)
+    XCTAssertEqual(photoCount, 103)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 10)
   }
@@ -44,7 +44,7 @@ final class AlbumTests: XCTestCase {
       parents: [Parent(name: "", url: "")])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 2)
+    XCTAssertEqual(photoCount, 3)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
@@ -60,9 +60,18 @@ final class AlbumTests: XCTestCase {
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_180.jpg",
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_220.jpg",
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_original.jpg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm.json",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_180.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_220.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_340.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_576.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_768.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_992.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1200.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1600.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_original.jpeg",
     ].sorted()
     let actualFiles = album.expectedFiles().map { $0.path }.sorted()
-
     XCTAssertEqual(actualFiles, expectedFiles)
   }
 
@@ -72,7 +81,7 @@ final class AlbumTests: XCTestCase {
       parents: [Parent(name: "", url: "")])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 2)
+    XCTAssertEqual(photoCount, 3)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
@@ -86,7 +95,7 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 102)
+    XCTAssertEqual(photoCount, 103)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 10)
     let unreferenced = album.unreferencedFiles()
@@ -100,7 +109,7 @@ final class AlbumTests: XCTestCase {
       parents: [Parent(name: "", url: "")])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 2)
+    XCTAssertEqual(photoCount, 3)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
@@ -116,6 +125,16 @@ final class AlbumTests: XCTestCase {
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_180.jpg",
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_220.jpg",
       "/Users/kradalby/git/munin/example/content/test/test_special_chars_original.jpg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm.json",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_180.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_220.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_340.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_576.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_768.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_992.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1200.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1600.jpeg",
+      "/Users/kradalby/git/munin/example/content/test/portrait_mm_original.jpeg",
     ].sorted()
     let missing = album.missingFiles().map { $0.path }.sorted()
 
@@ -127,7 +146,7 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 102)
+    XCTAssertEqual(photoCount, 103)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 10)
 
