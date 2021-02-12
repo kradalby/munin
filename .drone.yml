@@ -157,15 +157,15 @@
       {
         "environment": { "SSH_KEY": { "from_secret": "ssh_key" } },
         "image": "appleboy/drone-scp",
-        "name": "Deploy to builds",
+        "name": "Deploy to hugin",
         "pull": "always",
         "settings":
           {
-            "host": "storage.terra.fap.no",
+            "host": "core.terra.fap.no",
             "rm": true,
             "source": ["dist/*"],
             "strip_components": 1,
-            "target": "/storage/serve/builds/munin/linux_x64",
+            "target": "/fastest/serve/builds/munin/linux_x64",
             "username": "deploy",
           },
         "when": { "branch": ["master"], "event": ["push"] },
