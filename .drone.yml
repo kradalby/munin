@@ -157,7 +157,7 @@
       {
         "environment": { "SSH_KEY": { "from_secret": "ssh_key" } },
         "image": "appleboy/drone-scp",
-        "name": "Deploy to hugin",
+        "name": "Deploy with scp",
         "pull": "always",
         "settings":
           {
@@ -184,34 +184,4 @@
       },
     ],
   "type": "kubernetes",
-}
----
-{
-  "get": { "name": "id", "path": "discord-build" },
-  "kind": "secret",
-  "name": "discord_webhook_id",
-}
----
-{
-  "get": { "name": "token", "path": "discord-build" },
-  "kind": "secret",
-  "name": "discord_webhook_token",
-}
----
-{
-  "get": { "name": "username", "path": "docker" },
-  "kind": "secret",
-  "name": "docker_username",
-}
----
-{
-  "get": { "name": "password", "path": "docker" },
-  "kind": "secret",
-  "name": "docker_password",
-}
----
-{
-  "get": { "name": "deploy", "path": "ssh" },
-  "kind": "secret",
-  "name": "ssh_key",
 }
