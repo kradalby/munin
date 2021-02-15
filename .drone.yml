@@ -1,6 +1,5 @@
 ---
 {
-  "dns_config": { "nameservers": ["1.1.1.1", "1.0.0.1"] },
   "kind": "pipeline",
   "name": "Docker build",
   "node_selector": { "drone": true },
@@ -87,7 +86,6 @@
 }
 ---
 {
-  "dns_config": { "nameservers": ["1.1.1.1", "1.0.0.1"] },
   "kind": "pipeline",
   "name": "Swift build",
   "node_selector": { "drone": true },
