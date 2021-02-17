@@ -46,7 +46,7 @@
         "image": "plugins/docker",
         "name": "Build container image",
         "pull": "always",
-        "settings": { "repo": "build-only" },
+        "settings": { "dry_run": true },
         "trigger": { "event": ["pull_request"] },
         "when": { "branch": { "exclude": ["master"] } },
       },
