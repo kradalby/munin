@@ -42,7 +42,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.0"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
-      .upToNextMajor(from: "0.1.12")),
+      .upToNextMajor(from: "0.2.0")),
     // .package(url: "https://github.com/Ponyboy47/swift-log-file.git", .branch("master")),
 
     // .package(path: "../SwiftExif"),
