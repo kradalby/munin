@@ -35,7 +35,7 @@
         "commands":
           [
             "apt update",
-            "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
+            "apt install -y libexif-dev libmagickwand-6.q16-dev libiptcdata0-dev libsqlite3-dev",
             "make test",
           ],
         "image": "kradalby/swift:groovy",
@@ -123,7 +123,7 @@
         "commands":
           [
             "apt update",
-            "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
+            "apt install -y libexif-dev libmagickwand-6.q16-dev libiptcdata0-dev libsqlite3-dev",
             "make test",
           ],
         "image": "kradalby/swift:groovy",
@@ -134,7 +134,7 @@
         "commands":
           [
             "apt update",
-            "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
+            "apt install -y libexif-dev libmagickwand-6.q16-dev libiptcdata0-dev libsqlite3-dev",
             "make build",
           ],
         "image": "kradalby/swift:groovy",
@@ -145,7 +145,7 @@
         "commands":
           [
             "apt update",
-            "apt install -y libexif-dev libgd-dev libiptcdata0-dev libsqlite3-dev",
+            "apt install -y libexif-dev libmagickwand-6.q16-dev libiptcdata0-dev libsqlite3-dev",
             "make build-release",
             "mkdir -p dist/",
             "mv .build/release/munin dist/",

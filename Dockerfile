@@ -2,14 +2,21 @@ FROM kradalby/swift:groovy AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libsqlite3-dev && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+        && apt-get upgrade -y \
+        && apt-get install -o APT::Immediate-Configure=false -y libsqlite3-dev libexif-dev libiptcdata0-dev libmagickwand-6.q16-dev \
+        && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 RUN make test
 RUN make build-release
 
 FROM kradalby/swift:groovy
+
+RUN apt-get update \
+        && apt-get upgrade -y \
+        && apt-get install -o APT::Immediate-Configure=false -y libexif-dev libiptcdata0-dev libmagickwand-6.q16-dev \
+        && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/.build/release /app
 

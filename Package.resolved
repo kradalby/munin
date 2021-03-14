@@ -29,6 +29,15 @@
         }
       },
       {
+        "package": "MagickWand",
+        "repositoryURL": "https://github.com/kradalby/MagickWand.git",
+        "state": {
+          "branch": "main",
+          "revision": "86b03e24e8876168f8738e1aa2b77dfbeb036a96",
+          "version": null
+        }
+      },
+      {
         "package": "Rainbow",
         "repositoryURL": "https://github.com/onevcat/Rainbow",
         "state": {
@@ -44,15 +53,6 @@
           "branch": null,
           "revision": "f79d4ecbf8bc4e1579fbd86c3e1d652fb6876c53",
           "version": "0.9.2"
-        }
-      },
-      {
-        "package": "swift-atomics",
-        "repositoryURL": "https://github.com/apple/swift-atomics.git",
-        "state": {
-          "branch": null,
-          "revision": "3e95ba32cd1b4c877f6163e8eea54afc4e63bf9f",
-          "version": "0.0.3"
         }
       },
       {

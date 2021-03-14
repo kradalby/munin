@@ -8,8 +8,8 @@
 import Dispatch
 import Foundation
 import Logging
+import MagickWand
 import SwiftExif
-import SwiftGD
 
 struct Photo: Codable, Comparable, Hashable, Diffable {
   var name: String
@@ -157,14 +157,14 @@ extension Photo {
     if writeImage {
       log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
-      if let image = Image(url: fileURL) {
+      if let image = ImageWand(filePath: fileURL.path) {
         for scaledPhoto in scaledPhotos {
-          if let resizedImage = image.resizedTo(width: scaledPhoto.maxResolution) {
+          if let resizeImage = image.clone() {
+            resizeImage.resize(width: scaledPhoto.maxResolution, filter: .lanczos)
             log.trace(
               "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-            if !resizedImage.write(
-              to: URL(fileURLWithPath: scaledPhoto.url),
-              quality: Int(100 * ctx.config.jpegCompression))
+            if !resizeImage.write(
+              at: URL(fileURLWithPath: scaledPhoto.url))  // Int(100 * ctx.config.jpegCompression)
             {
               log.error("Could not write image \(name) to \(scaledPhoto.url)")
             }
@@ -288,10 +288,28 @@ func readPhotoFromPath(
     parents: parents
   )
 
-  // Use GD to check for the width/height
-  if let image = Image(url: fileURL) {
-    photo.width = image.size.width
-    photo.height = image.size.height
+  if let image = ImageWand(filePath: fileURL.path) {
+    let width = image.size.width
+    let height = image.size.height
+    photo.width = width
+    photo.height = height
+
+    // This bit seems a bit unnecessarily complicated.
+    // It is a naive implementation taking into the capture orientation (EXIF) and
+    // the orientation of the actual pixels.
+    if width < height {
+      if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
+        photo.orientation = Orientation.portrait
+      } else {
+        photo.orientation = Orientation.landscape
+      }
+    } else {
+      if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
+        photo.orientation = Orientation.landscape
+      } else {
+        photo.orientation = Orientation.portrait
+      }
+    }
   }
 
   if let exif = exifRawDict["EXIF"] {
@@ -367,14 +385,6 @@ func readPhotoFromPath(
 
   } else {
     log.warning("Exif tag not found for photo, some metatags will be unavailable")
-  }
-
-  if let width = photo.width, let height = photo.height {
-    if width > height {
-      photo.orientation = Orientation.landscape
-    } else {
-      photo.orientation = Orientation.portrait
-    }
   }
 
   let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
