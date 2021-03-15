@@ -6,6 +6,5 @@ gal.json
 /Packages
 /*.xcodeproj
 dump.txt
-example/
 *.playground/
 tester/
