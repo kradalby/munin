@@ -36,7 +36,6 @@ final class GalleryTests: XCTestCase {
       outputPath: testDirectoryPath,
       fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
       concurrency: -1,
-      logLevel: 1,
       diff: false,
       progress: false
     )

@@ -5,7 +5,6 @@
   "inputPath": "album",
   "outputPath": "content",
   "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
-  "logLevel": 5,
   "diff": true,
   "concurrency": -1,
   "progress": true,

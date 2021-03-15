@@ -58,7 +58,6 @@ final class KeywordTests: XCTestCase {
       outputPath: outPath,
       fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
       concurrency: -1,
-      logLevel: 1,
       diff: false,
       progress: false
     )
