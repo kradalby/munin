@@ -310,6 +310,8 @@ func readPhotoFromPath(
         photo.orientation = Orientation.portrait
       }
     }
+
+    image.destroy()
   }
 
   if let exif = exifRawDict["EXIF"] {
