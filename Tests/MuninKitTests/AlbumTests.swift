@@ -48,28 +48,30 @@ final class AlbumTests: XCTestCase {
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
+    let contentDir = URL(fileURLWithPath: "example/content", isDirectory: true)
+
     let expectedFiles = [
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165.json",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_180.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_220.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_340.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_576.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_original.jpg",
-      "/Users/kradalby/git/munin/example/content/test/index.json",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars.json",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_180.jpg",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_220.jpg",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_original.jpg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm.json",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_180.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_220.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_340.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_576.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_768.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_992.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1200.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1600.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_original.jpeg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165.json",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_180.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_220.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_340.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_576.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_original.jpg",
+      "\(contentDir.path)/test/index.json",
+      "\(contentDir.path)/test/test_special_chars.json",
+      "\(contentDir.path)/test/test_special_chars_180.jpg",
+      "\(contentDir.path)/test/test_special_chars_220.jpg",
+      "\(contentDir.path)/test/test_special_chars_original.jpg",
+      "\(contentDir.path)/test/portrait_mm.json",
+      "\(contentDir.path)/test/portrait_mm_180.jpeg",
+      "\(contentDir.path)/test/portrait_mm_220.jpeg",
+      "\(contentDir.path)/test/portrait_mm_340.jpeg",
+      "\(contentDir.path)/test/portrait_mm_576.jpeg",
+      "\(contentDir.path)/test/portrait_mm_768.jpeg",
+      "\(contentDir.path)/test/portrait_mm_992.jpeg",
+      "\(contentDir.path)/test/portrait_mm_1200.jpeg",
+      "\(contentDir.path)/test/portrait_mm_1600.jpeg",
+      "\(contentDir.path)/test/portrait_mm_original.jpeg",
     ].sorted()
     let actualFiles = album.expectedFiles().map { $0.path }.sorted()
     XCTAssertEqual(actualFiles, expectedFiles)
@@ -113,28 +115,30 @@ final class AlbumTests: XCTestCase {
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
+    let contentDir = URL(fileURLWithPath: "example/content", isDirectory: true)
+
     let expectedFiles = [
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165.json",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_180.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_220.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_340.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_576.jpg",
-      "/Users/kradalby/git/munin/example/content/test/20180510-171752-IMG_7165_original.jpg",
-      "/Users/kradalby/git/munin/example/content/test/index.json",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars.json",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_180.jpg",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_220.jpg",
-      "/Users/kradalby/git/munin/example/content/test/test_special_chars_original.jpg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm.json",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_180.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_220.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_340.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_576.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_768.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_992.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1200.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_1600.jpeg",
-      "/Users/kradalby/git/munin/example/content/test/portrait_mm_original.jpeg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165.json",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_180.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_220.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_340.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_576.jpg",
+      "\(contentDir.path)/test/20180510-171752-IMG_7165_original.jpg",
+      "\(contentDir.path)/test/index.json",
+      "\(contentDir.path)/test/test_special_chars.json",
+      "\(contentDir.path)/test/test_special_chars_180.jpg",
+      "\(contentDir.path)/test/test_special_chars_220.jpg",
+      "\(contentDir.path)/test/test_special_chars_original.jpg",
+      "\(contentDir.path)/test/portrait_mm.json",
+      "\(contentDir.path)/test/portrait_mm_180.jpeg",
+      "\(contentDir.path)/test/portrait_mm_220.jpeg",
+      "\(contentDir.path)/test/portrait_mm_340.jpeg",
+      "\(contentDir.path)/test/portrait_mm_576.jpeg",
+      "\(contentDir.path)/test/portrait_mm_768.jpeg",
+      "\(contentDir.path)/test/portrait_mm_992.jpeg",
+      "\(contentDir.path)/test/portrait_mm_1200.jpeg",
+      "\(contentDir.path)/test/portrait_mm_1600.jpeg",
+      "\(contentDir.path)/test/portrait_mm_original.jpeg",
     ].sorted()
     let missing = album.missingFiles().map { $0.path }.sorted()
 
