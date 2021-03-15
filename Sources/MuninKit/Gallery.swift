@@ -161,7 +161,6 @@ public struct GalleryConfiguration: Configuration, Decodable {
   }
 
   var combinedPeople: Set<String> = []
-  // TODO: test
   mutating func combinePeople() {
     let peopleFromFiles: [[String]] = peopleFiles.compactMap { file in
       if let peopleFile = readAndDecodeJsonFile(PeopleFile.self, atPath: file) {
