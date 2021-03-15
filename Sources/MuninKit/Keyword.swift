@@ -76,20 +76,21 @@ extension Keyword {
     do {
       try fileManager.createDirectory(at: path, withIntermediateDirectories: true)
 
-      log.trace("Writing metadata for \(type(of: self)) \(name)")
+      ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
       let encoder = JSONEncoder()
       encoder.dateEncodingStrategy = .iso8601
 
       if let encodedData = try? encoder.encode(self) {
         do {
-          log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
+          ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
           try encodedData.write(to: URL(fileURLWithPath: url))
         } catch {
-          log.error("Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
+          ctx.log.error(
+            "Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
         }
       }
     } catch {
-      log.error("Failed creating directory \(path.absoluteString) with error: \n\(error)")
+      ctx.log.error("Failed creating directory \(path.absoluteString) with error: \n\(error)")
     }
   }
 }

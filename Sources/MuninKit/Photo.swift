@@ -152,49 +152,51 @@ extension Photo: AutoEquatable {
 
 extension Photo {
   func write(ctx: Context, writeJson: Bool, writeImage: Bool) {
-    log.trace("Photo: \(name) has \(writeImage)")
+    ctx.log.trace("Photo: \(name) has \(writeImage)")
     // Only write images and symlink if the user wants to
     if writeImage {
-      log.trace("Writing image \(name)")
+      ctx.log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
       if let image = ImageWand(filePath: fileURL.path) {
         for scaledPhoto in scaledPhotos {
           if let resizeImage = image.clone() {
             resizeImage.resize(width: scaledPhoto.maxResolution, filter: .lanczos)
-            log.trace(
+            ctx.log.trace(
               "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
             if !resizeImage.write(
               at: URL(fileURLWithPath: scaledPhoto.url))  // Int(100 * ctx.config.jpegCompression)
             {
-              log.error("Could not write image \(name) to \(scaledPhoto.url)")
+              ctx.log.error("Could not write image \(name) to \(scaledPhoto.url)")
             }
           }
         }
       }
 
       let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
-      log.trace("Symlinking original image \(name) to \(originalImageURL)")
+      ctx.log.trace("Symlinking original image \(name) to \(originalImageURL)")
       do {
         try createOrReplaceSymlink(
+          ctx: ctx,
           source: joinPath(relativeOriginialPath),
           destination: originalImageURL
         )
       } catch {
-        log.error("Could not symlink image \(name) to \(originalImageURL) with error: \n\(error)")
+        ctx.log.error(
+          "Could not symlink image \(name) to \(originalImageURL) with error: \n\(error)")
       }
     }
 
     if writeJson {
-      log.trace("Writing metadata for image \(name)")
+      ctx.log.trace("Writing metadata for image \(name)")
       let encoder = JSONEncoder()
       encoder.dateEncodingStrategy = .iso8601
 
       if let encodedData = try? encoder.encode(self) {
         do {
-          log.trace("Writing image metadata \(name) to \(url)")
+          ctx.log.trace("Writing image metadata \(name) to \(url)")
           try encodedData.write(to: URL(fileURLWithPath: url))
         } catch {
-          log.error("Could not write image \(name) to \(url) with error: \n\(error)")
+          ctx.log.error("Could not write image \(name) to \(url) with error: \n\(error)")
         }
       }
     }
@@ -202,19 +204,19 @@ extension Photo {
 
   func destroy(ctx: Context) {
     let fileManager = FileManager()
-    log.trace("Removing image \(name)")
+    ctx.log.trace("Removing image \(name)")
     let jsonURL = URL(fileURLWithPath: url)
     let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
     do {
       try fileManager.removeItem(at: jsonURL)
     } catch {
-      log.error("Could not remove image json \(name) at path \(url)")
+      ctx.log.error("Could not remove image json \(name) at path \(url)")
     }
 
     do {
       try fileManager.removeItem(at: symlinkedImageURL)
     } catch {
-      log.error("Could not remove image json \(name) at path \(originalImageURL)")
+      ctx.log.error("Could not remove image json \(name) at path \(originalImageURL)")
     }
 
     for scaledPhoto in scaledPhotos {
@@ -222,7 +224,7 @@ extension Photo {
       do {
         try fileManager.removeItem(at: fileURL)
       } catch {
-        log.error("Could not remove image \(name) at path \(scaledPhoto.url)")
+        ctx.log.error("Could not remove image \(name) at path \(scaledPhoto.url)")
       }
     }
   }
@@ -339,7 +341,7 @@ func readPhotoFromPath(
   if let exif = exifDict["EXIF"] {
     if let width = exif["Pixel X Dimension"] {
       if let _ = photo.width {
-        log.trace("Width already set, ignoring EXIF width")
+        ctx.log.trace("Width already set, ignoring EXIF width")
       } else {
         photo.width = Int(width)
       }
@@ -347,7 +349,7 @@ func readPhotoFromPath(
 
     if let height = exif["Pixel Y Dimension"] {
       if let _ = photo.height {
-        log.trace("Height already set, ignoring EXIF height")
+        ctx.log.trace("Height already set, ignoring EXIF height")
       } else {
         photo.height = Int(height)
       }
@@ -386,7 +388,7 @@ func readPhotoFromPath(
     photo.owner = exif["Camera Owner Name"]
 
   } else {
-    log.warning("Exif tag not found for photo, some metatags will be unavailable")
+    ctx.log.warning("Exif tag not found for photo, some metatags will be unavailable")
   }
 
   let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
@@ -405,7 +407,7 @@ func readPhotoFromPath(
     photo.copyright = zero["Artist"] ?? zero["Copyright"]
 
   } else {
-    log.warning("'0' (zero) tag not found for photo, some metatags will be unavailable")
+    ctx.log.warning("'0' (zero) tag not found for photo, some metatags will be unavailable")
   }
 
   // Add location data if available
@@ -476,7 +478,7 @@ func readPhotoFromPath(
     }
 
   } else {
-    log.warning("GPS tag not found for photo, some metatags will be unavailable")
+    ctx.log.warning("GPS tag not found for photo, some metatags will be unavailable")
   }
 
   photo.keywords = Array(Set(photo.keywords)).sorted()

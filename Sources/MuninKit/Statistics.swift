@@ -38,7 +38,7 @@ public struct Statistics: Codable {
   }
 
   public func write(ctx: Context) {
-    log.info("Writing stats")
+    ctx.log.info("Writing stats")
     let fileURL = URL(
       fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
 
@@ -47,10 +47,10 @@ public struct Statistics: Codable {
 
     if let encodedData = try? encoder.encode(self) {
       do {
-        log.trace("Writing statistics to json to \(fileURL.path)")
+        ctx.log.trace("Writing statistics to json to \(fileURL.path)")
         try encodedData.write(to: URL(fileURLWithPath: fileURL.path))
       } catch {
-        log.error("Could not write statistics json to \(fileURL.path) with error: \n\(error)")
+        ctx.log.error("Could not write statistics json to \(fileURL.path) with error: \n\(error)")
       }
     }
   }

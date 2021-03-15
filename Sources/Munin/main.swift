@@ -4,7 +4,7 @@ import Foundation
 import Logging
 import MuninKit
 
-let log = Logger(label: "no.kradalby.munin.main")
+let log = Logger(label: "no.kradalby.Munin.main")
 
 let main = command(
   Option("config", default: "munin.json", description: "JSON based configuration file for munin"),

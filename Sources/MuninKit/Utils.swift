@@ -8,40 +8,41 @@
 import Foundation
 import Logging
 
-func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T? where T: Decodable {
+func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
+where T: Decodable {
   let fileManager = FileManager()
   var isDirectory: ObjCBool = ObjCBool(false)
   let exists = fileManager.fileExists(atPath: atPath, isDirectory: &isDirectory)
 
   if exists, !isDirectory.boolValue {
     if let indexFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
-      log.info("Decoding \(atPath)")
       let decoder = JSONDecoder()
-      if #available(OSX 10.12, *) {
-        decoder.dateDecodingStrategy = .iso8601
-      }
+      decoder.dateDecodingStrategy = .iso8601
 
       if let decodedData = try? decoder.decode(type, from: indexFile) {
         return decodedData
       } else {
-        log.error("Could not decode \(atPath)")
+        // TODO: Use logger
+        print("Error: Could not decode \(atPath)")
       }
     } else {
-      log.error("Could not read \(atPath)")
+      // TODO: Use logger
+      print("Error: Could not read \(atPath)")
     }
   } else {
-    log.error("File \(atPath) does not exist")
+    // TODO: Use logger
+    print("Error: File \(atPath) does not exist")
   }
   return nil
 }
 
-func createOrReplaceSymlink(source: String, destination: String) throws {
+func createOrReplaceSymlink(ctx: Context, source: String, destination: String) throws {
   let fileManager = FileManager()
 
   var isDirectory: ObjCBool = ObjCBool(false)
   let exists = fileManager.fileExists(atPath: destination, isDirectory: &isDirectory)
   if exists || isDirectory.boolValue {
-    log.trace("Symlink exists, removing \(destination)")
+    ctx.log.trace("Symlink exists, removing \(destination)")
     try fileManager.removeItem(atPath: destination)
   }
 
@@ -232,4 +233,25 @@ func isAlbumInListByName(album: Album, albums: [Album]) -> Bool {
 func randomString(length: Int) -> String {
   let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   return String((0..<length).map { _ in letters.randomElement()! })
+}
+
+func stringToLogLevel(_ level: String) -> Logger.Level {
+  switch level {
+  case "trace":
+    return .trace
+  case "debug":
+    return .debug
+  case "info":
+    return .info
+  case "notice":
+    return .notice
+  case "warning":
+    return .warning
+  case "error":
+    return .error
+  case "critical":
+    return .critical
+  default:
+    return .info
+  }
 }

@@ -7,19 +7,11 @@
 
 import Config
 import Dispatch
-// import FileLogging
+import FileLogging
 import Foundation
 import Logging
 import TSCBasic
 import TSCUtility
-
-// Create a factory which will point any newly created logs to the same file
-// let fileFactory = FileLogHandlerFactory(path: "munin.log")
-
-// Initialize the file log handler
-// LoggingSystem.bootstrap(fileFactory.makeFileLogHandler)
-
-var log = Logger(label: "no.kradalby.MuninKit")
 
 let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
 let photoQueue = DispatchQueue(
@@ -111,14 +103,33 @@ public struct Context {
   let config: GalleryConfiguration
   var time: Timings?
   var state: State
+  var log: Logger
 
   public init(config: GalleryConfiguration) {
     self.config = config
 
-    log.logLevel = .critical
+    if let logPath = config.logPath {
+      do {
+        let fileLogger = try FileLogging(to: URL(fileURLWithPath: logPath))
 
-    // LoggingSystem.bootstrap(StreamLogHandler.standardError)
-    // time = Timings()
+        LoggingSystem.bootstrap { label in
+          let handlers: [LogHandler] = [
+            FileLogHandler(label: label, fileLogger: fileLogger),
+            StreamLogHandler.standardOutput(label: label),
+          ]
+          return MultiplexLogHandler(handlers)
+        }
+      } catch {
+        print("Failed to set up log file, stdout only")
+      }
+    }
+
+    log = Logger(label: "no.kradalby.MuninKit")
+    if let logLevel = config.logLevel {
+      log.logLevel = stringToLogLevel(logLevel)
+    } else {
+      log.logLevel = .info
+    }
 
     state = State(progress: config.progress)
   }
@@ -135,7 +146,8 @@ public struct GalleryConfiguration: Configuration, Decodable {
   var fileExtensions: [String]
   var concurrency: Int
 
-  var logLevel: Int
+  var logPath: String?
+  var logLevel: String?
   var diff: Bool
   var progress: Bool
 
@@ -143,7 +155,7 @@ public struct GalleryConfiguration: Configuration, Decodable {
     combinePeople()
   }
 
-  mutating func setLogLevel(_ logLevel: Int) {
+  mutating func setLogLevel(_ logLevel: String) {
     self.logLevel = logLevel
   }
 
@@ -157,7 +169,7 @@ public struct GalleryConfiguration: Configuration, Decodable {
 
   enum CodingKeys: String, CodingKey {
     case name, people, peopleFiles, resolutions, jpegCompression, inputPath, outputPath,
-      fileExtensions, logLevel, diff, concurrency, progress
+      fileExtensions, logPath, logLevel, diff, concurrency, progress
   }
 
   var combinedPeople: Set<String> = []
@@ -196,6 +208,7 @@ public struct Gallery {
 
   // swiftlint:disable function_body_length
   public init(ctx: Context) {
+
     var time = Timings()
 
     // read input directory
@@ -232,14 +245,14 @@ public struct Gallery {
     } else {
       output = nil
       addedContent = nil
-      log.info("Could not find any output album, assuming new is to be created")
+      ctx.log.info("Could not find any output album, assuming new is to be created")
     }
     print("Times: ", time)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {
     if let added = addedContent {
-      log.info("Adding new photos")
+      ctx.log.info("Adding new photos")
       // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
       added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // Wait for all photos to be written to disk
@@ -259,13 +272,13 @@ public struct Gallery {
     photoWriteGroup.wait()
 
     let writeJsonEnd = Date()
-    log.info("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
+    ctx.log.info("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
     let buildKeywordsStart = Date()
     buildKeywordsFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
     buildPeopleFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
     let buildKeywordsEnd = Date()
-    log.info(
+    ctx.log.info(
       "Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds"
     )
 
@@ -274,7 +287,7 @@ public struct Gallery {
     let locationStart = Date()
     Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
-    log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
+    ctx.log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
   }
 
   public func clean(ctx: Context) {

@@ -186,17 +186,17 @@ extension Album {
       try fileManager.createDirectory(
         at: URL(fileURLWithPath: path), withIntermediateDirectories: true)
 
-      log.trace("Writing metadata for album \(name)")
+      ctx.log.trace("Writing metadata for album \(name)")
       let encoder = JSONEncoder()
       encoder.dateEncodingStrategy = .iso8601
 
       if writeJson {
         if let encodedData = try? encoder.encode(self) {
           do {
-            log.trace("Writing album metadata \(name) to \(url)")
+            ctx.log.trace("Writing album metadata \(name) to \(url)")
             try encodedData.write(to: URL(fileURLWithPath: url))
           } catch {
-            log.error("Could not write album \(name) to \(url) with error: \n\(error)")
+            ctx.log.error("Could not write album \(name) to \(url) with error: \n\(error)")
           }
         }
       }
@@ -205,7 +205,7 @@ extension Album {
         album.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
       }
 
-      log.trace("Album: \(name) has \(writeImage)")
+      ctx.log.trace("Album: \(name) has \(writeImage)")
       for photo in photos {
         photoWriteGroup.enter()
         photoQueue.async {
@@ -220,14 +220,14 @@ extension Album {
       photoWriteGroup.wait()
 
     } catch {
-      log.error("Failed creating directory \(path) with error: \n\(error)")
+      ctx.log.error("Failed creating directory \(path) with error: \n\(error)")
     }
   }
 
   public func destroy(ctx: Context) {
     let fileManager = FileManager()
-    log.info("Inside: \(name)")
-    log.info("Destroying: \(photos)")
+    ctx.log.info("Inside: \(name)")
+    ctx.log.info("Destroying: \(photos)")
     for photo in photos {
       photo.destroy(ctx: ctx)
     }
@@ -239,13 +239,13 @@ extension Album {
     do {
       try fileManager.removeItem(atPath: url)
     } catch {
-      log.error("Could not remove album json \(name) at path \(url)")
+      ctx.log.error("Could not remove album json \(name) at path \(url)")
     }
 
     do {
       try fileManager.removeItem(atPath: path)
     } catch {
-      log.error("Could not remove album \(name) at path \(path)")
+      ctx.log.error("Could not remove album \(name) at path \(path)")
     }
   }
 
@@ -254,8 +254,8 @@ extension Album {
     let unrefFiles = unreferencedFiles()
     let unrefFolders = unreferencedFolders()
 
-    log.info("Cleaning album \(name) of unreferenced files: \(unrefFiles)")
-    log.info("Cleaning album \(name) of unreferenced folders: \(unrefFiles)")
+    ctx.log.info("Cleaning album \(name) of unreferenced files: \(unrefFiles)")
+    ctx.log.info("Cleaning album \(name) of unreferenced folders: \(unrefFiles)")
 
     for album in albums {
       album.clean(ctx: ctx)
@@ -265,7 +265,7 @@ extension Album {
       do {
         try fileManager.removeItem(at: file)
       } catch {
-        log.error("Could not remove album \(name) at path \(path)")
+        ctx.log.error("Could not remove album \(name) at path \(path)")
       }
     }
   }
@@ -419,7 +419,7 @@ func readStateFromInputDirectory(
   name: String,
   parents: [Parent]
 ) -> Album {
-  log.trace("Creating album from path: \(joinPath(atPath))")
+  ctx.log.trace("Creating album from path: \(joinPath(atPath))")
 
   var album = Album(name: name, path: joinPath(outPath, urlifyName(name)), parents: parents)
   let parent = Parent(name: album.name, url: album.url)
@@ -464,7 +464,7 @@ func readStateFromInputDirectory(
             if photo.include() {
               photos.append(photo)
             } else {
-              log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
+              ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
             }
           }
 
@@ -475,7 +475,7 @@ func readStateFromInputDirectory(
       }
 
     } else {
-      log.warning(
+      ctx.log.warning(
         "File found, but it was not a photo, path: \(joinPath(atPath, file))")
     }
   }

@@ -21,7 +21,7 @@ public struct Locations: Codable {
   }
 
   public func write(ctx: Context) {
-    log.info("Writing locations")
+    ctx.log.info("Writing locations")
     let fileURL = URL(
       fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
 
@@ -30,10 +30,10 @@ public struct Locations: Codable {
 
     if let encodedData = try? encoder.encode(self) {
       do {
-        log.trace("Writing locations to json to \(fileURL.path)")
+        ctx.log.trace("Writing locations to json to \(fileURL.path)")
         try encodedData.write(to: URL(fileURLWithPath: fileURL.path))
       } catch {
-        log.error("Could not write locations json to \(fileURL.path) with error: \n\(error)")
+        ctx.log.error("Could not write locations json to \(fileURL.path) with error: \n\(error)")
       }
     }
   }

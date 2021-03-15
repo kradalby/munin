@@ -65,6 +65,15 @@
         }
       },
       {
+        "package": "swift-log-file",
+        "repositoryURL": "https://github.com/crspybits/swift-log-file.git",
+        "state": {
+          "branch": null,
+          "revision": "aa94b38bf88c7d9cbc87ceafcdffadaffbc2bffa",
+          "version": "0.1.0"
+        }
+      },
+      {
         "package": "swift-tools-support-core",
         "repositoryURL": "https://github.com/apple/swift-tools-support-core.git",
         "state": {
@@ -80,6 +89,15 @@
           "branch": null,
           "revision": "ed991f0d6e76d8db9416a2547edf09cc29063cfa",
           "version": "0.0.5"
+        }
+      },
+      {
+        "package": "XCGLogger",
+        "repositoryURL": "https://github.com/DaveWoodCom/XCGLogger.git",
+        "state": {
+          "branch": null,
+          "revision": "a9c4667b247928a29bdd41be2ec2c8d304215a54",
+          "version": "7.0.1"
         }
       }
     ]

@@ -40,6 +40,7 @@ let package = Package(
     .package(url: "https://github.com/kradalby/MagickWand.git", .branch("main")),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.5"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.2"),
+    .package(url: "https://github.com/crspybits/swift-log-file.git", from: "0.1.0"),
     // .package(
     //   url: "https://github.com/apple/swift-atomics.git",
     //   .upToNextMinor(from: "0.0.1")
@@ -48,7 +49,6 @@ let package = Package(
       url: "https://github.com/apple/swift-tools-support-core.git",
       .upToNextMajor(from: "0.2.0")),
     // .package(path: "../MagickWand"),
-    // .package(url: "https://github.com/Ponyboy47/swift-log-file.git", .branch("master")),
 
     // .package(path: "../SwiftExif"),
   ],
@@ -69,9 +69,9 @@ let package = Package(
       name: "MuninKit",
       dependencies: [
         .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
-        // .product(name: "FileLogging", package: "swift-log-file"),
-        .product(name: "Logging", package: "swift-log"),
         .product(name: "Config", package: "Config.swift"),
+        .product(name: "Logging", package: "swift-log"),
+        .product(name: "FileLogging", package: "swift-log-file"),
         // .product(name: "Atomics", package: "swift-atomics"),
         "MagickWand",
         "SwiftExif",
