@@ -8,6 +8,7 @@
   "diff": true,
   "concurrency": -1,
   "progress": true,
+  "logLevel": "debug",
   "peopleFiles": ["people.json"],
   "people": [
     "Tri M. Nguyen",
