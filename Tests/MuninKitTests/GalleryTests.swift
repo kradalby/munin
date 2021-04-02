@@ -91,7 +91,7 @@ final class GalleryTests: XCTestCase {
 
     let gallery2 = Gallery(ctx: ctx)
 
-    XCTAssertNil(gallery2.addedContent)
+    XCTAssertNil(gallery2.changedContent)
   }
 
   func testDiffGalleryAddedAlbum() {
@@ -102,7 +102,6 @@ final class GalleryTests: XCTestCase {
 
     gallery.build(ctx: ctx, jsonOnly: false)
 
-    //
     let fm = FileManager()
     let deletePath = joinPath(testDirectoryPath, testName, "2018", "2018-03-10_Alkmaar")
     do {
@@ -119,11 +118,11 @@ final class GalleryTests: XCTestCase {
     XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 57)
     XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 9)
 
-    prettyPrintAdded(gallery2.addedContent!)
+    prettyPrintAdded(gallery2.changedContent!)
 
-    XCTAssertNotNil(gallery2.addedContent)
-    XCTAssertEqual(gallery2.addedContent!.numberOfPhotos(travers: true), 46)
-    XCTAssertEqual(gallery2.addedContent!.numberOfAlbums(travers: true), 2)
+    XCTAssertNotNil(gallery2.changedContent)
+    XCTAssertEqual(gallery2.changedContent!.numberOfPhotos(travers: true), 46)
+    XCTAssertEqual(gallery2.changedContent!.numberOfAlbums(travers: true), 2)
   }
 
   func testDiffGalleryAddedPhotos() {
@@ -164,11 +163,11 @@ final class GalleryTests: XCTestCase {
     XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 94)
     XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 10)
 
-    prettyPrintAdded(gallery2.addedContent!)
+    prettyPrintAdded(gallery2.changedContent!)
 
-    XCTAssertNotNil(gallery2.addedContent)
-    XCTAssertEqual(gallery2.addedContent!.numberOfPhotos(travers: true), 9)
-    XCTAssertEqual(gallery2.addedContent!.numberOfAlbums(travers: true), 2)
+    XCTAssertNotNil(gallery2.changedContent)
+    XCTAssertEqual(gallery2.changedContent!.numberOfPhotos(travers: true), 9)
+    XCTAssertEqual(gallery2.changedContent!.numberOfAlbums(travers: true), 2)
   }
 
   func testClean() {
