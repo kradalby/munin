@@ -7,7 +7,6 @@
 
 import Config
 import Dispatch
-import FileLogging
 import Foundation
 import Logging
 import TSCBasic
@@ -108,20 +107,20 @@ public struct Context {
   public init(config: GalleryConfiguration) {
     self.config = config
 
-    if let logPath = config.logPath {
-      do {
-        let fileLogger = try FileLogging(to: URL(fileURLWithPath: logPath))
+    if let _ = config.logPath {
+      // do {
+      // let fileLogger = try FileLogging(to: URL(fileURLWithPath: logPath))
 
-        LoggingSystem.bootstrap { label in
-          let handlers: [LogHandler] = [
-            FileLogHandler(label: label, fileLogger: fileLogger),
-            StreamLogHandler.standardOutput(label: label),
-          ]
-          return MultiplexLogHandler(handlers)
-        }
-      } catch {
-        print("Failed to set up log file, stdout only")
+      LoggingSystem.bootstrap { label in
+        let handlers: [LogHandler] = [
+          // FileLogHandler(label: label, fileLogger: fileLogger),
+          StreamLogHandler.standardOutput(label: label)
+        ]
+        return MultiplexLogHandler(handlers)
       }
+      // } catch {
+      //   print("Failed to set up log file, stdout only")
+      // }
     }
 
     log = Logger(label: "no.kradalby.MuninKit")
@@ -204,7 +203,7 @@ public struct Gallery {
     self.output = output
   }
 
-  let addedContent: Album?
+  let changedContent: Album?
 
   // swiftlint:disable function_body_length
   public init(ctx: Context) {
@@ -224,46 +223,54 @@ public struct Gallery {
     ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
+    ctx.log.debug(
+      "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     let outputStart = Date()
     if let outputAlbum = readStateFromOutputDirectory(
       indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     {
       time.readOutputDirectory = Date().timeIntervalSince(outputStart)
+      ctx.log.debug(
+        "Output directory read from disk")
 
+      ctx.log.debug(
+        "Creating diff between input and output album")
       let diffStart = Date()
-      let added = computeChangedPhotos(input: input, output: outputAlbum)
+      let changed = computeChangedPhotos(input: input, output: outputAlbum)
       time.generateDiff = Date().timeIntervalSince(diffStart)
 
-      if let a = added, ctx.config.diff {
+      if let a = changed, ctx.config.diff {
         prettyPrintAdded(a)
       }
 
       // ctx.time = time
 
       output = outputAlbum
-      addedContent = added
+      changedContent = changed
     } else {
       output = nil
-      addedContent = nil
+      changedContent = nil
       ctx.log.info("Could not find any output album, assuming new is to be created")
     }
     print("Times: ", time)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {
-    if let added = addedContent {
-      ctx.log.info("Adding new photos")
+    if let changed = changedContent {
+      ctx.log.info("Updating changed photos, resizing and writing images to disk")
       // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
-      added.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
+      changed.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
       // Wait for all photos to be written to disk
       photoWriteGroup.wait()
     }
 
     ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
-    if addedContent == nil {
+    if output == nil {
+      ctx.log.info("First run, creating images and metadata")
       input.write(ctx: ctx, writeJson: true, writeImage: true)
     } else {
+      ctx.log.info("Updating changed photos, writing JSON metadata to disk")
       // We have already changed the actual image files, so we only write json
       input.write(ctx: ctx, writeJson: true, writeImage: false)
     }
