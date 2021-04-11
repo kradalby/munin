@@ -32,17 +32,6 @@
         "pull": "always",
       },
       {
-        "commands":
-          [
-            "apt update",
-            "apt install -y libexif-dev libmagickwand-6.q16-dev libiptcdata0-dev libsqlite3-dev",
-            "make test",
-          ],
-        "image": "kradalby/swift:groovy",
-        "name": "Swift test",
-        "pull": "always",
-      },
-      {
         "environment": { "DOCKER_BUILDKIT": 1 },
         "image": "plugins/docker",
         "name": "Build container image",
