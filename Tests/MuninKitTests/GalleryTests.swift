@@ -1,4 +1,4 @@
-import Config
+import Configuration
 import Foundation
 import XCTest
 
@@ -26,22 +26,24 @@ final class GalleryTests: XCTestCase {
       XCTFail()
     }
 
-    config = GalleryConfiguration(
-      name: testName,
-      people: [],
-      peopleFiles: [peoplePath],
-      resolutions: [100, 200, 300],
-      jpegCompression: 0.1,
-      inputPath: albumPath,
-      outputPath: testDirectoryPath,
-      fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
-      concurrency: -1,
-      diff: false,
-      progress: false
-    )
+    let manager = ConfigurationManager()
+    manager
+      .load([
+        "name": testName!,
+        "people": [],
+        "peopleFiles": [peoplePath],
+        "resolutions": [100, 200, 300],
+        "jpegCompression": 0.1,
+        "sourceFolder": albumPath,
+        "targetFolder": testDirectoryPath!,
+        "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
+        "concurrency": -1,
+        "diff": false,
+        "progress": false,
+      ])
+    config = GalleryConfiguration(manager)
 
     ctx = Context(config: config)
-
   }
 
   override func tearDown() {

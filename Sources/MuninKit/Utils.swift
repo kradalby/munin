@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import Rainbow
 
 func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
 where T: Decodable {

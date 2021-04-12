@@ -35,11 +35,11 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/kylef/Commander.git", from: "0.9.1"),
-    .package(url: "https://github.com/kradalby/Config.swift.git", from: "0.0.3"),
     .package(url: "https://github.com/kradalby/MagickWand.git", .branch("main")),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.5"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.2"),
+    .package(url: "https://github.com/Kitura/Configuration.git", from: "3.0.4"),
+    .package(url: "https://github.com/onevcat/Rainbow", from: "4.0.0"),
     // .package(url: "https://github.com/crspybits/swift-log-file.git", from: "0.1.0"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
@@ -51,8 +51,7 @@ let package = Package(
       dependencies: [
         "MuninKit",
         .product(name: "Logging", package: "swift-log"),
-        .product(name: "Config", package: "Config.swift"),
-        "Commander",
+        "Configuration",
       ]
       // linkerSettings: linkerSettings
     ),
@@ -60,11 +59,12 @@ let package = Package(
       name: "MuninKit",
       dependencies: [
         .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
-        .product(name: "Config", package: "Config.swift"),
         .product(name: "Logging", package: "swift-log"),
         // .product(name: "FileLogging", package: "swift-log-file"),
         "MagickWand",
         "SwiftExif",
+        "Configuration",
+        "Rainbow",
       ],
       exclude: ["Templates"]
     ),
@@ -74,7 +74,10 @@ let package = Package(
     ),
     .testTarget(
       name: "MuninKitTests",
-      dependencies: ["MuninKit"]
+      dependencies: [
+        "MuninKit",
+        "Configuration",
+      ]
     ),
   ]
 )

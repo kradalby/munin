@@ -1,4 +1,4 @@
-import Config
+import Configuration
 import XCTest
 
 @testable import MuninKit
@@ -13,8 +13,10 @@ final class KeywordTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: configPath)
-    config.progress = false
+    let manager = ConfigurationManager()
+    manager
+      .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
+    config = GalleryConfiguration(manager)
     ctx = Context(config: config)
   }
 
@@ -48,21 +50,14 @@ final class KeywordTests: XCTestCase {
   }
 
   func testPeopleFiles() {
-    config = GalleryConfiguration(
-      name: "peopleFilesTest",
-      people: ["Man Person", "BoJo Trump", "Ola Nordmann"],
-      peopleFiles: [peoplePath],
-      resolutions: [100, 200, 300],
-      jpegCompression: 0.1,
-      inputPath: albumPath,
-      outputPath: outPath,
-      fileExtensions: ["jpg", "jpeg", "JPG", "JPEG"],
-      concurrency: -1,
-      diff: false,
-      progress: false
-    )
-    XCTAssertEqual(config.allPeople().count, 0)
-    config.combinePeople()
+    let manager = ConfigurationManager()
+    manager
+      .load([
+        "people": ["Man Person", "BoJo Trump", "Ola Nordmann"],
+        "peopleFiles": [peoplePath],
+      ])
+    config = GalleryConfiguration(manager)
+
     XCTAssertEqual(config.allPeople().count, 4)
   }
 

@@ -1,32 +1,23 @@
-import Commander
-import Config
+import Configuration
+// import Commander
+// import Config
 import Foundation
 import Logging
 import MuninKit
 
 let log = Logger(label: "no.kradalby.Munin.main")
 
-let main = command(
-  Option("config", default: "munin.json", description: "JSON based configuration file for munin"),
-  Flag(
-    "dry",
-    default: false,
-    description: "Dry-run, do not write gallery"),
-  Flag(
-    "progress",
-    default: true,
-    description: "Show progress of finding photos and generating gallery"),
-  Flag("diff", default: false, description: "Show what will be added and removed"),
-  Flag(
-    "json",
-    default: false,
-    description:
-      "Write only JSON files, no images, useful for updating data with new munin features")
-) { config, dry, progress, diff, json in
+func main() {
+  let manager = ConfigurationManager()
+  manager
+    .load(file: "munin.json", relativeFrom: .pwd)
+    .load(.environmentVariables)
+    .load(.commandLineArguments)
 
-  var config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: config)
-  config.setProgress(progress)
-  config.setDiff(diff)
+  let dry = manager["dry"] as? Bool ?? false
+  let json = manager["json"] as? Bool ?? false
+
+  let config = GalleryConfiguration(manager)
 
   let ctx = Context(config: config)
 
@@ -51,5 +42,3 @@ let main = command(
   let stats = gallery.statistics(ctx: ctx).toString()
   print(stats)
 }
-
-main.run()

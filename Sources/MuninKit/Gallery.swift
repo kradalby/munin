@@ -5,7 +5,7 @@
 //  Created by Kristoffer Andreas Dalby on 25/12/2017.
 //
 
-import Config
+import Configuration
 import Dispatch
 import Foundation
 import Logging
@@ -134,52 +134,48 @@ public struct Context {
   }
 }
 
-public struct GalleryConfiguration: Configuration, Decodable {
-  var name: String
-  var people: [String]
-  var peopleFiles: [String]
-  var resolutions: [Int]
-  var jpegCompression: Double
-  var inputPath: String
-  var outputPath: String
-  var fileExtensions: [String]
-  var concurrency: Int
+public struct GalleryConfiguration {
+  let name: String
+  let people: [String]
+  let peopleFiles: [String]
+  let resolutions: [Int]
+  let jpegCompression: Double
+  let inputPath: String
+  let outputPath: String
+  let fileExtensions: [String]
+  let concurrency: Int
 
-  var logPath: String?
-  var logLevel: String?
-  var diff: Bool
-  var progress: Bool
+  let logPath: String?
+  let logLevel: String?
+  let diff: Bool
+  let progress: Bool
 
-  public mutating func initHook() {
-    combinePeople()
-  }
+  let combinedPeople: Set<String>
 
-  mutating func setLogLevel(_ logLevel: String) {
-    self.logLevel = logLevel
-  }
+  public init(
+    _ manager: ConfigurationManager
+  ) {
+    name = manager["name"] as? String ?? "root"
+    people = manager["people"] as? [String] ?? []
+    peopleFiles = manager["peopleFiles"] as? [String] ?? []
+    resolutions = manager["resolutions"] as? [Int] ?? [1600, 1200, 992, 768, 576, 340, 220, 180]
+    jpegCompression = manager["jpegCompression"] as? Double ?? 1
+    inputPath = manager["sourceFolder"] as? String ?? ""
+    outputPath = manager["targetFolder"] as? String ?? ""
+    fileExtensions = manager["fileExtensions"] as? [String] ?? ["jpg", "jpeg", "JPG", "JPEG"]
+    concurrency = manager["concurrency"] as? Int ?? -1
+    logPath = manager["logPath"] as? String
+    logLevel = manager["logLevel"] as? String
+    diff = manager["diff"] as? Bool ?? false
+    progress = manager["progress"] as? Bool ?? true
 
-  public mutating func setDiff(_ diff: Bool) {
-    self.diff = diff
-  }
-
-  public mutating func setProgress(_ progress: Bool) {
-    self.progress = progress
-  }
-
-  enum CodingKeys: String, CodingKey {
-    case name, people, peopleFiles, resolutions, jpegCompression, inputPath, outputPath,
-      fileExtensions, logPath, logLevel, diff, concurrency, progress
-  }
-
-  var combinedPeople: Set<String> = []
-  mutating func combinePeople() {
     let peopleFromFiles: [[String]] = peopleFiles.compactMap { file in
       if let peopleFile = readAndDecodeJsonFile(PeopleFile.self, atPath: file) {
         return peopleFile.people
       }
       return nil
     }
-    combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
+    self.combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
   }
 
   func allPeople() -> Set<String> {
