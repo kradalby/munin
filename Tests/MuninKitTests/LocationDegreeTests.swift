@@ -1,4 +1,3 @@
-import Config
 import XCTest
 
 @testable import MuninKit
