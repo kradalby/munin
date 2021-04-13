@@ -1,44 +1,56 @@
+import ArgumentParser
 import Configuration
-// import Commander
-// import Config
 import Foundation
 import Logging
 import MuninKit
 
 let log = Logger(label: "no.kradalby.Munin.main")
 
-func main() {
-  let manager = ConfigurationManager()
-  manager
-    .load(file: "munin.json", relativeFrom: .pwd)
-    .load(.environmentVariables)
-    .load(.commandLineArguments)
+struct Munin: ParsableCommand {
+  @Option(help: "Specify the configuration to load")
+  var config = "munin.json"
 
-  let dry = manager["dry"] as? Bool ?? false
-  let json = manager["json"] as? Bool ?? false
+  @Flag(help: "Write only JSON data, no images")
+  var json = false
 
-  let config = GalleryConfiguration(manager)
+  @Flag(help: "Dry run")
+  var dry = false
 
-  let ctx = Context(config: config)
+  func run() throws {
+    let configPath = URL(fileURLWithPath: config)
 
-  let gallery = Gallery(ctx: ctx)
+    let manager = ConfigurationManager()
+    manager
+      .load(file: configPath.path, relativeFrom: .pwd)
+      .load(.environmentVariables)
+      .load(.commandLineArguments)
 
-  if !dry {
-    let start = Date()
-    gallery.build(ctx: ctx, jsonOnly: json)
-    let end = Date()
+    let config = GalleryConfiguration(manager)
 
-    let executionTime = end.timeIntervalSince(start)
+    let ctx = Context(config: config)
 
-    let startClean = Date()
-    gallery.clean(ctx: ctx)
-    let endClean = Date()
+    let gallery = Gallery(ctx: ctx)
 
-    let executionTimeClean = endClean.timeIntervalSince(startClean)
+    if !dry {
+      let start = Date()
+      gallery.build(ctx: ctx, jsonOnly: json)
+      let end = Date()
 
-    print("Generated in: \(executionTime) seconds")
-    print("Cleaned in: \(executionTimeClean) seconds")
+      let executionTime = end.timeIntervalSince(start)
+
+      let startClean = Date()
+      gallery.clean(ctx: ctx)
+      let endClean = Date()
+
+      let executionTimeClean = endClean.timeIntervalSince(startClean)
+
+      print("Generated in: \(executionTime) seconds")
+      print("Cleaned in: \(executionTimeClean) seconds")
+    }
+    let stats = gallery.statistics(ctx: ctx).toString()
+    print(stats)
+
   }
-  let stats = gallery.statistics(ctx: ctx).toString()
-  print(stats)
 }
+
+Munin.main()

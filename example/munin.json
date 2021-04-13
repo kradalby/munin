@@ -1,13 +1,7 @@
 {
-  "name": "root",
-  "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
-  "jpegCompression": 0.75,
-  "inputPath": "album",
-  "outputPath": "content",
-  "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
+  "sourceFolder": "album",
+  "targetFolder": "content",
   "diff": true,
-  "concurrency": -1,
-  "progress": true,
   "logLevel": "debug",
   "peopleFiles": ["people.json"],
   "people": [

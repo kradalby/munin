@@ -44,6 +44,7 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
       .upToNextMajor(from: "0.2.2")),
+    .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.4.0")),
   ],
   targets: [
     .target(
@@ -51,6 +52,7 @@ let package = Package(
       dependencies: [
         "MuninKit",
         .product(name: "Logging", package: "swift-log"),
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
         "Configuration",
       ]
       // linkerSettings: linkerSettings
