@@ -131,6 +131,7 @@ public struct Context {
       log.logLevel = .info
     }
 
+    // https://www.vadimbulavin.com/grand-central-dispatch-in-swift/#limiting-work-in-progress
     sema = DispatchSemaphore(value: config.concurrency)
 
     state = State(progress: config.progress)
