@@ -219,6 +219,7 @@ extension Album {
         }
         ctx.sema.wait()
       }
+      photoWriteGroup.wait()
 
     } catch {
       ctx.log.error("Failed creating directory \(path) with error: \n\(error)")
@@ -473,7 +474,9 @@ func readStateFromInputDirectory(
 
         }
         photoToReadGroup.leave()
+        ctx.sema.signal()
       }
+      ctx.sema.wait()
 
     } else {
       ctx.log.warning(

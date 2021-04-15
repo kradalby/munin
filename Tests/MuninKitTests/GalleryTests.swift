@@ -37,7 +37,6 @@ final class GalleryTests: XCTestCase {
         "sourceFolder": albumPath,
         "targetFolder": testDirectoryPath!,
         "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
-        "concurrency": -1,
         "diff": false,
         "progress": false,
       ])
