@@ -211,13 +211,14 @@ extension Album {
         photoQueue.async {
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
           photoWriteGroup.leave()
+          ctx.sema.signal()
 
           stateQueue.sync {
             ctx.state.incrementPhotosWritten()
           }
         }
+        ctx.sema.wait()
       }
-      photoWriteGroup.wait()
 
     } catch {
       ctx.log.error("Failed creating directory \(path) with error: \n\(error)")

@@ -103,6 +103,7 @@ public struct Context {
   var time: Timings?
   var state: State
   var log: Logger
+  let sema: DispatchSemaphore
 
   public init(config: GalleryConfiguration) {
     self.config = config
@@ -129,6 +130,8 @@ public struct Context {
     } else {
       log.logLevel = .info
     }
+
+    sema = DispatchSemaphore(value: config.concurrency)
 
     state = State(progress: config.progress)
   }
@@ -163,7 +166,7 @@ public struct GalleryConfiguration {
     inputPath = manager["sourceFolder"] as? String ?? ""
     outputPath = manager["targetFolder"] as? String ?? ""
     fileExtensions = manager["fileExtensions"] as? [String] ?? ["jpg", "jpeg", "JPG", "JPEG"]
-    concurrency = manager["concurrency"] as? Int ?? -1
+    concurrency = manager["concurrency"] as? Int ?? ProcessInfo.processInfo.processorCount
     logPath = manager["logPath"] as? String
     logLevel = manager["logLevel"] as? String
     diff = manager["diff"] as? Bool ?? false
