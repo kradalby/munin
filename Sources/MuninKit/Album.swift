@@ -74,7 +74,7 @@ extension Album: Encodable {
     )
 
     try Array(albums).sorted().forEach {
-      let scaledPhotos = $0.firstImageInAlbum()?.scaledPhotos ?? []
+      let scaledPhotos = $0.landscapeCoverPhoto()?.scaledPhotos ?? []
       try albumsContainer.encode(
         AlbumInAlbum(url: $0.url, name: $0.name, scaledPhotos: scaledPhotos.sorted()))
     }
@@ -349,13 +349,15 @@ extension Album {
     return other.albums.subtracting(albums)
   }
 
-  func firstImageInAlbum() -> Photo? {
+  func landscapeCoverPhoto() -> Photo? {
     for photo in photos.sorted() where photo.orientation == Orientation.landscape {
       return photo
     }
 
-    for album in albums {
-      return album.firstImageInAlbum()
+    for album in albums.sorted() {
+      if let photo = album.landscapeCoverPhoto() {
+        return photo
+      }
     }
 
     return nil
