@@ -1,4 +1,4 @@
-FROM kradalby/swift:groovy AS builder
+FROM kradalby/swift:5.4-hirsute AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY . .
 RUN make test
 RUN make build-release
 
-FROM kradalby/swift:groovy
+FROM kradalby/swift:5.4-hirsute
 
 RUN apt-get update \
         && apt-get upgrade -y \
