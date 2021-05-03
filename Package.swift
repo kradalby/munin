@@ -47,7 +47,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.4.3")),
   ],
   targets: [
-    .target(
+    .executableTarget(
       name: "Munin",
       dependencies: [
         "MuninKit",
