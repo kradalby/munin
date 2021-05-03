@@ -15,7 +15,7 @@ FROM swift:5.4-bionic-slim
 
 RUN sed -i 's/bionic/groovy/g' /etc/apt/sources.list \
         && apt-get update \
-        && apt-get install -o APT::Immediate-Configure=false -y libexif12 libiptcdata0 libmagickwand-6.q16 \
+        && apt-get install -o APT::Immediate-Configure=false -y libexif12 libiptcdata0 libmagickwand-6.q16-6 \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/.build/release /app
