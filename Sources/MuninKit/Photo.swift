@@ -414,8 +414,7 @@ func readPhotoFromPath(
   if let city = iptcDict["City"] as? String,
     let state = iptcDict["Province/State"] as? String,
     let locationCode = iptcDict["Country Code"] as? String,
-    let locationName = iptcDict["Country Name"] as? String
-  {
+    let locationName = iptcDict["Country Name"] as? String {
     photo.location = LocationData(
       city: city,
       state: state,
@@ -458,14 +457,12 @@ func readPhotoFromPath(
   if let gpsDict = exifDict["GPS"] {
     if let altitudeStr = gpsDict["Altitude"],
       let latitudeStr = gpsDict["Latitude"],
-      let longitudeStr = gpsDict["Longitude"]
-    {
+      let longitudeStr = gpsDict["Longitude"] {
       if let altitude = Double(altitudeStr),
         let latitude = LocationDegree.fromString(latitudeStr),
         let longitude = LocationDegree.fromString(longitudeStr),
         let longitudeRef = gpsDict["East or West Longitude"],
-        let latitudeRef = gpsDict["North or South Latitude"]
-      {
+        let latitudeRef = gpsDict["North or South Latitude"] {
         photo.gps = GPS(
           altitude: altitude,
           latitude: latitudeRef == "N"

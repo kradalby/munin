@@ -227,8 +227,7 @@ public struct Gallery {
       "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     let outputStart = Date()
     if let outputAlbum = readStateFromOutputDirectory(
-      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
-    {
+      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json") {
       time.readOutputDirectory = Date().timeIntervalSince(outputStart)
       ctx.log.debug(
         "Output directory read from disk")

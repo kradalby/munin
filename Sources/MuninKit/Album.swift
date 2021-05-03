@@ -288,7 +288,7 @@ extension Album {
       parents.isEmpty
       ? [
         URL(fileURLWithPath: joinPath(path, "stats.json")),
-        URL(fileURLWithPath: joinPath(path, "locations.json")),
+        URL(fileURLWithPath: joinPath(path, "locations.json"))
       ] : []
 
     // We get the list of files expected for each Photo as that is
