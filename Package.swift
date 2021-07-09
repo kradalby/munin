@@ -43,7 +43,7 @@ let package = Package(
     // .package(url: "https://github.com/crspybits/swift-log-file.git", from: "0.1.0"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
-      .upToNextMajor(from: "0.2.2")),
+      .upToNextMajor(from: "0.2.3")),
     .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.4.3")),
   ],
   targets: [
