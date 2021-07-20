@@ -54,7 +54,7 @@
               ],
             "username": { "from_secret": "docker_username" },
           },
-        "when": { "branch": ["master"], "event": ["push"] },
+        "when": { "branch": ["master", "main"], "event": ["push"] },
       },
       {
         "image": "appleboy/drone-discord",
@@ -68,7 +68,7 @@
           },
         "when":
           {
-            "branch": ["master"],
+            "branch": ["master", "main"],
             "event": ["push"],
             "status": ["success", "failure"],
           },
@@ -139,7 +139,7 @@
         "image": "kradalby/swift:5.4-groovy",
         "name": "Swift release",
         "pull": "always",
-        "when": { "branch": ["master"], "event": ["push"] },
+        "when": { "branch": ["master", "main"], "event": ["push"] },
       },
       {
         "environment": { "SSH_KEY": { "from_secret": "ssh_key" } },
@@ -155,7 +155,7 @@
             "target": "/fastest/serve/builds/munin/linux_x64",
             "username": "deploy",
           },
-        "when": { "branch": ["master"], "event": ["push"] },
+        "when": { "branch": ["master", "main"], "event": ["push"] },
       },
       {
         "image": "appleboy/drone-discord",
@@ -169,7 +169,7 @@
           },
         "when":
           {
-            "branch": ["master"],
+            "branch": ["master", "main"],
             "event": ["push"],
             "status": ["success", "failure"],
           },
