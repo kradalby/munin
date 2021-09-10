@@ -44,7 +44,7 @@ let package = Package(
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
       .upToNextMajor(from: "0.2.3")),
-    .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.4.4")),
+    .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.5.0")),
   ],
   targets: [
     .executableTarget(
