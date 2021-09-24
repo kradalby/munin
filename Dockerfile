@@ -1,4 +1,4 @@
-FROM swift:5.4-bionic AS builder
+FROM swift:5.5-bionic AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY . .
 RUN make test
 RUN make build-release
 
-FROM swift:5.4-bionic-slim
+FROM swift:5.5-bionic-slim
 
 RUN sed -i 's/bionic/groovy/g' /etc/apt/sources.list \
         && apt-get update \
