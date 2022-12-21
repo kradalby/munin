@@ -43,9 +43,11 @@
               if pkgs.stdenv.isLinux
               then "${pkgs.swift}/bin/swift"
               else "/usr/bin/swift";
+
+            extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
           in ''
             # ${swiftBin} package resolve
-            ${swiftBin} build -v --configuration release --skip-update
+            ${swiftBin} build -v --configuration release --skip-update ${builtins.concatStringsSep " " extraArgs}
           '';
 
           installPhase = ''
