@@ -23,6 +23,10 @@
           name = "munin";
           src = ./.;
 
+          postUnpack = ''
+            export HOME="$TMP"
+          '';
+
           nativeBuildInputs = [pkgs.pkg-config];
           buildInputs = with pkgs;
             [
