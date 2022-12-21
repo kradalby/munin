@@ -23,11 +23,12 @@
           name = "munin";
           src = ./.;
 
+          nativeBuildInputs = [pkgs.pkg-config];
           buildInputs = with pkgs;
             [
               clang
               coreutils
-              imagemagick
+              imagemagick6
               libexif
               libiptcdata
             ]
@@ -63,11 +64,12 @@
     in rec {
       # `nix develop`
       devShell = pkgs.mkShell {
+        nativeBuildInputs = [pkgs.pkg-config];
         buildInputs = with pkgs;
           [
             clang
             coreutils
-            imagemagick
+            imagemagick6
             libexif
             libiptcdata
           ]

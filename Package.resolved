@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kradalby/SwiftExif.git",
       "state" : {
-        "revision" : "b43246ef0bfa41cdc50aa49277dfaf56cb9f73bc",
-        "version" : "0.0.6"
+        "revision" : "ab83faa56618d14678279d3c93bb2fbc9070cb2b",
+        "version" : "0.0.7"
       }
     }
   ],

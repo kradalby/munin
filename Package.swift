@@ -35,8 +35,9 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/kradalby/MagickWand.git", .branch("main")),
-    .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.6"),
+    .package(url: "https://github.com/kradalby/MagickWand.git", branch: "main"),
+    .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.7"),
+    // .package(path: "../SwiftExif"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.2"),
     .package(url: "https://github.com/Kitura/Configuration.git", from: "3.0.200"),
     .package(url: "https://github.com/onevcat/Rainbow", from: "4.0.1"),
