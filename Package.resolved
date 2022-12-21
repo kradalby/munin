@@ -1,88 +1,95 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Configuration",
-        "repositoryURL": "https://github.com/Kitura/Configuration.git",
-        "state": {
-          "branch": null,
-          "revision": "26c60e7a0574cb70611877f092c6fbf0a9345d04",
-          "version": "3.0.200"
-        }
-      },
-      {
-        "package": "FileKit",
-        "repositoryURL": "https://github.com/Kitura/FileKit.git",
-        "state": {
-          "branch": null,
-          "revision": "58fdf8ab291c800dc57528c997192eb3437ab607",
-          "version": "0.0.200"
-        }
-      },
-      {
-        "package": "LoggerAPI",
-        "repositoryURL": "https://github.com/Kitura/LoggerAPI.git",
-        "state": {
-          "branch": null,
-          "revision": "e82d34eab3f0b05391082b11ea07d3b70d2f65bb",
-          "version": "1.9.200"
-        }
-      },
-      {
-        "package": "MagickWand",
-        "repositoryURL": "https://github.com/kradalby/MagickWand.git",
-        "state": {
-          "branch": "main",
-          "revision": "86b03e24e8876168f8738e1aa2b77dfbeb036a96",
-          "version": null
-        }
-      },
-      {
-        "package": "Rainbow",
-        "repositoryURL": "https://github.com/onevcat/Rainbow",
-        "state": {
-          "branch": null,
-          "revision": "7c3dad0e918534c6d19dd1048bde734c246d05fe",
-          "version": "4.0.0"
-        }
-      },
-      {
-        "package": "swift-argument-parser",
-        "repositoryURL": "https://github.com/apple/swift-argument-parser",
-        "state": {
-          "branch": null,
-          "revision": "986d191f94cec88f6350056da59c2e59e83d1229",
-          "version": "0.4.3"
-        }
-      },
-      {
-        "package": "swift-log",
-        "repositoryURL": "https://github.com/apple/swift-log.git",
-        "state": {
-          "branch": null,
-          "revision": "5d66f7ba25daf4f94100e7022febf3c75e37a6c7",
-          "version": "1.4.2"
-        }
-      },
-      {
-        "package": "swift-tools-support-core",
-        "repositoryURL": "https://github.com/apple/swift-tools-support-core.git",
-        "state": {
-          "branch": null,
-          "revision": "ab6339b6a33b69886b3cf2254d3326eddfe58eb0",
-          "version": "0.2.2"
-        }
-      },
-      {
-        "package": "SwiftExif",
-        "repositoryURL": "https://github.com/kradalby/SwiftExif.git",
-        "state": {
-          "branch": null,
-          "revision": "b43246ef0bfa41cdc50aa49277dfaf56cb9f73bc",
-          "version": "0.0.6"
-        }
+  "pins" : [
+    {
+      "identity" : "configuration",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Kitura/Configuration.git",
+      "state" : {
+        "revision" : "26c60e7a0574cb70611877f092c6fbf0a9345d04",
+        "version" : "3.0.200"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "filekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Kitura/FileKit.git",
+      "state" : {
+        "revision" : "58fdf8ab291c800dc57528c997192eb3437ab607",
+        "version" : "0.0.200"
+      }
+    },
+    {
+      "identity" : "loggerapi",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Kitura/LoggerAPI.git",
+      "state" : {
+        "revision" : "e82d34eab3f0b05391082b11ea07d3b70d2f65bb",
+        "version" : "1.9.200"
+      }
+    },
+    {
+      "identity" : "magickwand",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kradalby/MagickWand.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "86b03e24e8876168f8738e1aa2b77dfbeb036a96"
+      }
+    },
+    {
+      "identity" : "rainbow",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Rainbow",
+      "state" : {
+        "revision" : "e0dada9cd44e3fa7ec3b867e49a8ddbf543e3df3",
+        "version" : "4.0.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "e394bf350e38cb100b6bc4172834770ede1b7232",
+        "version" : "1.0.3"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "5d66f7ba25daf4f94100e7022febf3c75e37a6c7",
+        "version" : "1.4.2"
+      }
+    },
+    {
+      "identity" : "swift-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-system.git",
+      "state" : {
+        "revision" : "836bc4557b74fe6d2660218d56e3ce96aff76574",
+        "version" : "1.1.1"
+      }
+    },
+    {
+      "identity" : "swift-tools-support-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-tools-support-core.git",
+      "state" : {
+        "revision" : "284a41800b7c5565512ec6ae21ee818aac1f84ac",
+        "version" : "0.4.0"
+      }
+    },
+    {
+      "identity" : "swiftexif",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kradalby/SwiftExif.git",
+      "state" : {
+        "revision" : "b43246ef0bfa41cdc50aa49277dfaf56cb9f73bc",
+        "version" : "0.0.6"
+      }
+    }
+  ],
+  "version" : 2
 }

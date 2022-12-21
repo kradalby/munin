@@ -8,3 +8,6 @@ gal.json
 dump.txt
 *.playground/
 tester/
+
+.direnv
+.envrc
