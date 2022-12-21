@@ -14,6 +14,52 @@
       if (self ? shortRev)
       then self.shortRev
       else "dev";
+
+    deps = pkgs:
+      with pkgs;
+        [
+          git
+          cacert
+
+          clang
+          coreutils
+
+          # SwiftExif
+          libexif
+          libiptcdata
+
+          # swift-vips deps
+          cfitsio
+          expat.dev
+          fftw.dev
+          fribidi
+          glib.dev
+          lcms2.dev
+          libdatrie.dev
+          libgsf.dev
+          libimagequant
+          librsvg.dev
+          libthai
+          libwebp
+          matio
+          openexr.dev
+          openjpeg.dev
+          orc.dev
+          pango.dev
+          pcre2.dev
+          vips.dev
+        ]
+        ++ lib.optionals pkgs.stdenv.isLinux [
+          swift
+          swift-corelibs-libdispatch
+
+          # swift-vips deps
+          libselinux.dev
+          libsepol.dev
+          pcre.dev
+          util-linux.dev
+          xorg.libXdmcp.dev
+        ];
   in
     {
       overlay = final: prev: let
@@ -45,20 +91,7 @@
             '';
 
             nativeBuildInputs = [pkgs.pkg-config];
-            buildInputs = with pkgs;
-              [
-                git
-                cacert
-                clang
-                coreutils
-                imagemagick6
-                libexif
-                libiptcdata
-              ]
-              ++ lib.optionals pkgs.stdenv.isLinux [
-                swift
-                swift-corelibs-libdispatch
-              ];
+            buildInputs = deps pkgs;
 
             # TODO: figure out why this isnt working
             sandboxProfile =
@@ -77,9 +110,7 @@
               ${swiftBin} build -v \
                 --configuration release \
                 --skip-update \
-                ${builtins.concatStringsSep " " extraArgs} \
-                -Xswiftc -I${pkgs.imagemagick6}/include/ImageMagick-6 \
-                -Xlinker -L${pkgs.imagemagick6}/lib
+                ${builtins.concatStringsSep " " extraArgs}
             '';
 
             installPhase = ''
@@ -90,13 +121,9 @@
 
             outputHashAlgo = "sha256";
             outputHashMode = "recursive";
-
-            # TODO: It does not seem like swift can output
-            # reporducible builds, which makes this
-            # problematic...
             outputHash =
               if pkgs.stdenv.isDarwin
-              then ""
+              then "sha256-hYObgh9VNchryqp6HKjl2T6Hh0M5uSCMBh524vENnBI="
               else "";
           };
       };
@@ -111,24 +138,15 @@
       # `nix develop`
       devShell = pkgs.mkShell {
         nativeBuildInputs = [pkgs.pkg-config];
-        buildInputs = with pkgs;
-          [
-            clang
-            coreutils
-            imagemagick6
-            libexif
-            libiptcdata
-          ]
-          ++ lib.optionals pkgs.stdenv.isLinux [
-            swift
-            swift-corelibs-libdispatch
-          ];
+        buildInputs = deps pkgs;
       };
 
       apps = {
         inherit (pkgs) munin;
       };
       defaultApp = pkgs.munin;
+
+      overlays.default = self.overlay;
 
       # `nix build`
       packages = with pkgs; {
