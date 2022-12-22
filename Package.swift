@@ -59,7 +59,7 @@ let package = Package(
     .target(
       name: "MuninKit",
       dependencies: [
-        .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
+        .product(name: "SwiftToolsSupport-auto", package: "swift-tools-support-core"),
         .product(name: "Logging", package: "swift-log"),
         "MagickWand",
         "SwiftExif",

@@ -20,6 +20,16 @@
         pkgs = nixpkgs.legacyPackages.${prev.system};
       in rec {
         munin = let
+          src = builtins.filterSource (path: type:
+            !(builtins.elem (baseNameOf path) [
+              "flake.nix"
+              "flake.lock"
+              ".git"
+              ".build"
+              ".direnv"
+            ]))
+          ./.;
+
           # On macOS, we have to use the Xcode bundled Swift
           swiftBin =
             if pkgs.stdenv.isLinux
@@ -28,7 +38,7 @@
         in
           pkgs.stdenv.mkDerivation rec {
             name = "munin";
-            src = ./.;
+            inherit src;
 
             postUnpack = ''
               export HOME="$TMP"
@@ -76,12 +86,14 @@
               install -D -m 0555 .build/release/munin $out/bin/munin
             '';
 
+            # TODO: Checks with swift test
+
             outputHashAlgo = "sha256";
             outputHashMode = "recursive";
             outputHash =
               if pkgs.stdenv.isDarwin
-              then ""
-              else "sha256-Rm5m31ZHYqaPYzAZaB3W8N19mF1OakCJcc74pY1uMXY=";
+              then "sha256-hYObgh9VNchryqp6HKjl2T6Hh0M5uSCMBh524vENnBI="
+              else "";
           };
       };
     }
