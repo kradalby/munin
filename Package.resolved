@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kradalby/MagickWand.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "86b03e24e8876168f8738e1aa2b77dfbeb036a96"
+        "revision" : "86b03e24e8876168f8738e1aa2b77dfbeb036a96",
+        "version" : "0.0.1"
       }
     },
     {

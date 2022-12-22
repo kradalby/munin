@@ -50,7 +50,7 @@
 
             extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
           in ''
-            # ${swiftBin} package resolve
+            ${swiftBin} package -v resolve ${builtins.concatStringsSep " " extraArgs}
             ${swiftBin} build -v --configuration release --skip-update ${builtins.concatStringsSep " " extraArgs}
           '';
 
