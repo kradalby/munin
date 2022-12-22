@@ -44,13 +44,13 @@
                 imagemagick6
                 libexif
                 libiptcdata
-                # deps
               ]
               ++ lib.optionals pkgs.stdenv.isLinux [
                 swift
                 swift-corelibs-libdispatch
               ];
 
+            # TODO: figure out why this isnt working
             sandboxProfile =
               if pkgs.stdenv.isDarwin
               then ''
@@ -64,7 +64,6 @@
               extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
               # extraArgs = [];
             in ''
-              # ${swiftBin} package -v resolve ${builtins.concatStringsSep " " extraArgs}
               ${swiftBin} build -v \
                 --configuration release \
                 --skip-update \
@@ -74,12 +73,15 @@
             '';
 
             installPhase = ''
-              install -D -m 0555 build/release/munin $out/bin/munin
+              install -D -m 0555 .build/release/munin $out/bin/munin
             '';
 
             outputHashAlgo = "sha256";
             outputHashMode = "recursive";
-            outputHash = "";
+            outputHash =
+              if pkgs.stdenv.isDarwin
+              then ""
+              else "sha256-Rm5m31ZHYqaPYzAZaB3W8N19mF1OakCJcc74pY1uMXY=";
           };
       };
     }
@@ -110,7 +112,6 @@
       apps = {
         inherit (pkgs) munin;
       };
-
       defaultApp = pkgs.munin;
 
       # `nix build`

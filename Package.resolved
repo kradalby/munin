@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kradalby/MagickWand.git",
       "state" : {
-        "revision" : "86b03e24e8876168f8738e1aa2b77dfbeb036a96",
-        "version" : "0.0.1"
+        "branch" : "test",
+        "revision" : "9607a58b998578e801907bf65e9cd86de8259b0f"
       }
     },
     {
@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "e394bf350e38cb100b6bc4172834770ede1b7232",
-        "version" : "1.0.3"
+        "revision" : "fddd1c00396eed152c45a46bea9f47b98e59301d",
+        "version" : "1.2.0"
       }
     },
     {
