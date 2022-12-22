@@ -38,6 +38,7 @@
             buildInputs = with pkgs;
               [
                 git
+                cacert
                 clang
                 coreutils
                 imagemagick6
@@ -60,11 +61,16 @@
               else "";
 
             buildPhase = let
-              # extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
-              extraArgs = [];
+              extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
+              # extraArgs = [];
             in ''
               # ${swiftBin} package -v resolve ${builtins.concatStringsSep " " extraArgs}
-              ${swiftBin} build -v --configuration release --skip-update ${builtins.concatStringsSep " " extraArgs}
+              ${swiftBin} build -v \
+                --configuration release \
+                --skip-update \
+                ${builtins.concatStringsSep " " extraArgs} \
+                -Xswiftc -I${pkgs.imagemagick6}/include/ImageMagick-6 \
+                -Xlinker -L${pkgs.imagemagick6}/lib
             '';
 
             installPhase = ''
