@@ -40,12 +40,11 @@ let package = Package(
     // .package(path: "../SwiftExif"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.4.2"),
     .package(url: "https://github.com/Kitura/Configuration.git", from: "3.0.200"),
-    .package(url: "https://github.com/onevcat/Rainbow", from: "4.0.1"),
-    // .package(url: "https://github.com/crspybits/swift-log-file.git", from: "0.1.0"),
+    .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.0.1"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
       .upToNextMajor(from: "0.2.4")),
-    .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "1.0.2")),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
   ],
   targets: [
     .executableTarget(
@@ -56,14 +55,12 @@ let package = Package(
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
         "Configuration",
       ]
-      // linkerSettings: linkerSettings
     ),
     .target(
       name: "MuninKit",
       dependencies: [
         .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
         .product(name: "Logging", package: "swift-log"),
-        // .product(name: "FileLogging", package: "swift-log-file"),
         "MagickWand",
         "SwiftExif",
         "Configuration",
