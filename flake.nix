@@ -126,6 +126,8 @@
       };
       defaultApp = pkgs.munin;
 
+      overlays.default = self.overlay;
+
       # `nix build`
       packages = with pkgs; {
         inherit munin;
