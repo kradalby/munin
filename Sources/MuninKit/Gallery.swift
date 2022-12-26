@@ -147,7 +147,7 @@ public struct GalleryConfiguration {
   let inputPath: String
   let outputPath: String
   let fileExtensions: [String]
-  let concurrency: Int
+  public let concurrency: Int
 
   let logPath: String?
   let logLevel: String?

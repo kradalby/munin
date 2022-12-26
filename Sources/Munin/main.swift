@@ -3,6 +3,7 @@ import Configuration
 import Foundation
 import Logging
 import MuninKit
+import VIPS
 
 let log = Logger(label: "no.kradalby.Munin.main")
 
@@ -30,6 +31,8 @@ struct Munin: ParsableCommand {
     let ctx = Context(config: config)
 
     let gallery = Gallery(ctx: ctx)
+
+    try VIPS.start(concurrency: config.concurrency)
 
     if !dry {
       let start = Date()

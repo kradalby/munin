@@ -28,15 +28,6 @@
       }
     },
     {
-      "identity" : "magickwand",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/kradalby/MagickWand.git",
-      "state" : {
-        "branch" : "test",
-        "revision" : "9607a58b998578e801907bf65e9cd86de8259b0f"
-      }
-    },
-    {
       "identity" : "rainbow",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/onevcat/Rainbow.git",
@@ -79,6 +70,15 @@
       "state" : {
         "revision" : "3b13e439a341bbbfe0f710c7d1be37221745ef1a",
         "version" : "0.6.1"
+      }
+    },
+    {
+      "identity" : "swift-vips",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/t089/swift-vips.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bb1a33237b84c91c1529cba15b0fbbb21d6dda41"
       }
     },
     {
