@@ -8,8 +8,8 @@
 import Dispatch
 import Foundation
 import Logging
-import MagickWand
 import SwiftExif
+import VIPS
 
 struct Photo: Codable, Comparable, Hashable, Diffable {
   var name: String
@@ -157,21 +157,24 @@ extension Photo {
     if writeImage {
       ctx.log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
-      if let image = ImageWand(filePath: fileURL.path) {
-        for scaledPhoto in scaledPhotos {
-          if let resizeImage = image.clone() {
-            resizeImage.resize(width: scaledPhoto.maxResolution, filter: .lanczos)
-            ctx.log.trace(
-              "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-            if !resizeImage.write(
-              at: URL(fileURLWithPath: scaledPhoto.url))  // Int(100 * ctx.config.jpegCompression)
-            {
-              ctx.log.error("Could not write image \(name) to \(scaledPhoto.url)")
+        do {
+            let image = try VIPSImage(fromFilePath: fileURL.path)
+            
+            for scaledPhoto in scaledPhotos {
+                do {
+                    ctx.log.trace(
+                      "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
+                    try image.thumbnailImage(width: scaledPhoto.maxResolution, crop: .none)
+                        .write(toFilePath: URL(fileURLWithPath: scaledPhoto.url).path, quality: Int(ctx.config.jpegCompression * 100))
+                } catch {
+                    ctx.log.error("Could not write image \(name) to \(scaledPhoto.url)")
+                }
             }
-          }
+    
+        } catch {
+            ctx.log.error("Could open image \(fileURL.path)")
         }
-      }
-
+        
       let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
       ctx.log.trace("Symlinking original image \(name) to \(originalImageURL)")
       do {
@@ -289,32 +292,37 @@ func readPhotoFromPath(
     modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
     parents: parents
   )
+    
+    do {
+        let image = try VIPSImage(fromFilePath: fileURL.path)
+        let width = image.size.width
+        let height = image.size.height
+        photo.width = width
+        photo.height = height
+        
+        // This bit seems a bit unnecessarily complicated.
+        // It is a naive implementation taking into the capture orientation (EXIF) and
+        // the orientation of the actual pixels.
+        if width < height {
+//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
+//            photo.orientation = Orientation.portrait
+//          } else {
+//            photo.orientation = Orientation.landscape
+//          }
+            photo.orientation = Orientation.portrait
 
-  if let image = ImageWand(filePath: fileURL.path) {
-    let width = image.size.width
-    let height = image.size.height
-    photo.width = width
-    photo.height = height
-
-    // This bit seems a bit unnecessarily complicated.
-    // It is a naive implementation taking into the capture orientation (EXIF) and
-    // the orientation of the actual pixels.
-    if width < height {
-      if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-        photo.orientation = Orientation.portrait
-      } else {
-        photo.orientation = Orientation.landscape
-      }
-    } else {
-      if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-        photo.orientation = Orientation.landscape
-      } else {
-        photo.orientation = Orientation.portrait
-      }
+        } else {
+//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
+//            photo.orientation = Orientation.landscape
+//          } else {
+//            photo.orientation = Orientation.portrait
+//          }
+            photo.orientation = Orientation.landscape
+        }
+        
+    } catch {
+        ctx.log.error("Could open image \(fileURL.path)")
     }
-
-    image.destroy()
-  }
 
   if let exif = exifRawDict["EXIF"] {
     if let aperture = exif["Aperture"] {

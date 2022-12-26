@@ -35,7 +35,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/kradalby/MagickWand.git", branch: "test"),
+    .package(url: "https://github.com/t089/swift-vips.git", branch: "main"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.7"),
     // .package(path: "../SwiftExif"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
@@ -61,7 +61,7 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftToolsSupport-auto", package: "swift-tools-support-core"),
         .product(name: "Logging", package: "swift-log"),
-        "MagickWand",
+        .product(name: "VIPS", package: "swift-vips"),
         "SwiftExif",
         "Configuration",
         "Rainbow",

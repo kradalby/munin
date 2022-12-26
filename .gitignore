@@ -8,6 +8,7 @@ gal.json
 dump.txt
 *.playground/
 tester/
+.swiftpm/
 
 .direnv
 .envrc
