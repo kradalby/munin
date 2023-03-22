@@ -43,7 +43,7 @@ let package = Package(
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.0.1"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
-      .upToNextMajor(from: "0.2.4")),
+      .upToNextMajor(from: "0.5.2")),
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
   ],
   targets: [
