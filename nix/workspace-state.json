@@ -1,0 +1,178 @@
+{
+  "object": {
+    "artifacts": [],
+    "dependencies": [
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "configuration",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/Kitura/Configuration.git",
+          "name": "Configuration"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "75fb96405263e72a2ed4546dceebe0993b92eb79",
+            "version": "3.1.0"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "Configuration"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "filekit",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/Kitura/FileKit.git",
+          "name": "FileKit"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "9d3ddb89a16d388eaad0db5e17c4682b767bd48f",
+            "version": "1.1.0"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "FileKit"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "loggerapi",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/Kitura/LoggerAPI.git",
+          "name": "LoggerAPI"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "4e6b45e850ffa275e8e26a24c6454fd709d5b6ac",
+            "version": "2.0.0"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "LoggerAPI"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "rainbow",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/onevcat/Rainbow.git",
+          "name": "Rainbow"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "e0dada9cd44e3fa7ec3b867e49a8ddbf543e3df3",
+            "version": "4.0.1"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "Rainbow"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swift-argument-parser",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/apple/swift-argument-parser.git",
+          "name": "swift-argument-parser"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "c8ed701b513cf5177118a175d85fbbbcd707ab41",
+            "version": "1.3.0"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "swift-argument-parser"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swift-log",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/apple/swift-log.git",
+          "name": "swift-log"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
+            "version": "1.5.4"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "swift-log"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swift-system",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/apple/swift-system.git",
+          "name": "swift-system"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "025bcb1165deab2e20d4eaba79967ce73013f496",
+            "version": "1.2.1"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "swift-system"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swift-tools-support-core",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/apple/swift-tools-support-core.git",
+          "name": "swift-tools-support-core"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "3b13e439a341bbbfe0f710c7d1be37221745ef1a",
+            "version": "0.6.1"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "swift-tools-support-core"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swift-vips",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/t089/swift-vips.git",
+          "name": "swift-vips"
+        },
+        "state": {
+          "checkoutState": {
+            "branch": "main",
+            "revision": "64de10a0e71366c5ac7b905123898a31b37e31a7"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "swift-vips"
+      },
+      {
+        "basedOn": null,
+        "packageRef": {
+          "identity": "swiftexif",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/kradalby/SwiftExif.git",
+          "name": "SwiftExif"
+        },
+        "state": {
+          "checkoutState": {
+            "revision": "ab83faa56618d14678279d3c93bb2fbc9070cb2b",
+            "version": "0.0.7"
+          },
+          "name": "sourceControlCheckout"
+        },
+        "subpath": "SwiftExif"
+      }
+    ]
+  },
+  "version": 6
+}

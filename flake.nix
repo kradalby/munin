@@ -15,14 +15,25 @@
       then self.shortRev
       else "dev";
 
-    deps = pkgs:
+    ndeps = pkgs:
+      with pkgs; [
+        swift
+        swiftPackages.swiftpm
+        pkg-config
+      ];
+
+    bdeps = pkgs:
       with pkgs;
         [
-          git
-          cacert
+          swiftPackages.swift-driver
+          swiftPackages.stdenv
+          swiftPackages.XCTest
 
-          clang
-          coreutils
+          # git
+          # cacert
+          #
+          # clang
+          # coreutils
 
           # SwiftExif
           libexif
@@ -33,7 +44,7 @@
           expat.dev
           fftw.dev
           fribidi
-          glib.dev
+          glib
           lcms2.dev
           libdatrie.dev
           libgsf.dev
@@ -50,7 +61,7 @@
           vips.dev
         ]
         ++ lib.optionals pkgs.stdenv.isLinux [
-          swift
+          swiftPackages.Foundation
           swift-corelibs-libdispatch
 
           # swift-vips deps
@@ -66,6 +77,7 @@
         pkgs = nixpkgs.legacyPackages.${prev.system};
       in rec {
         munin = let
+          generated = pkgs.swiftpm2nix.helpers ./nix;
           src = builtins.filterSource (path: type:
             !(builtins.elem (baseNameOf path) [
               "flake.nix"
@@ -75,56 +87,37 @@
               ".direnv"
             ]))
           ./.;
-
-          # On macOS, we have to use the Xcode bundled Swift
-          swiftBin =
-            if pkgs.stdenv.isLinux
-            then "${pkgs.swift}/bin/swift"
-            else "/usr/bin/swift";
         in
           pkgs.stdenv.mkDerivation rec {
-            name = "munin";
+            pname = "munin";
+            version = "0.0.0";
+
             inherit src;
 
-            postUnpack = ''
-              export HOME="$TMP"
-            '';
+            # Including SwiftPM as a nativeBuildInput provides a buildPhase for you.
+            # This by default performs a release build using SwiftPM, essentially:
+            #   swift build -c release
+            nativeBuildInputs = ndeps pkgs;
+            buildInputs = bdeps pkgs;
 
-            nativeBuildInputs = [pkgs.pkg-config];
-            buildInputs = deps pkgs;
+            propagatedBuildInputs = with pkgs; [
+              glib
+            ];
 
-            # TODO: figure out why this isnt working
-            sandboxProfile =
-              if pkgs.stdenv.isDarwin
-              then ''
-                (allow file-read* file-write* process-exec mach-lookup)
-                ; block homebrew dependencies
-                (deny file-read* file-write* process-exec mach-lookup (subpath "/usr/local") (with no-log))
-              ''
-              else "";
+            # The helper provides a configure snippet that will prepare all dependencies
+            # in the correct place, where SwiftPM expects them.
+            configurePhase = generated.configure;
 
-            buildPhase = let
-              extraArgs = [] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin ["--disable-sandbox"]);
-              # extraArgs = [];
-            in ''
-              ${swiftBin} build -v \
-                --configuration release \
-                --skip-update \
-                ${builtins.concatStringsSep " " extraArgs}
-            '';
+            # swiftpmFlags = ["--target x86_64-pc-linux-gnu"];
 
             installPhase = ''
-              install -D -m 0555 .build/release/munin $out/bin/munin
+              # This is a special function that invokes swiftpm to find the location
+              # of the binaries it produced.
+              binPath="$(swiftpmBinPath)"
+              # Now perform any installation steps.
+              mkdir -p $out/bin
+              cp $binPath/munin $out/bin/
             '';
-
-            # TODO: Checks with swift test
-
-            outputHashAlgo = "sha256";
-            outputHashMode = "recursive";
-            outputHash =
-              if pkgs.stdenv.isDarwin
-              then "sha256-hYObgh9VNchryqp6HKjl2T6Hh0M5uSCMBh524vENnBI="
-              else "";
           };
       };
     }
@@ -137,8 +130,16 @@
     in rec {
       # `nix develop`
       devShell = pkgs.mkShell {
-        nativeBuildInputs = [pkgs.pkg-config];
-        buildInputs = deps pkgs;
+        nativeBuildInputs = ndeps pkgs;
+        buildInputs =
+          (bdeps pkgs)
+          ++ [
+            pkgs.swift-format
+            pkgs.sourcekit-lsp
+            pkgs.swiftpm2nix
+
+            pkgs.swiftPackages.xcbuild
+          ];
       };
 
       apps = {
