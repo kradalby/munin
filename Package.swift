@@ -20,7 +20,7 @@ var linkerSettings: [LinkerSetting]? {
 let package = Package(
   name: "Munin",
   platforms: [
-    .macOS(.v10_12)
+    .macOS(.v10_15)
     // .linux
   ],
   products: [
