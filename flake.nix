@@ -138,7 +138,7 @@
             pkgs.sourcekit-lsp
             pkgs.swiftpm2nix
 
-            pkgs.swiftPackages.xcbuild
+            # pkgs.swiftPackages.xcbuild
           ];
       };
 
