@@ -17,7 +17,7 @@
 
     ndeps = pkgs:
       with pkgs; [
-        swiftPackages.swift
+        swiftPackages.swiftNoSwiftDriver
         swiftPackages.swiftpm
 
         pkg-config
@@ -69,8 +69,10 @@
           # warning: couldn't find pc file for spng
           # and find that library in Nix and add it to the buildDeps.
         ]
-        # swift-vips linux deps
         ++ lib.optionals pkgs.stdenv.isLinux [
+          swift-corelibs-libdispatch
+
+          # swift-vips linux deps
           libselinux.dev
           libsepol.dev
           pcre.dev
@@ -93,7 +95,7 @@
             ]))
           ./.;
         in
-          pkgs.swiftPackages.stdenv.mkDerivation rec {
+          pkgs.stdenv.mkDerivation rec {
             pname = "munin";
             version = "0.0.0";
 
