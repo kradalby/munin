@@ -17,23 +17,19 @@
 
     ndeps = pkgs:
       with pkgs; [
-        swift
+        swiftPackages.swift
         swiftPackages.swiftpm
+
         pkg-config
       ];
 
     bdeps = pkgs:
       with pkgs;
         [
-          swiftPackages.swift-driver
           swiftPackages.stdenv
           swiftPackages.XCTest
-
-          # git
-          # cacert
-          #
-          # clang
-          # coreutils
+          swiftPackages.Foundation
+          swiftPackages.Dispatch
 
           # SwiftExif
           libexif
@@ -44,7 +40,7 @@
           expat.dev
           fftw.dev
           fribidi
-          glib
+          glib.dev
           lcms2.dev
           libdatrie.dev
           libgsf.dev
@@ -59,17 +55,26 @@
           pango.dev
           pcre2.dev
           vips.dev
-        ]
-        ++ lib.optionals pkgs.stdenv.isLinux [
-          swiftPackages.Foundation
-          swift-corelibs-libdispatch
 
-          # swift-vips deps
+          # Added 2024-02-07
+          libarchive.dev
+          cgif
+          libspng.dev
+          xorg.libXdmcp.dev
+          libhwy
+
+          # If the compilation of swift-vips is failing with something like:
+          # fatal error: 'glib.h' file not found
+          # look for a warning before the error like:
+          # warning: couldn't find pc file for spng
+          # and find that library in Nix and add it to the buildDeps.
+        ]
+        # swift-vips linux deps
+        ++ lib.optionals pkgs.stdenv.isLinux [
           libselinux.dev
           libsepol.dev
           pcre.dev
           util-linux.dev
-          xorg.libXdmcp.dev
         ];
   in
     {
@@ -88,21 +93,19 @@
             ]))
           ./.;
         in
-          pkgs.stdenv.mkDerivation rec {
+          pkgs.swiftPackages.stdenv.mkDerivation rec {
             pname = "munin";
             version = "0.0.0";
 
             inherit src;
+
+            strictDeps = true;
 
             # Including SwiftPM as a nativeBuildInput provides a buildPhase for you.
             # This by default performs a release build using SwiftPM, essentially:
             #   swift build -c release
             nativeBuildInputs = ndeps pkgs;
             buildInputs = bdeps pkgs;
-
-            propagatedBuildInputs = with pkgs; [
-              glib
-            ];
 
             # The helper provides a configure snippet that will prepare all dependencies
             # in the correct place, where SwiftPM expects them.

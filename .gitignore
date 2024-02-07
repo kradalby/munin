@@ -9,6 +9,8 @@ dump.txt
 *.playground/
 tester/
 .swiftpm/
+result/
+result
 
 .direnv
 .envrc
