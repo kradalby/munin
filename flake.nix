@@ -63,6 +63,9 @@
           xorg.libXdmcp.dev
           libhwy
 
+          # Added 2024-06-04
+          openssl.dev
+
           # If the compilation of swift-vips is failing with something like:
           # fatal error: 'glib.h' file not found
           # look for a warning before the error like:
@@ -71,6 +74,7 @@
         ]
         ++ lib.optionals pkgs.stdenv.isLinux [
           swift-corelibs-libdispatch
+          glibc.dev
 
           # swift-vips linux deps
           libselinux.dev
@@ -95,11 +99,12 @@
             ]))
           ./.;
         in
-          pkgs.stdenv.mkDerivation rec {
+          pkgs.swift.stdenv.mkDerivation rec {
             pname = "munin";
             version = "0.0.0";
 
             inherit src;
+            LD_LIBRARY_PATH = "${pkgs.swiftPackages.Dispatch}/lib";
 
             strictDeps = true;
 
@@ -112,6 +117,7 @@
             # The helper provides a configure snippet that will prepare all dependencies
             # in the correct place, where SwiftPM expects them.
             configurePhase = generated.configure;
+
 
             # swiftpmFlags = ["--target x86_64-pc-linux-gnu"];
 
@@ -134,7 +140,8 @@
       };
     in rec {
       # `nix develop`
-      devShell = pkgs.mkShell {
+      devShell = pkgs.mkShell.override { stdenv = pkgs.swift.stdenv; } {
+        LD_LIBRARY_PATH = "${pkgs.swiftPackages.Dispatch}/lib";
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
           (bdeps pkgs)
