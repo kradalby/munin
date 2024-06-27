@@ -72,7 +72,7 @@
           # warning: couldn't find pc file for spng
           # and find that library in Nix and add it to the buildDeps.
         ]
-        ++ lib.optionals pkgs.stdenv.isLinux [
+        ++ lib.optionals stdenv.isLinux [
           swift-corelibs-libdispatch
           glibc.dev
 
@@ -84,12 +84,12 @@
         ];
   in
     {
-      overlay = final: prev: let
+      overlay = _: prev: let
         pkgs = nixpkgs.legacyPackages.${prev.system};
-      in rec {
+      in {
         munin = let
           generated = pkgs.swiftpm2nix.helpers ./nix;
-          src = builtins.filterSource (path: type:
+          src = builtins.filterSource (path: _:
             !(builtins.elem (baseNameOf path) [
               "flake.nix"
               "flake.lock"
@@ -99,12 +99,15 @@
             ]))
           ./.;
         in
-          pkgs.swift.stdenv.mkDerivation rec {
+          pkgs.swift.stdenv.mkDerivation {
             pname = "munin";
-            version = "0.0.0";
+            inherit version;
 
             inherit src;
-            LD_LIBRARY_PATH = "${pkgs.swiftPackages.Dispatch}/lib";
+            LD_LIBRARY_PATH =
+              if pkgs.stdenv.isLinux
+              then "${pkgs.swiftPackages.Dispatch}/lib"
+              else null;
 
             strictDeps = true;
 
@@ -117,7 +120,6 @@
             # The helper provides a configure snippet that will prepare all dependencies
             # in the correct place, where SwiftPM expects them.
             configurePhase = generated.configure;
-
 
             # swiftpmFlags = ["--target x86_64-pc-linux-gnu"];
 
@@ -138,10 +140,13 @@
         overlays = [self.overlay];
         inherit system;
       };
-    in rec {
+    in {
       # `nix develop`
-      devShell = pkgs.mkShell.override { stdenv = pkgs.swift.stdenv; } {
-        LD_LIBRARY_PATH = "${pkgs.swiftPackages.Dispatch}/lib";
+      devShell = pkgs.mkShell.override {inherit (pkgs.swift) stdenv;} {
+        LD_LIBRARY_PATH =
+          if pkgs.stdenv.isLinux
+          then "${pkgs.swiftPackages.Dispatch}/lib"
+          else null;
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
           (bdeps pkgs)
