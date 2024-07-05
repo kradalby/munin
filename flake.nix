@@ -16,21 +16,18 @@
       else "dev";
 
     ndeps = pkgs:
-      with pkgs; [
-        swiftPackages.swiftNoSwiftDriver
-        swiftPackages.swiftpm
-
-        pkg-config
-      ];
+      with pkgs;
+        [
+          pkg-config
+        ]
+        ++ lib.optionals stdenv.isLinux [
+          swiftPackages.swiftNoSwiftDriver
+          swiftPackages.swiftpm
+        ];
 
     bdeps = pkgs:
       with pkgs;
         [
-          swiftPackages.stdenv
-          swiftPackages.XCTest
-          swiftPackages.Foundation
-          swiftPackages.Dispatch
-
           # SwiftExif
           libexif
           libiptcdata
@@ -73,6 +70,11 @@
           # and find that library in Nix and add it to the buildDeps.
         ]
         ++ lib.optionals stdenv.isLinux [
+          swiftPackages.stdenv
+          swiftPackages.XCTest
+          swiftPackages.Foundation
+          swiftPackages.Dispatch
+
           swift-corelibs-libdispatch
           glibc.dev
 
