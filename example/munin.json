@@ -1,9 +1,12 @@
 {
+  "name": "root",
   "sourceFolder": "album",
   "targetFolder": "content",
   "diff": true,
   "logLevel": "debug",
-  "peopleFiles": ["people.json"],
+  "peopleFiles": [
+    "people.json"
+  ],
   "people": [
     "Tri M. Nguyen",
     "Christina Toldbo",
