@@ -159,7 +159,7 @@ public struct GalleryConfiguration {
   public init(
     _ manager: ConfigurationManager
   ) {
-    name = manager["name"] as? String ?? "root"
+    name = "root"
     people = manager["people"] as? [String] ?? []
     peopleFiles = manager["peopleFiles"] as? [String] ?? []
     resolutions = manager["resolutions"] as? [Int] ?? [1600, 1200, 992, 768, 576, 340, 220, 180]
