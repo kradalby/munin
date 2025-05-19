@@ -40,7 +40,7 @@ let package = Package(
     // .package(path: "../SwiftExif"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
     .package(url: "https://github.com/Kitura/Configuration.git", from: "3.1.0"),
-    .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.0.1"),
+    .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.1.0"),
     .package(
       url: "https://github.com/apple/swift-tools-support-core.git",
       .upToNextMajor(from: "0.6.1")),
