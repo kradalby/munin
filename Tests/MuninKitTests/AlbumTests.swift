@@ -1,6 +1,21 @@
 import XCTest
+import VIPS
 
 @testable import MuninKit
+
+// Global VIPS initialization for all tests with proper thread safety
+private let vipsInitialized: Void = {
+  // Set environment variables to force VIPS into single-threaded mode
+  setenv("VIPS_CONCURRENCY", "1", 1)
+  setenv("VIPS_WORKERS", "1", 1)
+  setenv("G_SLICE", "always-malloc", 1)
+  
+  do {
+    try VIPS.start(concurrency: 1)
+  } catch {
+    fatalError("Failed to initialize VIPS for tests: \(error)")
+  }
+}()
 
 final class AlbumTests: XCTestCase {
   let albumPath = "example/album/"
@@ -11,6 +26,10 @@ final class AlbumTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
+    
+    // Ensure VIPS is initialized once globally
+    _ = vipsInitialized
+    
     var manager = ConfigurationManager()
     manager.load(file: configPath, relativeFrom: .customPath(""))
     config = GalleryConfiguration(manager)

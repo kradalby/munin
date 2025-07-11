@@ -1,6 +1,21 @@
 import XCTest
+import VIPS
 
 @testable import MuninKit
+
+// Global VIPS initialization for all tests with proper thread safety
+private let vipsInitialized: Void = {
+  // Set environment variables to force VIPS into single-threaded mode
+  setenv("VIPS_CONCURRENCY", "1", 1)
+  setenv("VIPS_WORKERS", "1", 1)
+  setenv("G_SLICE", "always-malloc", 1)
+  
+  do {
+    try VIPS.start(concurrency: 1)
+  } catch {
+    fatalError("Failed to initialize VIPS for tests: \(error)")
+  }
+}()
 
 final class PhotoTests: XCTestCase {
   let photoPath = "example/album/2017/2017-12-22 Juleferie/20171222-132846-20171222-IMG_5259.jpg"
@@ -9,6 +24,13 @@ final class PhotoTests: XCTestCase {
   let photo4Path = "example/album/Misc/portrait_mm.jpeg"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
+
+  override func setUp() {
+    super.setUp()
+    
+    // Ensure VIPS is initialized once globally
+    _ = vipsInitialized
+  }
 
   func test() {
     // This is an example of a functional test case.
