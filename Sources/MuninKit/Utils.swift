@@ -51,11 +51,17 @@ func createOrReplaceSymlink(ctx: Context, source: String, destination: String) t
 }
 
 func joinPath(_ paths: String...) -> String {
-  return paths.filter { $0 != "" }.joined(separator: "/")
+  return paths.filter { $0 != "" }
+    .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "/")) }
+    .filter { $0 != "" }
+    .joined(separator: "/")
 }
 
 func joinPath(_ paths: [String]) -> String {
-  return paths.filter { $0 != "" }.joined(separator: "/")
+  return paths.filter { $0 != "" }
+    .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "/")) }
+    .filter { $0 != "" }
+    .joined(separator: "/")
 }
 
 func fileExtension(atPath: String) -> String? {

@@ -61,29 +61,29 @@ final class GalleryTests: XCTestCase {
 
   func testReadInputGallery() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertEqual(gallery.output, nil)
   }
 
   func testReadInputOutputGallery() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
 
     let gallery2 = Gallery(ctx: ctx)
     XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
   }
 
   func testDiffGalleryNoDiff() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
@@ -95,8 +95,8 @@ final class GalleryTests: XCTestCase {
 
   func testDiffGalleryAddedAlbum() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
@@ -111,8 +111,8 @@ final class GalleryTests: XCTestCase {
     }
 
     let gallery2 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery2.output)
     XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 57)
     XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 9)
@@ -126,8 +126,8 @@ final class GalleryTests: XCTestCase {
 
   func testDiffGalleryAddedPhotos() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
@@ -156,8 +156,8 @@ final class GalleryTests: XCTestCase {
     }
 
     let gallery2 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery2.output)
     XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 94)
     XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 10)
@@ -171,8 +171,8 @@ final class GalleryTests: XCTestCase {
 
   func testClean() {
     let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
@@ -181,29 +181,29 @@ final class GalleryTests: XCTestCase {
     gallery.clean(ctx: ctx)
 
     var gallery2 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
 
     var albums = Array(gallery2.input.albums)
     albums.removeAll(where: { $0.name == "2018" })
     var input = gallery2.input
     input.albums = Set(albums)
     gallery2.setInput(input)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 23)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 5)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 24)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 7)
+    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
 
     gallery2.clean(ctx: ctx)
 
     let gallery3 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery3.input.numberOfPhotos(travers: true), 103)
-    XCTAssertEqual(gallery3.input.numberOfAlbums(travers: true), 10)
+    XCTAssertEqual(gallery3.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery3.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery3.output)
-    XCTAssertEqual(gallery3.output!.numberOfPhotos(travers: true), 23)
-    XCTAssertEqual(gallery3.output!.numberOfAlbums(travers: true), 5)
+    XCTAssertEqual(gallery3.output!.numberOfPhotos(travers: true), 24)
+    XCTAssertEqual(gallery3.output!.numberOfAlbums(travers: true), 7)
   }
 }

@@ -33,9 +33,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
   }
 
   func testExpectedFiles() {
@@ -97,9 +97,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
     let unreferenced = album.unreferencedFiles()
 
     XCTAssertEqual(unreferenced, [])
@@ -150,9 +150,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
 
     let expectedFiles: [String] = []
     let missing = album.missingFiles().map { $0.path }.sorted()
@@ -264,7 +264,7 @@ final class AlbumTests: XCTestCase {
   //     let photoCount = album.numberOfPhotos(travers: true)
   //     XCTAssertEqual(photoCount, 102)
   //     let albumCount = album.numberOfAlbums(travers: true)
-  //     XCTAssertEqual(albumCount, 10)
+  //     XCTAssertEqual(albumCount, 12)
   //   }
   // }
 }
