@@ -1,5 +1,4 @@
 import ArgumentParser
-import Configuration
 import Foundation
 import Logging
 import MuninKit
@@ -18,11 +17,9 @@ struct Munin: ParsableCommand {
   var dry = false
 
   func run() throws {
-    let configPath = URL(fileURLWithPath: config)
-
-    let manager = ConfigurationManager()
-    manager
-      .load(file: configPath.path, relativeFrom: .pwd)
+    var manager = ConfigurationManager()
+    manager = manager
+      .load(file: config, relativeFrom: .pwd)
       .load(.environmentVariables)
       .load(.commandLineArguments)
 

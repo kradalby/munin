@@ -5,12 +5,9 @@
 //  Created by Kristoffer Andreas Dalby on 25/12/2017.
 //
 
-import Configuration
 import Dispatch
 import Foundation
 import Logging
-import TSCBasic
-import TSCUtility
 
 let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
 let photoQueue = DispatchQueue(
@@ -45,16 +42,8 @@ class State {
     photosToWrite = 0
     photosWritten = 0
 
-    writingProgress =
-      progress
-      ? PercentProgressAnimation(
-        stream: TSCBasic.stdoutStream, header: "Writing images") : nil
-
-    if progress, let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
-      readingProgress = ReadingProgressAnimation(terminal: terminal, header: "Finding images")
-    } else {
-      readingProgress = nil
-    }
+    writingProgress = progress ? PercentProgressAnimation(header: "Writing images") : nil
+    readingProgress = progress ? ReadingProgressAnimation(header: "Finding images") : nil
   }
 
   func completeRead() {
