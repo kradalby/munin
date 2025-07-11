@@ -217,12 +217,13 @@ extension Photo: Equatable {
     guard lhs.people == rhs.people else {
       return false
     }
-    guard lhs.next == rhs.next else {
-      return false
-    }
-    guard lhs.previous == rhs.previous else {
-      return false
-    }
+    // next and previous are navigation fields that shouldn't affect diff comparison
+    // guard lhs.next == rhs.next else {
+    //   return false
+    // }
+    // guard lhs.previous == rhs.previous else {
+    //   return false
+    // }
     return true
   }
 }
