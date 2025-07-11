@@ -1,4 +1,3 @@
-import Configuration
 import XCTest
 
 @testable import MuninKit
@@ -12,9 +11,8 @@ final class AlbumTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    let manager = ConfigurationManager()
-    manager
-      .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
+    var manager = ConfigurationManager()
+    manager.load(file: configPath, relativeFrom: .customPath(""))
     config = GalleryConfiguration(manager)
     ctx = Context(config: config)
   }

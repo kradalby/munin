@@ -1,4 +1,3 @@
-import Configuration
 import XCTest
 
 @testable import MuninKit
@@ -13,9 +12,8 @@ final class KeywordTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    let manager = ConfigurationManager()
-    manager
-      .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
+    var manager = ConfigurationManager()
+    manager.load(file: configPath, relativeFrom: .customPath(""))
     config = GalleryConfiguration(manager)
     ctx = Context(config: config)
   }
@@ -50,9 +48,8 @@ final class KeywordTests: XCTestCase {
   }
 
   func testPeopleFiles() {
-    let manager = ConfigurationManager()
-    manager
-      .load([
+    var manager = ConfigurationManager()
+    manager.load([
         "people": ["Man Person", "BoJo Trump", "Ola Nordmann"],
         "peopleFiles": [peoplePath],
       ])

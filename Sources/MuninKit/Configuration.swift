@@ -85,13 +85,18 @@ public struct ConfigurationManager {
         self.config = MuninConfiguration()
     }
     
-    public mutating func load(file path: String, relativeFrom: ConfigurationRelativePath = .pwd) -> ConfigurationManager {
+    @discardableResult
+    public mutating func load(file path: String, relativeFrom: ConfigurationRelativePath = .pwd) -> Self {
         let fullPath: String
         switch relativeFrom {
         case .pwd:
             fullPath = path
         case .customPath(let basePath):
-            fullPath = basePath + "/" + path
+            if basePath.isEmpty {
+                fullPath = path
+            } else {
+                fullPath = basePath + "/" + path
+            }
         }
         
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: fullPath)),
@@ -99,17 +104,26 @@ public struct ConfigurationManager {
             // If file doesn't exist or can't be parsed, continue with defaults
             return self
         }
-        
         self.config = loadedConfig
         return self
     }
     
-    public mutating func load(_ source: ConfigurationSource) -> ConfigurationManager {
+    @discardableResult
+    public mutating func load(_ source: ConfigurationSource) -> Self {
         switch source {
         case .environmentVariables:
             loadEnvironmentVariables()
         case .commandLineArguments:
             loadCommandLineArguments()
+        }
+        return self
+    }
+    
+    @discardableResult
+    public mutating func load(_ values: [String: Any]) -> Self {
+        // Merge values into overrides
+        for (key, value) in values {
+            overrides[key] = value
         }
         return self
     }

@@ -1,4 +1,3 @@
-import Configuration
 import Foundation
 import XCTest
 
@@ -26,9 +25,8 @@ final class GalleryTests: XCTestCase {
       XCTFail()
     }
 
-    let manager = ConfigurationManager()
-    manager
-      .load([
+    var manager = ConfigurationManager()
+    manager.load([
         "name": testName!,
         "people": [],
         "peopleFiles": [peoplePath],

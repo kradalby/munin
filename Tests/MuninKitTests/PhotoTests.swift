@@ -1,4 +1,3 @@
-import Configuration
 import XCTest
 
 @testable import MuninKit
@@ -19,9 +18,8 @@ final class PhotoTests: XCTestCase {
   }
 
   func testExpectedValuesRead() {
-    let manager = ConfigurationManager()
-    manager
-      .load(file: configPath, relativeFrom: .customPath(""))
+    var manager = ConfigurationManager()
+    manager.load(file: configPath, relativeFrom: .customPath(""))
     let config = GalleryConfiguration(manager)
 
     let ctx = Context(config: config)
@@ -88,9 +86,8 @@ final class PhotoTests: XCTestCase {
   }
 
   func testExpectedFiles() {
-    let manager = ConfigurationManager()
-    manager
-      .load(file: configPath, relativeFrom: .customPath(""))
+    var manager = ConfigurationManager()
+    manager.load(file: configPath, relativeFrom: .customPath(""))
     let config = GalleryConfiguration(manager)
 
     let ctx = Context(config: config)

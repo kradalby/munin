@@ -157,6 +157,11 @@ extension Photo {
     if writeImage {
       ctx.log.trace("Writing image \(name)")
       let fileURL = URL(fileURLWithPath: originalImagePath)
+        
+        // Serialize VIPS access to prevent crashes in concurrent environments
+        ctx.vipsSema.wait()
+        defer { ctx.vipsSema.signal() }
+        
         do {
             let image = try VIPSImage(fromFilePath: fileURL.path)
             
@@ -293,6 +298,10 @@ func readPhotoFromPath(
     parents: parents
   )
     
+    // Serialize VIPS access to prevent crashes in concurrent environments
+    ctx.vipsSema.wait()
+    defer { ctx.vipsSema.signal() }
+    
     do {
         let image = try VIPSImage(fromFilePath: fileURL.path)
         let width = image.size.width
@@ -300,24 +309,19 @@ func readPhotoFromPath(
         photo.width = width
         photo.height = height
         
-        // This bit seems a bit unnecessarily complicated.
-        // It is a naive implementation taking into the capture orientation (EXIF) and
-        // the orientation of the actual pixels.
-        if width < height {
-//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-//            photo.orientation = Orientation.portrait
-//          } else {
-//            photo.orientation = Orientation.landscape
-//          }
-            photo.orientation = Orientation.portrait
-
+        // Determine orientation based on EXIF orientation and image dimensions
+        // EXIF orientation values: 5,6,7,8 involve 90° rotation (width/height swapped)
+        let exifOrientation = image.orientation
+        
+        // Check if the image should be rotated 90 or 270 degrees according to EXIF
+        let rotated90or270 = [5, 6, 7, 8].contains(exifOrientation)
+        
+        if rotated90or270 {
+            // If rotated 90/270, the effective dimensions are swapped
+            photo.orientation = width > height ? .portrait : .landscape
         } else {
-//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-//            photo.orientation = Orientation.landscape
-//          } else {
-//            photo.orientation = Orientation.portrait
-//          }
-            photo.orientation = Orientation.landscape
+            // Normal orientation or 180 degree rotation
+            photo.orientation = width < height ? .portrait : .landscape
         }
         
     } catch {

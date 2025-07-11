@@ -18,10 +18,9 @@ struct Munin: ParsableCommand {
 
   func run() throws {
     var manager = ConfigurationManager()
-    manager = manager
-      .load(file: config, relativeFrom: .pwd)
-      .load(.environmentVariables)
-      .load(.commandLineArguments)
+    manager.load(file: config, relativeFrom: .pwd)
+    manager.load(.environmentVariables)
+    manager.load(.commandLineArguments)
 
     let config = GalleryConfiguration(manager)
 

@@ -444,7 +444,7 @@ func readStateFromInputDirectory(
     album.people = album.people.union(childAlbum.people)
   }
 
-  var photos = [Photo]()
+  let photosContainer = ThreadSafeArray<Photo>()
   let files = FileManager.default.filesOfDirectoryByExtensions(
     atPath: joinPath(atPath), extensions: ctx.config.fileExtensions
   )
@@ -463,16 +463,11 @@ func readStateFromInputDirectory(
           ctx: ctx
         )
 
-        var validPhoto: Photo?
-        if let photo = maybePhoto, photo.include() {
-          validPhoto = photo
-        } else if let photo = maybePhoto {
-          ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-        }
-        
-        if let photo = validPhoto {
-          stateQueue.sync {
-            photos.append(photo)
+        if let photo = maybePhoto {
+          if photo.include() {
+            photosContainer.append(photo)
+          } else {
+            ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
           }
         }
 
@@ -492,24 +487,26 @@ func readStateFromInputDirectory(
   photoToReadGroup.wait()
 
   // Ensure that we have a stable order before building next/previous map.
-  photos.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
+  photosContainer.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
 
+  let photos = photosContainer.all
   for (index, photo) in photos.enumerated() {
     let previous = photos.index(before: index)
     let next = photos.index(after: index)
+    
+    var updatedPhoto = photo
     if previous == -1 {
-      photos[index].previous = photos[photos.count - 1].url
-
+      updatedPhoto.previous = photos[photos.count - 1].url
     } else {
-      photos[index].previous = photos[photos.index(before: index)].url
+      updatedPhoto.previous = photos[photos.index(before: index)].url
     }
     if next == photos.count {
-      photos[index].next = photos[0].url
+      updatedPhoto.next = photos[0].url
     } else {
-      photos[index].next = photos[photos.index(after: index)].url
+      updatedPhoto.next = photos[photos.index(after: index)].url
     }
 
-    album.photos.insert(photos[index])
+    album.photos.insert(updatedPhoto)
 
     album.keywords = album.keywords.union(photo.keywords)
     album.people = album.people.union(photo.people)

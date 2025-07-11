@@ -84,6 +84,7 @@ public struct Context: @unchecked Sendable {
   let state: State
   let log: Logger
   let sema: DispatchSemaphore
+  let vipsSema: DispatchSemaphore
 
   public init(config: GalleryConfiguration) {
     self.config = config
@@ -115,6 +116,9 @@ public struct Context: @unchecked Sendable {
 
     // https://www.vadimbulavin.com/grand-central-dispatch-in-swift/#limiting-work-in-progress
     sema = DispatchSemaphore(value: config.concurrency)
+    
+    // VIPS isn't fully thread-safe, so serialize VIPS operations to avoid crashes
+    vipsSema = DispatchSemaphore(value: 1)
 
     state = MainActor.assumeIsolated { State(progress: config.progress) }
   }
