@@ -16,41 +16,36 @@ let photoToWriteGroup = DispatchGroup()
 let photoWriteGroup = DispatchGroup()
 let photoToReadGroup = DispatchGroup()
 
-struct Timings {
+struct Timings: Sendable {
   var readInputDirectory: TimeInterval?
   var readOutputDirectory: TimeInterval?
   var generateDiff: TimeInterval?
 }
 
-class State {
+@MainActor
+final class State: Sendable {
   let writingProgress: PercentProgressAnimation?
   let readingProgress: ReadingProgressAnimation?
 
-  var lastReadPhoto: String = ""
-  var photosToWrite: Int {
+  private var lastReadPhoto: String = ""
+  private var photosToWrite: Int = 0 {
     didSet {
       renderReading()
     }
   }
-  var photosWritten: Int {
+  private var photosWritten: Int = 0 {
     didSet {
       renderWriting()
     }
   }
 
   init(progress: Bool) {
-    photosToWrite = 0
-    photosWritten = 0
-
     writingProgress = progress ? PercentProgressAnimation(header: "Writing images") : nil
     readingProgress = progress ? ReadingProgressAnimation(header: "Finding images") : nil
   }
 
   func completeRead() {
-    if let progress = readingProgress {
-      progress.complete(
-        success: true)
-    }
+    readingProgress?.complete(success: true)
   }
 
   func resetWrite(photosWritten: Int) {
@@ -66,36 +61,33 @@ class State {
     photosWritten += 1
   }
 
-  func renderReading() {
-    if let progress = readingProgress {
-      progress.update(
-        step: photosToWrite, total: 0,
-        text: "Reading: \(lastReadPhoto)")
-    }
+  private func renderReading() {
+    readingProgress?.update(
+      step: photosToWrite, total: 0,
+      text: "Reading: \(lastReadPhoto)")
   }
 
-  func renderWriting() {
-    if let progress = writingProgress {
-      progress.update(
-        step: photosWritten, total: photosToWrite,
-        text: "Writing: \(photosWritten) out of \(photosToWrite)")
+  private func renderWriting() {
+    writingProgress?.update(
+      step: photosWritten, total: photosToWrite,
+      text: "Writing: \(photosWritten) out of \(photosToWrite)")
 
-      if photosToWrite == photosWritten {
-        progress.complete(success: true)
-      }
+    if photosToWrite == photosWritten {
+      writingProgress?.complete(success: true)
     }
   }
 }
 
-public struct Context {
+public struct Context: @unchecked Sendable {
   let config: GalleryConfiguration
-  var time: Timings?
-  var state: State
-  var log: Logger
+  let time: Timings?
+  let state: State
+  let log: Logger
   let sema: DispatchSemaphore
 
   public init(config: GalleryConfiguration) {
     self.config = config
+    self.time = Timings()
 
     if let _ = config.logPath {
       // do {
@@ -113,21 +105,22 @@ public struct Context {
       // }
     }
 
-    log = Logger(label: "no.kradalby.MuninKit")
+    var logger = Logger(label: "no.kradalby.MuninKit")
     if let logLevel = config.logLevel {
-      log.logLevel = stringToLogLevel(logLevel)
+      logger.logLevel = stringToLogLevel(logLevel)
     } else {
-      log.logLevel = .info
+      logger.logLevel = .info
     }
+    self.log = logger
 
     // https://www.vadimbulavin.com/grand-central-dispatch-in-swift/#limiting-work-in-progress
     sema = DispatchSemaphore(value: config.concurrency)
 
-    state = State(progress: config.progress)
+    state = MainActor.assumeIsolated { State(progress: config.progress) }
   }
 }
 
-public struct GalleryConfiguration {
+public struct GalleryConfiguration: Sendable {
   let name: String
   let people: [String]
   let peopleFiles: [String]
@@ -209,7 +202,7 @@ public struct Gallery {
       parents: []
     )
     photoToReadGroup.wait()
-    ctx.state.completeRead()
+    Task { @MainActor in ctx.state.completeRead() }
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     ctx.log.debug(
@@ -252,7 +245,7 @@ public struct Gallery {
       photoWriteGroup.wait()
     }
 
-    ctx.state.resetWrite(photosWritten: 0)
+    Task { @MainActor in ctx.state.resetWrite(photosWritten: 0) }
     let writeJsonStart = Date()
     if output == nil {
       ctx.log.info("First run, creating images and metadata")

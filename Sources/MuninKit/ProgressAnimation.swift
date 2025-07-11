@@ -33,7 +33,7 @@ public final class PercentProgressAnimation: ProgressAnimationProtocol {
         
         print("\r\(output)", terminator: "")
         lastOutput = output
-        fflush(Foundation.stdout)
+        fflush(nil)
     }
     
     public func complete(success: Bool) {
@@ -73,7 +73,7 @@ public final class ReadingProgressAnimation: ProgressAnimationProtocol {
         
         print("\r\(output)", terminator: "")
         lastOutput = output
-        fflush(Foundation.stdout)
+        fflush(nil)
     }
     
     public func complete(success: Bool) {
@@ -97,7 +97,7 @@ public final class OutputWriter: Sendable {
     
     public func write(_ string: String) {
         print(string, terminator: "")
-        fflush(Foundation.stdout)
+        fflush(nil)
     }
     
     public func writeLine(_ string: String) {

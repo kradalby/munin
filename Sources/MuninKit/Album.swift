@@ -213,7 +213,7 @@ extension Album {
           photoWriteGroup.leave()
           ctx.sema.signal()
 
-          stateQueue.sync {
+          Task { @MainActor in
             ctx.state.incrementPhotosWritten()
           }
         }
@@ -453,7 +453,7 @@ func readStateFromInputDirectory(
       atPath: joinPath(atPath, file))
     if let fileExtension = fileExtension(atPath: joinPath(atPath, file)) {
       photoToReadGroup.enter()
-      photoQueue.async {
+      photoQueue.async { [newParents] in
         let maybePhoto = readPhotoFromPath(
           atPath: joinPath(atPath, file),
           outPath: joinPath(outPath, urlifyName(name)),
@@ -463,17 +463,21 @@ func readStateFromInputDirectory(
           ctx: ctx
         )
 
-        stateQueue.sync {
-          if let photo = maybePhoto {
-            if photo.include() {
-              photos.append(photo)
-            } else {
-              ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-            }
+        var validPhoto: Photo?
+        if let photo = maybePhoto, photo.include() {
+          validPhoto = photo
+        } else if let photo = maybePhoto {
+          ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
+        }
+        
+        if let photo = validPhoto {
+          stateQueue.sync {
+            photos.append(photo)
           }
+        }
 
+        Task { @MainActor in
           ctx.state.updatePhotosToWrite(name: joinPath(atPath, file))
-
         }
         photoToReadGroup.leave()
         ctx.sema.signal()
