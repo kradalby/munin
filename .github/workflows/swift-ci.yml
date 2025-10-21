@@ -1,0 +1,44 @@
+name: Swift CI (Docker)
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - swift-61
+      - 'claude/**'
+  pull_request:
+    branches:
+      - master
+      - main
+      - swift-61
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: swift:6.1
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            libgd-dev \
+            libiptcdata0-dev \
+            libexif-dev \
+            pkg-config
+
+      - name: Build project
+        run: |
+          swift build
+
+      - name: Run tests
+        run: |
+          swift test
