@@ -1,6 +1,8 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
+    # Pin to a nixpkgs revision with Swift 6+
+    # Using nixpkgs-unstable latest which should have Swift 6
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -19,6 +21,7 @@
       with pkgs;
         [
           pkg-config
+          # Use the main swift package (not swiftPackages) for Swift 6
           swift
           swiftpm
         ];

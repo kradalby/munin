@@ -30,6 +30,10 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Update flake to latest nixpkgs
+        run: |
+          nix flake update
+
       - name: Build project
         id: build
         run: |
