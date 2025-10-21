@@ -114,7 +114,7 @@ final class PhotoTests: XCTestCase {
       "test_340.jpg", "test_576.jpg", "test_768.jpg",
       "test_992.jpg", "test_1200.jpg", "test_original.jpg",
     ].map { URL(fileURLWithPath: "example/content/" + $0).path }.sorted()
-    let actualFiles = photo!.expectedFiles().map { $0.path }.sorted()
+    let actualFiles = photo!.expectedFiles.map { $0.path }.sorted()
 
     XCTAssertEqual(actualFiles, expectedFiles)
   }
