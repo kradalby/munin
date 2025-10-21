@@ -19,10 +19,8 @@
       with pkgs;
         [
           pkg-config
-        ]
-        ++ lib.optionals stdenv.isLinux [
-          swiftPackages.swiftNoSwiftDriver
-          swiftPackages.swiftpm
+          swift
+          swiftpm
         ];
 
     bdeps = pkgs:
@@ -70,12 +68,6 @@
           # and find that library in Nix and add it to the buildDeps.
         ]
         ++ lib.optionals stdenv.isLinux [
-          swiftPackages.stdenv
-          swiftPackages.XCTest
-          swiftPackages.Foundation
-          swiftPackages.Dispatch
-
-          swift-corelibs-libdispatch
           glibc.dev
 
           # swift-vips linux deps
@@ -108,7 +100,7 @@
             inherit src;
             LD_LIBRARY_PATH =
               if pkgs.stdenv.isLinux
-              then "${pkgs.swiftPackages.Dispatch}/lib"
+              then pkgs.lib.makeLibraryPath (bdeps pkgs)
               else null;
 
             strictDeps = true;
@@ -147,7 +139,7 @@
       devShell = pkgs.mkShell.override {inherit (pkgs.swift) stdenv;} {
         LD_LIBRARY_PATH =
           if pkgs.stdenv.isLinux
-          then "${pkgs.swiftPackages.Dispatch}/lib"
+          then pkgs.lib.makeLibraryPath (bdeps pkgs)
           else null;
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
