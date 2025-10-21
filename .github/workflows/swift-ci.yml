@@ -38,6 +38,7 @@ jobs:
             libgd-dev \
             libiptcdata0-dev \
             libexif-dev \
+            libvips-dev \
             pkg-config
 
       - name: Verify Swift installation
