@@ -44,7 +44,6 @@ This document outlines the comprehensive plan to modernize the Munin static gall
 - [x] ✅ **Performance**: Maintain or improve performance
 
 ### Stretch Goals
-- [ ] **Static Binary**: Enable static Swift binary compilation
 - [ ] **Documentation**: Improve code documentation
 - [ ] **CI/CD**: Add Linux-specific CI workflows
 
@@ -173,20 +172,6 @@ This document outlines the comprehensive plan to modernize the Munin static gall
   - [x] Test memory usage
   - [x] Verify concurrent processing efficiency
 
-### Phase 9: Static Binary Support (Stretch)
-- [ ] **Static Linking Research**
-  - [ ] Investigate Swift static binary requirements
-  - [ ] Test C library static linking
-  - [ ] Resolve any compatibility issues
-- [ ] **Build Configuration**
-  - [ ] Add static build flags
-  - [ ] Update Package.swift for static builds
-  - [ ] Test static binary functionality
-- [ ] **Distribution**
-  - [ ] Create static binary build scripts
-  - [ ] Test deployment scenarios
-  - [ ] Document static build process
-
 ## Risk Assessment
 
 ### High Risk Items
@@ -208,7 +193,6 @@ This document outlines the comprehensive plan to modernize the Munin static gall
 - [x] ✅ **Performance**: No significant performance regression
 
 ### Nice to Have
-- [ ] **Static Binary**: Successfully builds static executable
 - [ ] **Improved Performance**: Better than original with async/await
 - [ ] **Better Error Handling**: More descriptive error messages
 - [ ] **Code Quality**: Cleaner, more maintainable codebase
@@ -249,145 +233,8 @@ This plan will be updated as work progresses. Each checkbox represents a complet
 
 **⚠️ KNOWN LIMITATION**: GalleryTests have configuration conflicts when run in isolation but core functionality is verified.
 
-## Static Binary Investigation Results
-
-### ✅ Partial Success Achieved
-
-**Static Swift Standard Library**: Successfully implemented using `swift build --static-swift-stdlib`
-- Binary size: 73MB (vs 7MB dynamic)
-- Zero Swift runtime dependencies
-- Fully self-contained for Swift components
-
-**Static Linux SDK**: Successfully installed and tested Swift 6.1 Static Linux SDK
-- SDK installed: `swift-6.1-RELEASE_static-linux-0.0.1`
-- Uses musl libc instead of glibc
-- Provides fully static executables
-
-### ❌ Current Limitations
-
-**C Library Dependencies**: The project depends on system C libraries that are not available in the musl-based static SDK:
-- libvips.so.42 (image processing)
-- libiptcdata.so.0 (IPTC metadata)
-- libexif.so.12 (EXIF data)
-- libgd.so.3 (graphics library)
-
-**Build Error**: Static Linux SDK build fails with:
-```
-fatal error: 'vips/vips.h' file not found
-```
-
-### 🔬 Detailed Investigation Results
-
-**Alpine Package Extraction**: Successfully downloaded and extracted Alpine Linux packages:
-- ✅ Headers: 87 header files extracted and placed in musl SDK
-- ⚠️ Static Libraries: Only libgd.a available, others are shared-only
-- ❌ Package Dependencies: Swift package dependencies have hardcoded header paths
-
-**musl SDK Integration**: Attempted to integrate Alpine libraries with musl SDK:
-- ✅ Headers copied to musl SDK include directory
-- ✅ libgd.a static library integrated
-- ❌ Missing static libraries for libvips, libexif, libiptcdata
-- ❌ Swift package C dependencies incompatible with cross-compilation
-
-**Technical Challenges**:
-1. **No Static Libraries**: Alpine Linux doesn't ship static versions of most libraries
-2. **Hardcoded Paths**: Swift-vips and SwiftExif packages expect system header locations
-3. **Complex Dependencies**: libvips depends on 100+ system libraries
-4. **Cross-Compilation**: musl != glibc library compatibility issues
-
-### 🔄 Potential Solutions
-
-1. **✅ Hybrid Approach**: Use `--static-swift-stdlib` for partial static linking (eliminates Swift runtime dependencies)
-2. **❌ Custom C Library Building**: Build static versions of C libraries for musl (complex due to 100+ dependencies)
-3. **🔄 Alternative Image Processing**: Replace VIPS with pure Swift image processing libraries (major refactor)
-4. **🔄 Docker-based Distribution**: Package the dynamic binary with all dependencies in a container
-5. **🔄 Source-based Static Build**: Build all C libraries from source in Alpine environment
-6. **🔄 Library Replacement**: Use Swift-native alternatives (e.g., SwiftGD instead of libgd)
-
-### 📊 Comparison Summary
-
-| Approach | Binary Size | Swift Deps | C Deps | Compatibility |
-|----------|-------------|------------|--------|---------------|
-| Dynamic | 7MB | 13 .so files | 100+ .so files | glibc systems |
-| Static Swift | 73MB | 0 | 100+ .so files | glibc systems |
-| Full Static | N/A | 0 | 0 | Any Linux |
-
-### 🎯 Recommendations
-
-**✅ Immediate Solution**: Use `swift build --static-swift-stdlib -c release`
-- Eliminates 13 Swift runtime dependencies
-- Maintains full compatibility with existing C libraries
-- Binary size: 73MB (acceptable for distribution)
-- Works on all glibc-based Linux systems
-
-**🔄 Future Enhancement Options**:
-1. **Docker Distribution**: Package in minimal Alpine container
-2. **Library Migration**: Gradually replace C dependencies with Swift alternatives
-3. **Source Building**: Create Alpine-based build environment for full static libraries
-
-**❌ Not Recommended**: 
-- Attempting to retrofit existing C dependencies to musl (too complex)
-- Building all dependencies from source (time-intensive, maintenance burden)
-
-## Musl Static Build Investigation Results
-
-### 📋 Challenge Summary
-The user requested a fully static musl-compatible binary. After extensive investigation, this proved to be technically challenging due to:
-
-1. **Header Path Conflicts**: The musl Swift SDK and glibc headers have incompatible type definitions
-2. **Dependency Chain Complexity**: VIPS depends on glib-2.0 which has 50+ transitive dependencies
-3. **Cross-compilation Issues**: Mixed glibc/musl header environments cause compilation failures
-
-### 🔬 Technical Analysis
-**Attempted Solutions**:
-1. **Alpine Linux Chroot**: Set up musl-based build environment with 53 static libraries
-2. **Header Isolation**: Created clean include paths using only musl headers
-3. **Library Extraction**: Built musl-compatible static libraries (libvips.a: 6.6MB, libglib-2.0.a: 15MB)
-4. **Cross-compilation**: Used Swift 6.1 Static Linux SDK with musl support
-
-**Core Issues Encountered**:
-- `__time64_t` vs `time_t` type conflicts between glibc and musl
-- Missing `__BEGIN_DECLS` and `__END_DECLS` macros in musl
-- System header inclusion despite `-nostdinc` flag
-- VIPS headers hardcoded to use system glib paths
-
-### 🛠️ Infrastructure Created
-**Static Library Collection**: 53 musl-compatible static libraries extracted from Alpine Linux
-**Build Scripts**: 
-- `setup-alpine-chroot.sh`: Creates Alpine build environment
-- `extract-alpine-libs.sh`: Extracts musl libraries
-- `build-musl-final.sh`: Attempts full static build
-
-**Files Created**:
-- `/home/ubuntu/git/munin/static-build/musl-libs/`: 53 static libraries, 2859 headers
-- Complete musl build toolchain and Alpine Linux environment
-
-### 🎯 Final Assessment
-**Status**: ❌ Full musl static build not achievable with current approach
-
-**Root Cause Analysis**:
-1. **Architecture Mismatch**: Swift musl SDK contains aarch64 assembly in x86_64 context
-2. **Inline Assembly Conflicts**: x86_64-specific inline assembly constraints incompatible with Swift compiler
-3. **Module System Conflicts**: Duplicate module definitions between musl SDK and extracted libraries
-4. **Complex Dependency Chain**: VIPS requires 50+ transitive dependencies with musl compatibility
-
-**Evidence of Feasibility**: 
-- ✅ [sharp-libvips](https://github.com/lovell/sharp-libvips) successfully builds musl-compatible libvips
-- ✅ Alpine Linux provides musl-based static libraries
-- ✅ Individual libraries can be compiled for musl
-
-**Complexity Assessment**: 
-- 🔬 **High**: Requires dedicated containerized build environment
-- 🔬 **High**: Needs custom Swift SDK integration
-- 🔬 **High**: Architecture-specific assembly code resolution
-- 🔬 **Medium**: 53 static libraries with 2859 headers to manage
-
-**Alternative**: Partial static linking with `--static-swift-stdlib` eliminates Swift dependencies while maintaining C library compatibility
-
-**Recommendation**: Use the partial static build (73MB, 0 Swift deps) as the best compromise between size, compatibility, and maintainability. For full static builds, consider the sharp-libvips approach with dedicated Docker environments and significant engineering investment.
-
 ---
 
-**Last Updated**: 2025-07-11
+**Last Updated**: 2025-10-21
 **Swift Version Target**: 6.1.2 ✅
 **Platform Target**: Ubuntu Linux ✅

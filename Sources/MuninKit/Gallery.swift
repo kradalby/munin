@@ -90,28 +90,19 @@ public struct Context: @unchecked Sendable {
     self.config = config
     self.time = Timings()
 
-    if let _ = config.logPath {
-      // do {
-      // let fileLogger = try FileLogging(to: URL(fileURLWithPath: logPath))
-
+    // Set up logging system
+    if config.logPath != nil {
+      // TODO: Implement file logging when needed
       LoggingSystem.bootstrap { label in
-        let handlers: [LogHandler] = [
-          // FileLogHandler(label: label, fileLogger: fileLogger),
+        MultiplexLogHandler([
           StreamLogHandler.standardOutput(label: label)
-        ]
-        return MultiplexLogHandler(handlers)
+        ])
       }
-      // } catch {
-      //   print("Failed to set up log file, stdout only")
-      // }
     }
 
+    // Configure logger with appropriate log level
     var logger = Logger(label: "no.kradalby.MuninKit")
-    if let logLevel = config.logLevel {
-      logger.logLevel = stringToLogLevel(logLevel)
-    } else {
-      logger.logLevel = .info
-    }
+    logger.logLevel = config.logLevel.map(stringToLogLevel) ?? .info
     self.log = logger
 
     // https://www.vadimbulavin.com/grand-central-dispatch-in-swift/#limiting-work-in-progress
@@ -168,8 +159,9 @@ public struct GalleryConfiguration: Sendable {
     self.combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
   }
 
-  func allPeople() -> Set<String> {
-    return combinedPeople
+  /// All people from both the configuration and people files
+  var allPeople: Set<String> {
+    combinedPeople
   }
 }
 
@@ -177,6 +169,7 @@ struct PeopleFile: Decodable {
   let people: [String]
 }
 
+/// A photo gallery consisting of albums and photos
 public struct Gallery {
   var input: Album
   var output: Album?
@@ -192,6 +185,9 @@ public struct Gallery {
   let changedContent: Album?
 
   // swiftlint:disable function_body_length
+  /// Initialize a gallery by reading the input directory and comparing with existing output
+  ///
+  /// - Parameter ctx: The context containing configuration and state
   public init(ctx: Context) {
 
     var time = Timings()
@@ -240,6 +236,11 @@ public struct Gallery {
     print("Times: ", time)
   }
 
+  /// Build the gallery by processing photos and generating metadata
+  ///
+  /// - Parameters:
+  ///   - ctx: The context containing configuration and state
+  ///   - jsonOnly: If true, only write JSON metadata without processing images
   public func build(ctx: Context, jsonOnly: Bool) {
     if let changed = changedContent {
       ctx.log.info("Updating changed photos, resizing and writing images to disk")
@@ -282,10 +283,17 @@ public struct Gallery {
     ctx.log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
   }
 
+  /// Clean unreferenced files and folders from the gallery
+  ///
+  /// - Parameter ctx: The context containing configuration and state
   public func clean(ctx: Context) {
     input.clean(ctx: ctx)
   }
 
+  /// Generate statistics for the gallery
+  ///
+  /// - Parameter ctx: The context containing configuration and state
+  /// - Returns: Statistics object containing gallery metrics
   public func statistics(ctx: Context) -> Statistics {
     return Statistics(ctx: ctx, gallery: self)
   }

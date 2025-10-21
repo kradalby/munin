@@ -55,10 +55,10 @@ final class KeywordTests: XCTestCase {
       ])
     config = GalleryConfiguration(manager)
 
-    XCTAssertEqual(config.allPeople().count, 4)
+    XCTAssertEqual(config.allPeople.count, 4)
   }
 
   func testPeopleFilesAuto() {
-    XCTAssertEqual(config.allPeople().count, 16)
+    XCTAssertEqual(config.allPeople.count, 16)
   }
 }

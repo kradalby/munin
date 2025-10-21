@@ -177,10 +177,10 @@ extension Photo {
             }
     
         } catch {
-            ctx.log.error("Could open image \(fileURL.path)")
+            ctx.log.error("Could not open image at \(fileURL.path): \(error)")
         }
         
-      let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
+      let relativeOriginialPath = Array(repeating: "..", count: depth) + [originalImagePath]
       ctx.log.trace("Symlinking original image \(name) to \(originalImageURL)")
       do {
         try createOrReplaceSymlink(
@@ -237,29 +237,23 @@ extension Photo {
     }
   }
 
-  func expectedFiles() -> [URL] {
+  // MARK: - Computed Properties
+
+  /// All files expected to exist for this photo (JSON, symlink, and scaled versions)
+  var expectedFiles: [URL] {
     let jsonURL = URL(fileURLWithPath: url)
     let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
-    let expectedFiles =
-      [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
-
-    return expectedFiles
+    return [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
   }
 
-  func depth() -> Int {
-    let urlSeparator: Character = "/"
-    var counter = 0
-    for char in url where char == urlSeparator {
-      counter += 1
-    }
-    return counter
+  /// The depth of this photo in the directory hierarchy based on URL path
+  var depth: Int {
+    url.filter { $0 == "/" }.count
   }
 
-  func include() -> Bool {
-    for keyword in keywords where keyword.name == "NO_HUGIN" {
-      return false
-    }
-    return true
+  /// Whether this photo should be included in the gallery (excludes NO_HUGIN keyword)
+  var shouldInclude: Bool {
+    !keywords.contains { $0.name == "NO_HUGIN" }
   }
 }
 
@@ -304,24 +298,19 @@ func readPhotoFromPath(
         let height = image.size.height
         photo.width = width
         photo.height = height
-        
+
         // Determine orientation based on EXIF orientation and image dimensions
         // EXIF orientation values: 5,6,7,8 involve 90° rotation (width/height swapped)
         let exifOrientation = image.orientation
-        
-        // Check if the image should be rotated 90 or 270 degrees according to EXIF
-        let rotated90or270 = [5, 6, 7, 8].contains(exifOrientation)
-        
-        if rotated90or270 {
-            // If rotated 90/270, the effective dimensions are swapped
-            photo.orientation = width > height ? .portrait : .landscape
-        } else {
-            // Normal orientation or 180 degree rotation
-            photo.orientation = width < height ? .portrait : .landscape
-        }
-        
+        let isRotated90or270 = [5, 6, 7, 8].contains(exifOrientation)
+
+        // If rotated 90/270, effective dimensions are swapped
+        photo.orientation = isRotated90or270
+            ? (width > height ? .portrait : .landscape)
+            : (width < height ? .portrait : .landscape)
+
     } catch {
-        ctx.log.error("Could open image \(fileURL.path)")
+        ctx.log.error("Could not open image at \(fileURL.path): \(error)")
     }
 
   if let exif = exifRawDict["EXIF"] {
@@ -454,7 +443,7 @@ func readPhotoFromPath(
         name: keyword,
         url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
       )
-      if ctx.config.allPeople().contains(keyword) {
+      if ctx.config.allPeople.contains(keyword) {
         photo.people.append(keywordPointer)
       } else {
         photo.keywords.append(keywordPointer)
@@ -462,28 +451,26 @@ func readPhotoFromPath(
     }
   }
 
-  if let gpsDict = exifDict["GPS"] {
-    if let altitudeStr = gpsDict["Altitude"],
-      let latitudeStr = gpsDict["Latitude"],
-      let longitudeStr = gpsDict["Longitude"] {
-      if let altitude = Double(altitudeStr),
-        let latitude = LocationDegree.fromString(latitudeStr),
-        let longitude = LocationDegree.fromString(longitudeStr),
-        let longitudeRef = gpsDict["East or West Longitude"],
-        let latitudeRef = gpsDict["North or South Latitude"] {
-        photo.gps = GPS(
-          altitude: altitude,
-          latitude: latitudeRef == "N"
-            ? latitude.toDecimal()
-            : latitude.toDecimal() * -1,
-          longitude: longitudeRef == "E" ? longitude.toDecimal() : longitude.toDecimal() * -1
-        )
-      }
+  if let gpsDict = exifDict["GPS"],
+     let altitudeStr = gpsDict["Altitude"],
+     let latitudeStr = gpsDict["Latitude"],
+     let longitudeStr = gpsDict["Longitude"],
+     let altitude = Double(altitudeStr),
+     let latitude = LocationDegree.fromString(latitudeStr),
+     let longitude = LocationDegree.fromString(longitudeStr),
+     let longitudeRef = gpsDict["East or West Longitude"],
+     let latitudeRef = gpsDict["North or South Latitude"] {
 
-    }
+    let latitudeDecimal = latitudeRef == "N" ? latitude.toDecimal() : -latitude.toDecimal()
+    let longitudeDecimal = longitudeRef == "E" ? longitude.toDecimal() : -longitude.toDecimal()
 
+    photo.gps = GPS(
+      altitude: altitude,
+      latitude: latitudeDecimal,
+      longitude: longitudeDecimal
+    )
   } else {
-    ctx.log.warning("GPS tag not found for photo, some metatags will be unavailable")
+    ctx.log.trace("GPS tag not found for photo")
   }
 
   photo.keywords = Array(Set(photo.keywords)).sorted()
