@@ -3,19 +3,7 @@ import VIPS
 
 @testable import MuninKit
 
-// Global VIPS initialization for all tests with proper thread safety
-private let vipsInitialized: Void = {
-  // Set environment variables to force VIPS into single-threaded mode
-  setenv("VIPS_CONCURRENCY", "1", 1)
-  setenv("VIPS_WORKERS", "1", 1)
-  setenv("G_SLICE", "always-malloc", 1)
-  
-  do {
-    try VIPS.start(concurrency: 1)
-  } catch {
-    fatalError("Failed to initialize VIPS for tests: \(error)")
-  }
-}()
+// Use centralized VIPS initialization
 
 final class PhotoTests: XCTestCase {
   let photoPath = "example/album/2017/2017-12-22 Juleferie/20171222-132846-20171222-IMG_5259.jpg"
@@ -29,7 +17,7 @@ final class PhotoTests: XCTestCase {
     super.setUp()
     
     // Ensure VIPS is initialized once globally
-    _ = vipsInitialized
+    VIPSSetup.initialize()
   }
 
   func test() {
@@ -42,6 +30,7 @@ final class PhotoTests: XCTestCase {
   func testExpectedValuesRead() {
     var manager = ConfigurationManager()
     manager.load(file: configPath, relativeFrom: .customPath(""))
+    manager.load(["concurrency": 1])  // Force single-threaded processing for tests
     let config = GalleryConfiguration(manager)
 
     let ctx = Context(config: config)
@@ -110,6 +99,7 @@ final class PhotoTests: XCTestCase {
   func testExpectedFiles() {
     var manager = ConfigurationManager()
     manager.load(file: configPath, relativeFrom: .customPath(""))
+    manager.load(["concurrency": 1])  // Force single-threaded processing for tests
     let config = GalleryConfiguration(manager)
 
     let ctx = Context(config: config)

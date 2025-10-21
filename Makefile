@@ -15,6 +15,9 @@ build:
 build-release:
 	swift build --configuration release
 
+build-static:
+	swift build --static-swift-stdlib --configuration release
+
 test:
 	swift test
 
@@ -39,7 +42,7 @@ fmt:
 	swift-format --recursive --in-place Sources/ Package.swift
 
 run: build
-	./.build/x86_64-apple-macosx/debug/munin
+	./.build/x86_64-unknown-linux-gnu/debug/munin
 
 reset-lsp:
 	swift package reset

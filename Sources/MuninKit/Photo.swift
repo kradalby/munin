@@ -298,10 +298,6 @@ func readPhotoFromPath(
     parents: parents
   )
     
-    // Serialize VIPS access to prevent crashes in concurrent environments
-    ctx.vipsSema.wait()
-    defer { ctx.vipsSema.signal() }
-    
     do {
         let image = try VIPSImage(fromFilePath: fileURL.path)
         let width = image.size.width
