@@ -1,19 +1,24 @@
-name: Build
+name: Build and Test
 
 on:
   push:
     branches:
       - master
+      - main
+      - swift-61
+      - 'claude/**'
   pull_request:
     branches:
       - master
+      - main
+      - swift-61
 
 concurrency:
   group: ${{ github.workflow }}-$${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -25,7 +30,12 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Run build
+      - name: Build project
         id: build
         run: |
           nix build
+
+      - name: Run tests
+        id: test
+        run: |
+          nix develop --command make test
