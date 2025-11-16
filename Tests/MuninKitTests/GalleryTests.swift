@@ -109,9 +109,12 @@ final class GalleryTests: XCTestCase {
     gallery.build(ctx: ctx, jsonOnly: false)
 
     let fm = FileManager()
-    let deletePath = joinPath(testDirectoryPath, testName, "2018", "2018-03-10_Alkmaar")
+    let deletePath = joinPath(testDirectoryPath, testName, "root", "2018", "2018-03-10_AlkmaarÆØÅæøå")
     do {
       try fm.removeItem(atPath: deletePath)
+      // Also delete index.json files so Gallery rebuilds from directory structure
+      try? fm.removeItem(atPath: joinPath(testDirectoryPath, testName, "root", "index.json"))
+      try? fm.removeItem(atPath: joinPath(testDirectoryPath, testName, "root", "2018", "index.json"))
     } catch {
       print("Failed to delete directory in test output during test: " + deletePath)
       XCTFail()
@@ -152,7 +155,7 @@ final class GalleryTests: XCTestCase {
       "20180310-151102-IMG_6018.json",
       "20180310-151205-IMG_6019.json",
     ] {
-      let deletePath = joinPath(testDirectoryPath, testName, "2018", "2018-03-10_Alkmaar", photo)
+      let deletePath = joinPath(testDirectoryPath, testName, "root", "2018", "2018-03-10_AlkmaarÆØÅæøå", photo)
       do {
         try fm.removeItem(atPath: deletePath)
       } catch {
@@ -161,6 +164,11 @@ final class GalleryTests: XCTestCase {
       }
 
     }
+
+    // Delete index.json files so Gallery rebuilds from directory structure
+    try? fm.removeItem(atPath: joinPath(testDirectoryPath, testName, "root", "index.json"))
+    try? fm.removeItem(atPath: joinPath(testDirectoryPath, testName, "root", "2018", "index.json"))
+    try? fm.removeItem(atPath: joinPath(testDirectoryPath, testName, "root", "2018", "2018-03-10_AlkmaarÆØÅæøå", "index.json"))
 
     let gallery2 = Gallery(ctx: ctx)
     XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
