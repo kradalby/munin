@@ -8,7 +8,7 @@
 import Foundation
 import Logging
 
-public struct Statistics: Codable {
+public struct Statistics: Codable, Sendable {
   var originalPhotos: Int
   var writtenPhotos: Int
   var albums: Int

@@ -10,7 +10,7 @@ import Foundation
 import Logging
 
 // swiftlint:disable file_length
-struct Album: Hashable, Comparable, Diffable {
+struct Album: Hashable, Comparable, Diffable, Sendable {
   var name: String
   var url: String
   var path: String
@@ -95,7 +95,7 @@ extension Album: Encodable {
   }
 }
 
-struct PhotoInAlbum: Codable {
+struct PhotoInAlbum: Codable, Sendable {
   var url: String
   var dateTime: Date
   var originalImageURL: String
@@ -103,7 +103,7 @@ struct PhotoInAlbum: Codable {
   var gps: GPS?
 }
 
-struct AlbumInAlbum: Codable {
+struct AlbumInAlbum: Codable, Sendable {
   var url: String
   var name: String
   var scaledPhotos: [ScaledPhoto]

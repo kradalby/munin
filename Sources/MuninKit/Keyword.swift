@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 
-struct Keyword: Hashable, Comparable {
+struct Keyword: Hashable, Comparable, Sendable {
   var name: String
   var url: String
   var photos: Set<Photo>
@@ -135,7 +135,7 @@ func buildPeopleFromAlbum(album: Album) -> [Keyword] {
   return temporary.values.map { $0 }.sorted()
 }
 
-struct KeywordPointer: Hashable, Comparable, Codable {
+struct KeywordPointer: Hashable, Comparable, Codable, Sendable {
   var name: String
   var url: String
 

@@ -1,6 +1,6 @@
 import Foundation
 
-struct LocationDegree: AutoEquatable {
+struct LocationDegree: AutoEquatable, Sendable {
   let degrees: Double
   let minutes: Double
   let seconds: Double

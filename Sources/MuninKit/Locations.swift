@@ -8,7 +8,7 @@
 import Foundation
 import Logging
 
-public struct Locations: Codable {
+public struct Locations: Codable, Sendable {
   var locations: [Location]
 
   init(gallery: Gallery) {
@@ -39,7 +39,7 @@ public struct Locations: Codable {
   }
 }
 
-struct Location: Codable, Comparable {
+struct Location: Codable, Comparable, Sendable {
   var url: String
   var gps: GPS
   var scaledPhotos: [ScaledPhoto]

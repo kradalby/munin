@@ -16,7 +16,7 @@ let photoToWriteGroup = DispatchGroup()
 let photoWriteGroup = DispatchGroup()
 let photoToReadGroup = DispatchGroup()
 
-struct Timings {
+struct Timings: Sendable {
   var readInputDirectory: TimeInterval?
   var readOutputDirectory: TimeInterval?
   var generateDiff: TimeInterval?
@@ -123,7 +123,7 @@ public struct Context: @unchecked Sendable {
   }
 }
 
-public struct GalleryConfiguration {
+public struct GalleryConfiguration: Sendable {
   let name: String
   let people: [String]
   let peopleFiles: [String]
@@ -172,11 +172,11 @@ public struct GalleryConfiguration {
   }
 }
 
-struct PeopleFile: Decodable {
+struct PeopleFile: Decodable, Sendable {
   let people: [String]
 }
 
-public struct Gallery {
+public struct Gallery: Sendable {
   var input: Album
   var output: Album?
 

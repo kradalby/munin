@@ -11,7 +11,7 @@ import Logging
 import SwiftExif
 import VIPS
 
-struct Photo: Codable, Comparable, Hashable, Diffable {
+struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
   var name: String
   var url: String
   var originalImageURL: String
@@ -92,7 +92,7 @@ struct Photo: Codable, Comparable, Hashable, Diffable {
   }
 }
 
-struct ScaledPhoto: Codable, AutoEquatable, Comparable {
+struct ScaledPhoto: Codable, AutoEquatable, Comparable, Sendable {
   var url: String
   var maxResolution: Int
 
@@ -101,20 +101,20 @@ struct ScaledPhoto: Codable, AutoEquatable, Comparable {
   }
 }
 
-struct GPS: Codable, AutoEquatable {
+struct GPS: Codable, AutoEquatable, Sendable {
   var altitude: Double
   var latitude: Double
   var longitude: Double
 }
 
-struct LocationData: Codable, AutoEquatable {
+struct LocationData: Codable, AutoEquatable, Sendable {
   var city: String
   var state: String
   var locationCode: String
   var locationName: String
 }
 
-enum Orientation: String, Codable {
+enum Orientation: String, Codable, Sendable {
   case landscape
   case portrait
 }
