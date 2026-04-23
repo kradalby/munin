@@ -7,13 +7,19 @@ import Foundation
 /// `ctx.config.concurrency` so we never have more than N VIPS/EXIF reads in
 /// flight at once. Sub-album directories are traversed sequentially (they in
 /// turn parallelise their own photo reads).
+///
+/// `priorPhotos`, when supplied, is a lookup of previously-written photos
+/// keyed by output URL (e.g. `/out/root/Misc/portrait_mm.json`). Each
+/// per-photo read consults the map so unchanged files skip the full
+/// EXIF/VIPS/hash cost — see `Photo+Read.swift` for the decision tree.
 func readStateFromInputDirectory(
   ctx: Context,
   atPath: String,
   outPath: String,
   name: String,
   parents: [Parent],
-  sem: AsyncSemaphore? = nil
+  sem: AsyncSemaphore? = nil,
+  priorPhotos: [String: Photo] = [:]
 ) async throws -> Album {
   let sem = sem ?? AsyncSemaphore(value: max(ctx.config.concurrency, 1))
   ctx.log.trace("Creating album from path: \(joinPath(atPath))")
@@ -33,7 +39,8 @@ func readStateFromInputDirectory(
       outPath: joinPath(outPath, name),
       name: directory,
       parents: capturedParents,
-      sem: sem
+      sem: sem,
+      priorPhotos: priorPhotos
     )
     album.albums.insert(childAlbum)
     album.keywords = album.keywords.union(childAlbum.keywords)
@@ -55,6 +62,13 @@ func readStateFromInputDirectory(
         continue
       }
 
+      // Precompute the Photo's URL the same way readPhotoFromPath does,
+      // then consult priorPhotos. Keyed by URL (not by source path) so
+      // moving the source tree without changing the output root still
+      // hits the cache.
+      let photoUrl = "\(joinPath(albumOutPath, fileNameWithoutExt)).json"
+      let prior = priorPhotos[photoUrl]
+
       await sem.wait()
       group.addTask {
         let photo = readPhotoFromPath(
@@ -63,7 +77,8 @@ func readStateFromInputDirectory(
           name: fileNameWithoutExt,
           fileExtension: fileExt,
           parents: capturedParents,
-          ctx: ctx
+          ctx: ctx,
+          prior: prior
         )
         await ctx.state.updatePhotosToWrite(name: filePath)
         await sem.signal()

@@ -194,6 +194,13 @@ public struct Gallery: Sendable {
   /// Load a gallery by reading the configured input directory, optionally
   /// diffing it against an existing output directory.
   ///
+  /// The on-disk output is read **before** the input so the input read
+  /// pipeline can consult each photo's prior (`fileSize`, `modifiedDate`,
+  /// `sourceHash`) to skip EXIF/VIPS/hashing for files that are still
+  /// untouched on disk. This is critical on large galleries (tens of
+  /// thousands of photos) where hashing every file on every run would
+  /// otherwise dominate rebuild time.
+  ///
   /// - Parameter ctx: Shared configuration/state/log for the build.
   /// - Returns: A `Gallery` with its input tree populated and, if an
   ///   existing output directory was found, its `output` and `changedContent`
@@ -201,30 +208,36 @@ public struct Gallery: Sendable {
   public static func load(ctx: Context) async throws -> Gallery {
     var time = Timings()
 
+    // Step 1: read the previous output tree so we can feed each photo's
+    // prior back into the input pipeline as a cache key.
+    ctx.log.debug(
+      "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
+    let outputStart = Date()
+    let outputAlbum = readStateFromOutputDirectory(
+      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
+    if outputAlbum != nil {
+      time.readOutputDirectory = Date().timeIntervalSince(outputStart)
+      ctx.log.debug("Output directory read from disk")
+    }
+    let priorPhotos = buildPriorPhotoMap(from: outputAlbum)
+
+    // Step 2: read the input, consulting priorPhotos per file.
     let inputStart = Date()
     let input = try await readStateFromInputDirectory(
       ctx: ctx,
       atPath: ctx.config.inputPath,
       outPath: ctx.config.outputPath,
       name: ctx.config.name,
-      parents: []
+      parents: [],
+      priorPhotos: priorPhotos
     )
     await ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
-
-    ctx.log.debug(
-      "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
-    let outputStart = Date()
-    let outputAlbum = readStateFromOutputDirectory(
-      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
 
     var output: Album? = nil
     var changedContent: Album? = nil
 
     if let outputAlbum {
-      time.readOutputDirectory = Date().timeIntervalSince(outputStart)
-      ctx.log.debug("Output directory read from disk")
-
       ctx.log.debug("Creating diff between input and output album")
       let diffStart = Date()
       let changed = computeChangedPhotos(input: input, output: outputAlbum)
@@ -242,6 +255,17 @@ public struct Gallery: Sendable {
     print("Times: ", time)
 
     return Gallery(input: input, output: output, changedContent: changedContent)
+  }
+
+  /// Flatten the output album's photos into a `url → Photo` map so the
+  /// input-read pipeline can look up each incoming file's prior in O(1).
+  private static func buildPriorPhotoMap(from album: Album?) -> [String: Photo] {
+    guard let album else { return [:] }
+    var out: [String: Photo] = [:]
+    for photo in album.flattenPhotos() {
+      out[photo.url] = photo
+    }
+    return out
   }
 
   public func build(ctx: Context, jsonOnly: Bool) async throws {

@@ -53,6 +53,13 @@ struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
   /// every photo is treated as changed exactly once.
   var sourceHash: String?
 
+  /// Size in bytes of the source image at read time. Paired with
+  /// ``modifiedDate`` to form a cheap cache key: if `(fileSize,
+  /// modifiedDate)` match what's on disk at the start of a later build,
+  /// the source has not been touched at all and the full read
+  /// (EXIF/VIPS/hash) can be skipped. Optional for on-disk back-compat.
+  var fileSize: Int?
+
   var keywords: [KeywordPointer]
   var people: [KeywordPointer]
   var next: String?

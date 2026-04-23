@@ -8,6 +8,25 @@ import VIPS
 /// Returns `nil` only if VIPS could not open the image at all; all lesser
 /// failures (missing EXIF block, missing GPS, etc.) are logged at trace
 /// level and produce a partially-populated `Photo`.
+///
+/// When `prior` is supplied (the previously-written `Photo` for this
+/// output URL), the function takes one of three fast paths before falling
+/// through to the full EXIF/VIPS/hash read:
+///
+/// 1. **Cache hit**: `prior.fileSize` and `prior.modifiedDate` match the
+///    file on disk AND `prior.sourceHash` is non-nil. Nothing has been
+///    touched; return `prior` verbatim. No hash, no EXIF, no VIPS.
+/// 2. **Upgrade path**: `(fileSize, modifiedDate)` match but
+///    `prior.sourceHash` is nil (pre-sourceHash output). Hash the bytes,
+///    attach the hash to `prior`, return it. Subsequent runs hit path 1.
+/// 3. **Mtime drift**: `(fileSize, modifiedDate)` differ but hashing the
+///    current bytes yields `prior.sourceHash`. The file was touched but
+///    bytes are unchanged; refresh the cache keys on `prior` and return
+///    it. The next run hits path 1.
+///
+/// Any other case — prior absent, prior hashless with a drift, or hash
+/// mismatch — falls through to the full read, which computes a fresh
+/// sourceHash and produces a new Photo.
 // swiftlint:disable:next cyclomatic_complexity function_body_length
 func readPhotoFromPath(
   atPath: String,
@@ -15,12 +34,65 @@ func readPhotoFromPath(
   name: String,
   fileExtension: String,
   parents: [Parent],
-  ctx: Context
+  ctx: Context,
+  prior: Photo? = nil
 ) -> Photo? {
+  let fileURL = URL(fileURLWithPath: atPath)
+  let currentMtime = fileModificationDate(url: fileURL) ?? Date()
+  let currentSize = fileSizeInBytes(url: fileURL)
+
+  // One-shot hash: compute on demand at most once per call. Used by
+  // fast-path 2 (upgrade), fast-path 3 (mtime drift), and the slow-path
+  // write to `photo.sourceHash` below.
+  var computedHash: String?? = nil
+  func currentHash() -> String? {
+    if let cached = computedHash { return cached }
+    let value = try? ContentHash.sha256(ofFileAt: atPath)
+    computedHash = value
+    return value
+  }
+
+  // Fast path 1 + 2: on-disk (size, mtime) still match the recorded
+  // cache keys on prior.
+  if let prior,
+    let priorSize = prior.fileSize,
+    let currentSize,
+    priorSize == currentSize,
+    prior.modifiedDate == currentMtime
+  {
+    var reused = prior
+    if reused.sourceHash == nil {
+      // Upgrade path: store a hash this time so future runs hit the
+      // pure no-op case.
+      reused.sourceHash = currentHash()
+      reused.fileSize = currentSize
+    }
+    applyConfigDerivedFields(
+      to: &reused, outPath: outPath, name: name, fileExtension: fileExtension, ctx: ctx)
+    return reused
+  }
+
+  // Fast path 3: mtime or size drifted. Hash the current bytes once and
+  // compare against the recorded hash. Matching bytes mean the file was
+  // touched but content is unchanged — reuse prior and refresh the
+  // cache keys so subsequent runs hit path 1.
+  if let prior,
+    let priorHash = prior.sourceHash,
+    let newHash = currentHash(),
+    priorHash == newHash
+  {
+    var reused = prior
+    reused.modifiedDate = currentMtime
+    reused.fileSize = currentSize
+    applyConfigDerivedFields(
+      to: &reused, outPath: outPath, name: name, fileExtension: fileExtension, ctx: ctx)
+    return reused
+  }
+
+  // Slow path: genuine change (or no prior). Read EXIF, probe with
+  // VIPS, compute a fresh hash.
   let dateFormatter = DateFormatter()
   dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-
-  let fileURL = URL(fileURLWithPath: atPath)
 
   let exifImage = SwiftExif.Image(imagePath: fileURL)
   let exifDict = exifImage.Exif()
@@ -33,19 +105,18 @@ func readPhotoFromPath(
     originalImageURL: "\(joinPath(outPath, name))_original.\(fileExtension)",
     originalImagePath: atPath,
     scaledPhotos: [],
-    // If no modifiation date is available, use now.
-    modifiedDate: fileModificationDate(url: fileURL) ?? Date(),
+    modifiedDate: currentMtime,
     parents: parents
   )
+  photo.fileSize = currentSize
 
   // sourceHash is the incremental-rebuild signal: identical bytes →
-  // equal Photo → no re-encode. A hash failure here is non-fatal (the
-  // photo falls back to nil, which compares unequal to any hashed
-  // counterpart and forces a rebuild — the conservative choice).
-  do {
-    photo.sourceHash = try ContentHash.sha256(ofFileAt: atPath)
-  } catch {
-    ctx.log.warning("Could not hash source photo at \(atPath): \(error)")
+  // equal Photo → no re-encode. Reuse `currentHash()`'s cache so fast
+  // path 3 above (which hashed to compare against the prior) doesn't
+  // cause a redundant second read.
+  photo.sourceHash = currentHash()
+  if photo.sourceHash == nil {
+    ctx.log.warning("Could not hash source photo at \(atPath)")
   }
 
   do {
@@ -230,4 +301,46 @@ func readPhotoFromPath(
   photo.people = Array(Set(photo.people)).sorted()
 
   return photo
+}
+
+/// Re-derive the parts of a reused `Photo` that depend on configuration
+/// rather than source bytes. Call this on the fast path after trusting
+/// the prior's EXIF/dimensions so a config change (resolutions,
+/// peopleFiles) still propagates to the emitted JSON without incurring
+/// EXIF/VIPS/hash work.
+///
+/// Fields touched:
+/// - `scaledPhotos`: recomputed from the current `ctx.config.resolutions`
+///   using the prior's cached `width`/`height` for the max-resolution
+///   filter.
+/// - `keywords` / `people`: the union of both lists is re-split against
+///   `ctx.config.allPeople`, so adding or removing an entry from
+///   `peopleFiles` moves the pointer to the other bucket on the next
+///   build.
+private func applyConfigDerivedFields(
+  to photo: inout Photo,
+  outPath: String,
+  name: String,
+  fileExtension: String,
+  ctx: Context
+) {
+  let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
+  photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map {
+    ScaledPhoto(
+      url: "\(joinPath(outPath, name))_\($0).\(fileExtension)",
+      maxResolution: $0
+    )
+  }
+
+  var newKeywords: [KeywordPointer] = []
+  var newPeople: [KeywordPointer] = []
+  for pointer in photo.keywords + photo.people {
+    if ctx.config.allPeople.contains(pointer.name) {
+      newPeople.append(pointer)
+    } else {
+      newKeywords.append(pointer)
+    }
+  }
+  photo.keywords = Array(Set(newKeywords)).sorted()
+  photo.people = Array(Set(newPeople)).sorted()
 }

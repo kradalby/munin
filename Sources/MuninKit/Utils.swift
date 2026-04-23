@@ -101,6 +101,21 @@ func fileModificationDate(url: URL) -> Date? {
   }
 }
 
+/// Byte count of the file at `url`, or `nil` if the size cannot be read.
+/// Used (together with `fileModificationDate`) as a cache key on `Photo`
+/// so an unchanged source file can skip both hashing and EXIF/VIPS work.
+func fileSizeInBytes(url: URL) -> Int? {
+  do {
+    let attr = try FileManager.default.attributesOfItem(atPath: url.path)
+    if let size = attr[FileAttributeKey.size] as? NSNumber {
+      return size.intValue
+    }
+    return nil
+  } catch {
+    return nil
+  }
+}
+
 func prettyPrintAlbum(_ album: Album, marker: String = "") {
   let indentCharacter = "  "
   func prettyPrintAlbumRecursive(_ album: Album, indent: Int) {
