@@ -249,28 +249,25 @@ public struct Gallery: Sendable {
     return Gallery(input: input, output: output, changedContent: changedContent)
   }
 
-  public func build(ctx: Context, jsonOnly: Bool) {
+  public func build(ctx: Context, jsonOnly: Bool) async throws {
+    let sem = AsyncSemaphore(value: max(ctx.config.concurrency, 1))
+
     if let changed = changedContent {
       ctx.log.info("Updating changed photos, resizing and writing images to disk")
-      // ctx.state.reset(photosToWrite: added.numberOfPhotos(travers: true), photosWritten: 0)
-      changed.write(ctx: ctx, writeJson: false, writeImage: !jsonOnly)
-      // Wait for all photos to be written to disk
-      photoWriteGroup.wait()
+      try await changed.write(
+        ctx: ctx, writeJson: false, writeImage: !jsonOnly, sem: sem)
     }
 
     ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
     if output == nil {
       ctx.log.info("First run, creating images and metadata")
-      input.write(ctx: ctx, writeJson: true, writeImage: true)
+      try await input.write(ctx: ctx, writeJson: true, writeImage: true, sem: sem)
     } else {
       ctx.log.info("Updating changed photos, writing JSON metadata to disk")
       // We have already changed the actual image files, so we only write json
-      input.write(ctx: ctx, writeJson: true, writeImage: false)
+      try await input.write(ctx: ctx, writeJson: true, writeImage: false, sem: sem)
     }
-
-    // Wait for all photos to be written to disk
-    photoWriteGroup.wait()
 
     let writeJsonEnd = Date()
     ctx.log.info("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")

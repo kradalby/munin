@@ -36,7 +36,7 @@ struct Munin: AsyncParsableCommand {
 
     if !dry {
       let start = Date()
-      gallery.build(ctx: ctx, jsonOnly: json)
+      try await gallery.build(ctx: ctx, jsonOnly: json)
       let end = Date()
       let executionTime = end.timeIntervalSince(start)
 

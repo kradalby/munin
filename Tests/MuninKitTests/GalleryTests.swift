@@ -74,7 +74,7 @@ final class GalleryTests: XCTestCase {
     XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
-    gallery.build(ctx: ctx, jsonOnly: false)
+    try await gallery.build(ctx: ctx, jsonOnly: false)
 
     let gallery2 = try await Gallery.load(ctx: ctx)
     XCTAssertNotNil(gallery2.output)
@@ -107,7 +107,7 @@ final class GalleryTests: XCTestCase {
     XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
-    gallery.build(ctx: ctx, jsonOnly: false)
+    try await gallery.build(ctx: ctx, jsonOnly: false)
 
     // Output, empty, does nothing
     gallery.clean(ctx: ctx)
