@@ -54,6 +54,88 @@ struct IncrementalRebuildTests {
       "scaled images were rewritten with identical bytes (wasted work): \(scaledWritten)")
   }
 
+  /// Full-scale proof that three back-to-back rebuilds of the entire
+  /// example gallery never re-encode a single scaled image.
+  ///
+  /// This is the test that directly contradicts "incremental doesn't work
+  /// in practice": if any of the 104 photos had been re-encoded on any of
+  /// the three subsequent rebuilds, the corresponding path would appear
+  /// in `rewrittenIdentical` (or `byteChanged`) at least once and the
+  /// assertion would fail with the offending path.
+  @Test func threeFullGalleryRebuildsNeverReencodeAnyImage() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let baseline = try harness.snapshotOutput()
+
+    // Sanity: the first build actually wrote enough scaled images to make
+    // this test meaningful.
+    let initialScaled = scaledImagePaths(in: Array(baseline.entries.keys))
+    #expect(
+      initialScaled.count >= 100,
+      "expected >=100 scaled images from full example gallery, got \(initialScaled.count)")
+
+    var previous = baseline
+    for run in 1...3 {
+      try await sleepPastMtimeResolution()
+      try await harness.buildAndClean()
+      let current = try harness.snapshotOutput()
+      let diff = previous.diff(against: current)
+
+      let scaledTouched = scaledImagePaths(
+        in: diff.byteChanged + diff.rewrittenIdentical)
+      #expect(
+        scaledTouched == [],
+        "run #\(run) of an idempotent rebuild touched \(scaledTouched.count) scaled image(s): \(scaledTouched.prefix(5))"
+      )
+      #expect(
+        diff.added == [],
+        "run #\(run) added files: \(diff.added.prefix(5))")
+      #expect(
+        diff.removed == [],
+        "run #\(run) removed files: \(diff.removed.prefix(5))")
+      previous = current
+    }
+  }
+
+  /// Regression guard against the pre-sourceHash behaviour. Bumps every
+  /// source file's mtime between builds and verifies that the incremental
+  /// pipeline still considers the gallery unchanged.
+  ///
+  /// Under the old `modifiedDate`-in-equality semantics this test would
+  /// re-encode every photo; under content-hash equality it must be a
+  /// no-op at the image level.
+  @Test func touchingEverySourceFileMtimeDoesNotReencodeAnyImage() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let before = try harness.snapshotOutput()
+
+    try await sleepPastMtimeResolution()
+
+    // Touch every source photo — the moral equivalent of the user
+    // running `rsync` without `-t`, restoring from a backup that
+    // doesn't preserve mtimes, or running `touch -r nowfile *.jpg`.
+    try touchEverySourcePhoto(under: fixture.sourceRoot)
+
+    try await harness.buildAndClean()
+    let after = try harness.snapshotOutput()
+
+    let diff = before.diff(against: after)
+    let scaledTouched = scaledImagePaths(
+      in: diff.byteChanged + diff.rewrittenIdentical)
+    #expect(
+      scaledTouched == [],
+      "mtime-only drift on every source file re-encoded \(scaledTouched.count) scaled image(s): \(scaledTouched.prefix(5))"
+    )
+  }
+
   // MARK: - Mtime-only bump on a single photo
 
   @Test func touchingSourceMtimeDoesNotReencodeImage() async throws {
@@ -453,6 +535,22 @@ struct IncrementalRebuildTests {
       // matter for "was libvips re-run".
       let stem = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
       return stem.contains("_") && !stem.hasSuffix("_original")
+    }
+  }
+
+  /// Recursively bump the modification time of every photo (`*.jpg`,
+  /// `*.jpeg`, `*.JPG`, `*.JPEG`) under `root` to "now".
+  private func touchEverySourcePhoto(under root: String) throws {
+    let fm = FileManager.default
+    guard
+      let enumerator = fm.enumerator(
+        at: URL(fileURLWithPath: root), includingPropertiesForKeys: nil)
+    else { return }
+    let extensions: Set<String> = ["jpg", "jpeg", "JPG", "JPEG"]
+    let now = Date()
+    for case let url as URL in enumerator {
+      guard extensions.contains(url.pathExtension) else { continue }
+      try fm.setAttributes([.modificationDate: now], ofItemAtPath: url.path)
     }
   }
 }
