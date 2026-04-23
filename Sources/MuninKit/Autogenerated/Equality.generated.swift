@@ -217,12 +217,13 @@ extension Photo: Equatable {
     guard lhs.people == rhs.people else {
       return false
     }
-    guard lhs.next == rhs.next else {
-      return false
-    }
-    guard lhs.previous == rhs.previous else {
-      return false
-    }
+    // `next` and `previous` are derived navigation fields computed from the
+    // sorted album order at read time. Including them in Equatable makes
+    // diff detection spuriously flag every photo in an album whenever a
+    // neighbour is added/removed, even when the photo itself is unchanged.
+    //
+    // If this stencil ever gets regenerated via Sourcery, preserve this
+    // exclusion. See MUNIN_MODERNISE_PLAN.md.
     return true
   }
 }

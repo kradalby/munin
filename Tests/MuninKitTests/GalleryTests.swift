@@ -83,9 +83,16 @@ final class GalleryTests: XCTestCase {
   }
 
   func testDiffGalleryNoDiff() async throws {
-    // TODO(commit 18): Re-enable after Photo.Equatable stops comparing the
-    // `next` / `previous` navigation fields, which spuriously trigger diffs.
-    throw XCTSkip("Depends on Photo equality fix (commit 18)")
+    let gallery = try await Gallery.load(ctx: ctx)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
+    XCTAssertNil(gallery.output)
+
+    try await gallery.build(ctx: ctx, jsonOnly: false)
+
+    let gallery2 = try await Gallery.load(ctx: ctx)
+
+    XCTAssertNil(gallery2.changedContent)
   }
 
   func testDiffGalleryAddedAlbum() async throws {
