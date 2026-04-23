@@ -1,4 +1,3 @@
-import Configuration
 import Foundation
 import XCTest
 

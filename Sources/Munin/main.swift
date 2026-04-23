@@ -1,5 +1,4 @@
 import ArgumentParser
-import Configuration
 import Foundation
 import Logging
 import MuninKit

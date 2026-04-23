@@ -1,15 +1,6 @@
 {
-  "originHash" : "e44dbf4c76e4d29533453ce27ec475919aad718882b8417efdd7e584dab60e58",
+  "originHash" : "2060f9b01c3880e46a7f9d18802180c8c3e87cbf34f75824641b725185a1f90e",
   "pins" : [
-    {
-      "identity" : "configuration",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Kitura/Configuration.git",
-      "state" : {
-        "revision" : "75fb96405263e72a2ed4546dceebe0993b92eb79",
-        "version" : "3.1.0"
-      }
-    },
     {
       "identity" : "console-kit",
       "kind" : "remoteSourceControl",
@@ -17,24 +8,6 @@
       "state" : {
         "revision" : "32ad16dfc7677b927b225595ed18f3debb32f577",
         "version" : "4.16.0"
-      }
-    },
-    {
-      "identity" : "filekit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Kitura/FileKit.git",
-      "state" : {
-        "revision" : "9d3ddb89a16d388eaad0db5e17c4682b767bd48f",
-        "version" : "1.1.0"
-      }
-    },
-    {
-      "identity" : "loggerapi",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Kitura/LoggerAPI.git",
-      "state" : {
-        "revision" : "4e6b45e850ffa275e8e26a24c6454fd709d5b6ac",
-        "version" : "2.0.0"
       }
     },
     {
