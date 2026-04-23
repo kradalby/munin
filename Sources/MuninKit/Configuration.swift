@@ -125,11 +125,30 @@ public final class ConfigurationManager {
     self.base = MuninConfiguration()
   }
 
+  /// Load configuration from a JSON file, silently falling back to the
+  /// existing in-memory values if the file is missing or invalid.
+  ///
+  /// This is the historical behaviour and matches how the old Kitura
+  /// `ConfigurationManager` worked. Callers that want to detect and
+  /// diagnose a malformed or missing file should use
+  /// `loadOrThrow(file:relativeFrom:)` instead.
   @discardableResult
   public func load(
     file path: String,
     relativeFrom: ConfigurationRelativePath = .pwd
   ) -> ConfigurationManager {
+    try? loadOrThrow(file: path, relativeFrom: relativeFrom)
+    return self
+  }
+
+  /// Load configuration from a JSON file, throwing
+  /// `MuninError.configurationFileUnreadable` if the file is missing or
+  /// cannot be decoded.
+  @discardableResult
+  public func loadOrThrow(
+    file path: String,
+    relativeFrom: ConfigurationRelativePath = .pwd
+  ) throws -> ConfigurationManager {
     let resolvedPath: String
     switch relativeFrom {
     case .pwd:
@@ -137,13 +156,19 @@ public final class ConfigurationManager {
     case .customPath(let basePath):
       resolvedPath = basePath.isEmpty ? path : basePath + "/" + path
     }
-    guard
-      let data = try? Data(contentsOf: URL(fileURLWithPath: resolvedPath)),
-      let loaded = try? JSONDecoder().decode(MuninConfiguration.self, from: data)
-    else {
-      return self
+    let data: Data
+    do {
+      data = try Data(contentsOf: URL(fileURLWithPath: resolvedPath))
+    } catch {
+      throw MuninError.configurationFileUnreadable(
+        path: resolvedPath, underlying: String(describing: error))
     }
-    self.base = loaded
+    do {
+      self.base = try JSONDecoder().decode(MuninConfiguration.self, from: data)
+    } catch {
+      throw MuninError.configurationFileUnreadable(
+        path: resolvedPath, underlying: String(describing: error))
+    }
     return self
   }
 

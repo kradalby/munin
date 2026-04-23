@@ -79,4 +79,39 @@ final class ConfigurationTests: XCTestCase {
     let manager = ConfigurationManager()
     XCTAssertNil(manager["totally-unknown-key"])
   }
+
+  func testLoadOrThrowMissingFileThrowsTypedError() {
+    let manager = ConfigurationManager()
+    XCTAssertThrowsError(
+      try manager.loadOrThrow(file: "/definitely/does/not/exist.json")
+    ) { error in
+      guard case MuninError.configurationFileUnreadable = error else {
+        XCTFail("Expected .configurationFileUnreadable, got \(error)")
+        return
+      }
+    }
+  }
+
+  func testLoadOrThrowMalformedJSONThrowsTypedError() throws {
+    let tmp = URL(
+      fileURLWithPath: NSTemporaryDirectory()
+    ).appendingPathComponent("munin-bad-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    try Data("{ this is not json".utf8).write(to: tmp)
+
+    let manager = ConfigurationManager()
+    XCTAssertThrowsError(try manager.loadOrThrow(file: tmp.path)) { error in
+      guard case MuninError.configurationFileUnreadable = error else {
+        XCTFail("Expected .configurationFileUnreadable, got \(error)")
+        return
+      }
+    }
+  }
+
+  func testLoadIsSilentOnMissingFile() {
+    let manager = ConfigurationManager()
+    _ = manager.load(file: "/definitely/does/not/exist.json")
+    // Still works with defaults.
+    XCTAssertEqual(manager["name"] as? String, "root")
+  }
 }
