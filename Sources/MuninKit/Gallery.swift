@@ -84,9 +84,9 @@ public struct Context: Sendable {
       // TODO(FUTURES.md): implement file logging. For now the log path hint
       // upgrades the logger to MultiplexLogHandler so a future file handler
       // can be added without touching call sites.
-      LoggingSystem.bootstrap { label in
+      LoggingBootstrap.ensure {
         MultiplexLogHandler([
-          StreamLogHandler.standardOutput(label: label)
+          StreamLogHandler.standardOutput(label: $0)
         ])
       }
     }
@@ -96,6 +96,23 @@ public struct Context: Sendable {
     self.log = logger
 
     self.state = State(progress: config.progress)
+  }
+}
+
+/// Guards `LoggingSystem.bootstrap` against being called more than once per
+/// process — the underlying swift-log API fatalErrors on second call, which
+/// otherwise turns the first two `Context(config:)` constructions in a test
+/// process into a crash.
+private enum LoggingBootstrap {
+  private static let lock = NSLock()
+  private nonisolated(unsafe) static var bootstrapped = false
+
+  static func ensure(_ handler: @escaping @Sendable (String) -> LogHandler) {
+    lock.lock()
+    defer { lock.unlock() }
+    guard !bootstrapped else { return }
+    LoggingSystem.bootstrap(handler)
+    bootstrapped = true
   }
 }
 
