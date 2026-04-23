@@ -1,0 +1,70 @@
+name: Swift CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - "modernize-*"
+  pull_request:
+    branches:
+      - master
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Swift toolchain
+        id: cache-swift
+        uses: actions/cache@v4
+        with:
+          path: /opt/swift
+          key: swift-6.3.1-ubuntu-24.04
+
+      - name: Install Swift 6.3.1
+        if: steps.cache-swift.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          cd /tmp
+          wget -q https://download.swift.org/swift-6.3.1-release/ubuntu2404/swift-6.3.1-RELEASE/swift-6.3.1-RELEASE-ubuntu24.04.tar.gz
+          sudo mkdir -p /opt/swift
+          sudo tar -xzf swift-6.3.1-RELEASE-ubuntu24.04.tar.gz \
+            -C /opt/swift --strip-components=1
+
+      - name: Put Swift on PATH
+        run: echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Swift toolchain
+        run: swift --version
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgd-dev \
+            libiptcdata0-dev \
+            libexif-dev \
+            libvips-dev \
+            pkg-config
+
+      - name: Cache Swift build artefacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: swift-build-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swift-build-${{ runner.os }}-
+
+      - name: swift build
+        run: swift build
+
+      - name: swift test
+        run: swift test
