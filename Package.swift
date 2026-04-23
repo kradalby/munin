@@ -18,7 +18,7 @@ var linkerSettings: [LinkerSetting]? {
 let package = Package(
   name: "Munin",
   platforms: [
-    .macOS(.v14),
+    .macOS(.v14)
   ],
   products: [
     .executable(
@@ -49,6 +49,10 @@ let package = Package(
     // apple/swift-system provides FilePath for typed path handling. Used
     // internally in MuninKit's `Paths` helpers; public API is still String.
     .package(url: "https://github.com/apple/swift-system.git", from: "1.6.4"),
+    // apple/swift-crypto provides SHA256 on Linux (mirroring CryptoKit's API
+    // on Darwin). Used both in MuninKit proper (for source-file content
+    // hashing) and in the test support layer (for filesystem snapshots).
+    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0"),
   ],
   targets: [
     .executableTarget(
@@ -79,6 +83,7 @@ let package = Package(
       name: "MuninKitTests",
       dependencies: [
         "MuninKit",
+        .product(name: "Crypto", package: "swift-crypto"),
       ]
     ),
   ]
