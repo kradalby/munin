@@ -227,7 +227,7 @@ extension Album {
         await sem.wait()
         group.addTask {
           photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
-          ctx.state.incrementPhotosWritten()
+          await ctx.state.incrementPhotosWritten()
           await sem.signal()
         }
       }
@@ -488,7 +488,7 @@ func readStateFromInputDirectory(
           parents: capturedParents,
           ctx: ctx
         )
-        ctx.state.updatePhotosToWrite(name: filePath)
+        await ctx.state.updatePhotosToWrite(name: filePath)
         await sem.signal()
 
         guard let photo else { return nil }

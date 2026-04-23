@@ -5,16 +5,8 @@
 //  Created by Kristoffer Andreas Dalby on 25/12/2017.
 //
 
-import Dispatch
 import Foundation
 import Logging
-
-let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
-let photoQueue = DispatchQueue(
-  label: "no.kradalby.MuninKit.photoQueue", qos: .userInitiated, attributes: [.concurrent])
-let photoToWriteGroup = DispatchGroup()
-let photoWriteGroup = DispatchGroup()
-let photoToReadGroup = DispatchGroup()
 
 struct Timings: Sendable {
   var readInputDirectory: TimeInterval?
@@ -22,29 +14,20 @@ struct Timings: Sendable {
   var generateDiff: TimeInterval?
 }
 
-// @unchecked Sendable: temporary. State mutates via GCD queue serialization in
-// the current code. Scheduled to become a proper `actor State` in commit 6 of
-// the MUNIN_MODERNISE_PLAN.md sequence.
-final class State: @unchecked Sendable {
+/// Shared progress-tracking state for a running gallery build.
+///
+/// Isolated as an `actor` so that concurrent `TaskGroup` tasks (photo reads,
+/// photo writes) can safely update counters without explicit locking. All
+/// public API is `async`-callable via `await`.
+public actor State {
   let writingProgress: WritingProgress?
   let readingProgress: ReadingProgress?
 
   var lastReadPhoto: String = ""
-  var photosToWrite: Int {
-    didSet {
-      renderReading()
-    }
-  }
-  var photosWritten: Int {
-    didSet {
-      renderWriting()
-    }
-  }
+  var photosToWrite: Int = 0
+  var photosWritten: Int = 0
 
   init(progress: Bool) {
-    photosToWrite = 0
-    photosWritten = 0
-
     writingProgress = progress ? WritingProgress(title: "Writing images") : nil
     readingProgress = progress ? ReadingProgress(header: "Finding images") : nil
   }
@@ -55,22 +38,25 @@ final class State: @unchecked Sendable {
 
   func resetWrite(photosWritten: Int) {
     self.photosWritten = photosWritten
+    renderWriting()
   }
 
   func updatePhotosToWrite(name: String) {
     lastReadPhoto = name
     photosToWrite += 1
+    renderReading()
   }
 
   func incrementPhotosWritten() {
     photosWritten += 1
+    renderWriting()
   }
 
-  func renderReading() {
+  private func renderReading() {
     readingProgress?.update(count: photosToWrite, text: "Reading: \(lastReadPhoto)")
   }
 
-  func renderWriting() {
+  private func renderWriting() {
     guard let progress = writingProgress else { return }
     progress.update(step: photosWritten, total: photosToWrite)
     if photosToWrite == photosWritten {
@@ -79,47 +65,37 @@ final class State: @unchecked Sendable {
   }
 }
 
-// @unchecked Sendable: temporary. Context contains a mutable Logger, a
-// DispatchSemaphore, and a State class whose mutations are serialized through
-// `stateQueue`. Scheduled to become truly Sendable once State is an actor and
-// rate-limiting moves to an AsyncSemaphore (commits 6–8).
-public struct Context: @unchecked Sendable {
-  let config: GalleryConfiguration
-  var time: Timings?
-  var state: State
-  var log: Logger
-  let sema: DispatchSemaphore
+/// Immutable, `Sendable` bundle of per-build dependencies passed to every
+/// gallery operation.
+///
+/// Concurrency coordination lives outside of `Context` now: shared mutable
+/// progress state is an `actor State`, and the previous `DispatchSemaphore`
+/// rate-limiter has been replaced by per-call `AsyncSemaphore` instances
+/// created in `Gallery.load` / `Gallery.build`.
+public struct Context: Sendable {
+  public let config: GalleryConfiguration
+  public let state: State
+  public let log: Logger
 
   public init(config: GalleryConfiguration) {
     self.config = config
 
-    if let _ = config.logPath {
-      // do {
-      // let fileLogger = try FileLogging(to: URL(fileURLWithPath: logPath))
-
+    if config.logPath != nil {
+      // TODO(FUTURES.md): implement file logging. For now the log path hint
+      // upgrades the logger to MultiplexLogHandler so a future file handler
+      // can be added without touching call sites.
       LoggingSystem.bootstrap { label in
-        let handlers: [LogHandler] = [
-          // FileLogHandler(label: label, fileLogger: fileLogger),
+        MultiplexLogHandler([
           StreamLogHandler.standardOutput(label: label)
-        ]
-        return MultiplexLogHandler(handlers)
+        ])
       }
-      // } catch {
-      //   print("Failed to set up log file, stdout only")
-      // }
     }
 
-    log = Logger(label: "no.kradalby.MuninKit")
-    if let logLevel = config.logLevel {
-      log.logLevel = stringToLogLevel(logLevel)
-    } else {
-      log.logLevel = .info
-    }
+    var logger = Logger(label: "no.kradalby.MuninKit")
+    logger.logLevel = config.logLevel.map(stringToLogLevel) ?? .info
+    self.log = logger
 
-    // https://www.vadimbulavin.com/grand-central-dispatch-in-swift/#limiting-work-in-progress
-    sema = DispatchSemaphore(value: config.concurrency)
-
-    state = State(progress: config.progress)
+    self.state = State(progress: config.progress)
   }
 }
 
@@ -214,7 +190,7 @@ public struct Gallery: Sendable {
       name: ctx.config.name,
       parents: []
     )
-    ctx.state.completeRead()
+    await ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     ctx.log.debug(
@@ -258,7 +234,7 @@ public struct Gallery: Sendable {
         ctx: ctx, writeJson: false, writeImage: !jsonOnly, sem: sem)
     }
 
-    ctx.state.resetWrite(photosWritten: 0)
+    await ctx.state.resetWrite(photosWritten: 0)
     let writeJsonStart = Date()
     if output == nil {
       ctx.log.info("First run, creating images and metadata")
