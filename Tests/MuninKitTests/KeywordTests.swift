@@ -1,67 +1,55 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import MuninKit
 
-final class KeywordTests: XCTestCase {
+@Suite(.serialized)
+final class KeywordTests {
   let albumPath = "example/album/"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
   let peoplePath = "example/people.json"
-  var config: GalleryConfiguration!
-  var ctx: Context!
+  let config: GalleryConfiguration
+  let ctx: Context
 
-  override func setUp() {
-    super.setUp()
+  init() {
     VIPSSetup.ensure()
     let manager = ConfigurationManager()
     manager
-      .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
-    config = GalleryConfiguration(manager)
-    ctx = Context(config: config)
+      .load(file: configPath, relativeFrom: .customPath(""))
+      .load(["progress": false])
+    self.config = GalleryConfiguration(manager)
+    self.ctx = Context(config: config)
   }
 
-  override func tearDown() {
-    config = nil
-    ctx = nil
-    super.tearDown()
-  }
-
-  func test() {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct
-    // results.
-    XCTAssertEqual("test", "test")
-  }
-
-  func testBuildKeywordsFromAlbum() async throws {
+  @Test func buildKeywordsFromAlbumBuildsExpectedSet() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let keywords = buildKeywordsFromAlbum(album: album)
 
-    XCTAssertEqual(keywords.count, 79)
+    #expect(keywords.count == 79)
 
     let strings = keywords.map { $0.name }
 
-    XCTAssertTrue(strings.contains("Midtøsten"))
-    XCTAssertTrue(strings.contains("Århus"))
-    XCTAssertTrue(strings.contains("Tel Aviv District"))
-    XCTAssertTrue(strings.contains("Aishling Cooke"))
+    #expect(strings.contains("Midtøsten"))
+    #expect(strings.contains("Århus"))
+    #expect(strings.contains("Tel Aviv District"))
+    #expect(strings.contains("Aishling Cooke"))
   }
 
-  func testPeopleFiles() {
+  @Test func peopleFilesMergesExplicitAndConfigured() {
     let manager = ConfigurationManager()
-    manager
-      .load([
-        "people": ["Man Person", "BoJo Trump", "Ola Nordmann"],
-        "peopleFiles": [peoplePath],
-      ])
-    config = GalleryConfiguration(manager)
+    manager.load([
+      "people": ["Man Person", "BoJo Trump", "Ola Nordmann"],
+      "peopleFiles": [peoplePath],
+    ])
+    let merged = GalleryConfiguration(manager)
 
-    XCTAssertEqual(config.allPeople.count, 4)
+    #expect(merged.allPeople.count == 4)
   }
 
-  func testPeopleFilesAuto() {
-    XCTAssertEqual(config.allPeople.count, 16)
+  @Test func peopleFilesAutoPicksUpFromDefaultConfig() {
+    #expect(config.allPeople.count == 16)
   }
 }

@@ -1,13 +1,8 @@
-import XCTest
+import Testing
 
-final class MuninTests: XCTestCase {
-  func test() {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct
-    // results.
-    XCTAssertEqual("test", "test")
+@Suite
+struct MuninTests {
+  @Test func smoke() {
+    #expect("test" == "test")
   }
-  static let __allTests = [
-    ("test", test)
-  ]
 }

@@ -1,19 +1,20 @@
 import Foundation
-import XCTest
+import Testing
 
 @testable import MuninKit
 
-final class AsyncSemaphoreTests: XCTestCase {
+@Suite
+struct AsyncSemaphoreTests {
 
-  func testImmediateAcquireWhenPermitsAvailable() async {
+  @Test func immediateAcquireWhenPermitsAvailable() async {
     let sem = AsyncSemaphore(value: 2)
     await sem.wait()
     await sem.wait()
     let permits = await sem.availablePermits
-    XCTAssertEqual(permits, 0)
+    #expect(permits == 0)
   }
 
-  func testWaitSuspendsWhenNoPermits() async {
+  @Test func waitSuspendsWhenNoPermits() async {
     let sem = AsyncSemaphore(value: 0)
     // Kick off a task that will suspend on wait().
     let waiter = Task {
@@ -24,22 +25,22 @@ final class AsyncSemaphoreTests: XCTestCase {
     // Give the task time to suspend.
     try? await Task.sleep(nanoseconds: 20_000_000)  // 20ms
     let waiters = await sem.pendingWaiters
-    XCTAssertEqual(waiters, 1)
+    #expect(waiters == 1)
 
     // Signal releases it.
     await sem.signal()
     let result = await waiter.value
-    XCTAssertEqual(result, "done")
+    #expect(result == "done")
   }
 
-  func testSignalWithoutWaiterIncrementsPermits() async {
+  @Test func signalWithoutWaiterIncrementsPermits() async {
     let sem = AsyncSemaphore(value: 0)
     await sem.signal()
     let permits = await sem.availablePermits
-    XCTAssertEqual(permits, 1)
+    #expect(permits == 1)
   }
 
-  func testFIFOOrdering() async {
+  @Test func fifoOrdering() async {
     let sem = AsyncSemaphore(value: 0)
 
     // Start 3 tasks that wait in order, each yielding their index on completion.
@@ -67,10 +68,10 @@ final class AsyncSemaphoreTests: XCTestCase {
     await sem.signal()
     let c = await third
 
-    XCTAssertEqual([a, b, c], [1, 2, 3])
+    #expect([a, b, c] == [1, 2, 3] as [Int])
   }
 
-  func testBoundsConcurrentWork() async {
+  @Test func boundsConcurrentWork() async {
     let sem = AsyncSemaphore(value: 3)
     let concurrent = ConcurrencyCounter()
 
@@ -87,7 +88,7 @@ final class AsyncSemaphoreTests: XCTestCase {
     }
 
     let maxSeen = await concurrent.peak
-    XCTAssertLessThanOrEqual(maxSeen, 3, "Semaphore should cap concurrency at 3")
+    #expect(maxSeen <= 3, "Semaphore should cap concurrency at 3")
   }
 
   private actor ConcurrencyCounter {

@@ -153,12 +153,9 @@ drop the small ANSI helper.
   since changed twice. Commit 23's relaxed assertions trade exact-count
   coverage for robustness; refine to exact counts once the example tree
   stabilises, or parameterise on the actual source tree.
-- `TestSetup` could bootstrap a shared temp directory once per test class
-  rather than per test, amortising the VIPS init cost.
-- Swift Testing (the new non-XCTest framework) ships with Swift 6.3 but
-  MuninKitTests is still on XCTest. A lift to Swift Testing would shorten
-  test code and integrate with Xcode 16's test UI; see how `swift-vips`
-  has done it.
+- The GalleryTests suite creates a fresh temp directory per test via
+  `randomString` to guarantee isolation under `@Suite(.serialized)`.
+  Consider amortising setup cost further if test run time grows.
 
 ---
 

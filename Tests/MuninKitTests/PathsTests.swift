@@ -1,57 +1,58 @@
-import XCTest
+import Testing
 
 @testable import MuninKit
 
-final class PathsTests: XCTestCase {
+@Suite
+struct PathsTests {
 
   // MARK: - join
 
-  func testJoinBasicComponents() {
-    XCTAssertEqual(Paths.join(["a", "b", "c"]), "a/b/c")
+  @Test func joinBasicComponents() {
+    #expect(Paths.join(["a", "b", "c"]) == "a/b/c")
   }
 
-  func testJoinEmptyArrayReturnsEmpty() {
-    XCTAssertEqual(Paths.join([]), "")
+  @Test func joinEmptyArrayReturnsEmpty() {
+    #expect(Paths.join([]) == "")
   }
 
-  func testJoinFiltersEmptyComponents() {
-    XCTAssertEqual(Paths.join(["a", "", "b", ""]), "a/b")
+  @Test func joinFiltersEmptyComponents() {
+    #expect(Paths.join(["a", "", "b", ""]) == "a/b")
   }
 
-  func testJoinTrimsInternalSlashes() {
-    XCTAssertEqual(Paths.join(["example/content/", "test"]), "example/content/test")
-    XCTAssertEqual(Paths.join(["example/content", "/test"]), "example/content/test")
-    XCTAssertEqual(Paths.join(["/a/", "/b/", "/c/"]), "/a/b/c")
+  @Test func joinTrimsInternalSlashes() {
+    #expect(Paths.join(["example/content/", "test"]) == "example/content/test")
+    #expect(Paths.join(["example/content", "/test"]) == "example/content/test")
+    #expect(Paths.join(["/a/", "/b/", "/c/"]) == "/a/b/c")
   }
 
-  func testJoinPreservesAbsoluteLeading() {
-    XCTAssertEqual(Paths.join(["/tmp", "gallery"]), "/tmp/gallery")
-    XCTAssertEqual(Paths.join(["/tmp/", "gallery/", "out.json"]), "/tmp/gallery/out.json")
+  @Test func joinPreservesAbsoluteLeading() {
+    #expect(Paths.join(["/tmp", "gallery"]) == "/tmp/gallery")
+    #expect(Paths.join(["/tmp/", "gallery/", "out.json"]) == "/tmp/gallery/out.json")
   }
 
-  func testJoinRelativeStaysRelative() {
-    XCTAssertEqual(Paths.join(["example", "content"]), "example/content")
+  @Test func joinRelativeStaysRelative() {
+    #expect(Paths.join(["example", "content"]) == "example/content")
   }
 
   // MARK: - stem / extension
 
-  func testStemStripsExtension() {
-    XCTAssertEqual(Paths.stem("/tmp/foo.jpg"), "foo")
-    XCTAssertEqual(Paths.stem("foo.tar.gz"), "foo.tar")
-    XCTAssertEqual(Paths.stem("foo"), "foo")
+  @Test func stemStripsExtension() {
+    #expect(Paths.stem("/tmp/foo.jpg") == "foo")
+    #expect(Paths.stem("foo.tar.gz") == "foo.tar")
+    #expect(Paths.stem("foo") == "foo")
   }
 
-  func testExtensionExtractsSuffix() {
-    XCTAssertEqual(Paths.extension("/tmp/foo.jpg"), "jpg")
-    XCTAssertEqual(Paths.extension("foo.tar.gz"), "gz")
-    XCTAssertNil(Paths.extension("foo"))
+  @Test func extractsExtensionSuffix() {
+    #expect(Paths.extension("/tmp/foo.jpg") == "jpg")
+    #expect(Paths.extension("foo.tar.gz") == "gz")
+    #expect(Paths.extension("foo") == nil)
   }
 
   // MARK: - urlify
 
-  func testUrlifyReplacesSpaces() {
-    XCTAssertEqual(Paths.urlify("2018-03-10 Alkmaar"), "2018-03-10_Alkmaar")
-    XCTAssertEqual(Paths.urlify("no spaces"), "no_spaces")
-    XCTAssertEqual(Paths.urlify("already_clean"), "already_clean")
+  @Test func urlifyReplacesSpaces() {
+    #expect(Paths.urlify("2018-03-10 Alkmaar") == "2018-03-10_Alkmaar")
+    #expect(Paths.urlify("no spaces") == "no_spaces")
+    #expect(Paths.urlify("already_clean") == "already_clean")
   }
 }

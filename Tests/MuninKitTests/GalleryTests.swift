@@ -1,139 +1,112 @@
 import Foundation
-import XCTest
+import Testing
 
 @testable import MuninKit
 
-final class GalleryTests: XCTestCase {
+@Suite(.serialized)
+final class GalleryTests {
   let albumPath = "example/album/"
   let peoplePath = "example/people.json"
-  var config: GalleryConfiguration!
-  var ctx: Context!
-  var testName: String!
-  var testDirectoryPath: String!
+  let testName: String
+  let testDirectoryPath: String
+  let config: GalleryConfiguration
+  let ctx: Context
 
-  override func setUp() {
-    super.setUp()
+  init() throws {
     VIPSSetup.ensure()
-    let fm = FileManager()
+    let fm = FileManager.default
     testName = randomString(length: 10)
     testDirectoryPath = joinPath(fm.temporaryDirectory.path, testName)
-    print("Setting up tests in: " + testDirectoryPath!)
-
-    do {
-      try fm.createDirectory(atPath: testDirectoryPath, withIntermediateDirectories: true)
-    } catch {
-      print("Failed to create directory: " + testDirectoryPath!)
-      XCTFail()
-    }
+    try fm.createDirectory(
+      atPath: testDirectoryPath, withIntermediateDirectories: true)
 
     let manager = ConfigurationManager()
-    manager
-      .load([
-        "name": testName!,
-        "people": [],
-        "peopleFiles": [peoplePath],
-        "resolutions": [100, 200, 300],
-        "jpegCompression": 0.1,
-        "sourceFolder": albumPath,
-        "targetFolder": testDirectoryPath!,
-        "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
-        "diff": false,
-        "progress": false,
-      ])
-    config = GalleryConfiguration(manager)
-
-    ctx = Context(config: config)
+    manager.load([
+      "name": testName,
+      "people": [],
+      "peopleFiles": [peoplePath],
+      "resolutions": [100, 200, 300],
+      "jpegCompression": 0.1,
+      "sourceFolder": albumPath,
+      "targetFolder": testDirectoryPath,
+      "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
+      "diff": false,
+      "progress": false,
+    ])
+    self.config = GalleryConfiguration(manager)
+    self.ctx = Context(config: config)
   }
 
-  override func tearDown() {
-    let fm = FileManager()
-    do {
-      try fm.removeItem(atPath: testDirectoryPath)
-    } catch {
-      print("Failed to clean up directory: " + testDirectoryPath!)
-      XCTFail()
-    }
-
-    super.tearDown()
+  deinit {
+    // Best-effort cleanup; the OS will reclaim /tmp anyway.
+    try? FileManager.default.removeItem(atPath: testDirectoryPath)
   }
 
-  func test() {
-    XCTAssertEqual("test", "test")
-  }
-
-  func testReadInputGallery() async throws {
+  @Test func readInputGalleryPopulatesInput() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertEqual(gallery.output, nil)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
   }
 
-  func testReadInputOutputGallery() async throws {
+  @Test func readInputOutputGallerySeesBuiltOutput() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
 
     try await gallery.build(ctx: ctx, jsonOnly: false)
 
     let gallery2 = try await Gallery.load(ctx: ctx)
-    XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
+    let output2 = try #require(gallery2.output)
+    #expect(output2.numberOfPhotos(travers: true) == 104)
+    #expect(output2.numberOfAlbums(travers: true) == 12)
   }
 
-  func testDiffGalleryNoDiff() async throws {
+  @Test func diffGalleryNoDiffReturnsNilChangedContent() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
 
     try await gallery.build(ctx: ctx, jsonOnly: false)
 
     let gallery2 = try await Gallery.load(ctx: ctx)
-
-    XCTAssertNil(gallery2.changedContent)
+    #expect(gallery2.changedContent == nil)
   }
 
-  func testDiffGalleryAddedAlbum() async throws {
+  @Test func diffGalleryAddedAlbumDetectsMissingFolder() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
 
     try await gallery.build(ctx: ctx, jsonOnly: false)
 
-    let fm = FileManager()
+    let fm = FileManager.default
     let deletePath = joinPath(
       testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå")
-    do {
-      try fm.removeItem(atPath: deletePath)
-    } catch {
-      print("Failed to delete directory in test output during test: " + deletePath)
-      XCTFail()
-    }
+    try fm.removeItem(atPath: deletePath)
 
     let gallery2 = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery2.output)
+    #expect(gallery2.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery2.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery2.output != nil)
 
-    XCTAssertNotNil(gallery2.changedContent)
-    // changedContent should contain the photos and album that disappeared
-    // from the output directory — exactly the Alkmaar folder.
-    XCTAssertGreaterThan(gallery2.changedContent!.numberOfPhotos(travers: true), 0)
-    XCTAssertGreaterThan(gallery2.changedContent!.numberOfAlbums(travers: true), 0)
+    let changed = try #require(gallery2.changedContent)
+    #expect(changed.numberOfPhotos(travers: true) > 0)
+    #expect(changed.numberOfAlbums(travers: true) > 0)
   }
 
-  func testDiffGalleryAddedPhotos() async throws {
+  @Test func diffGalleryAddedPhotosDetectsMissingFiles() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
 
     try await gallery.build(ctx: ctx, jsonOnly: false)
 
-    let fm = FileManager()
+    let fm = FileManager.default
     let photosToDelete = [
       "20180310-143656-IMG_6012.json",
       "20180310-144346-IMG_6013.json",
@@ -147,29 +120,23 @@ final class GalleryTests: XCTestCase {
     for photo in photosToDelete {
       let deletePath = joinPath(
         testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå", photo)
-      do {
-        try fm.removeItem(atPath: deletePath)
-      } catch {
-        print("Failed to delete: " + deletePath + " (\(error))")
-        XCTFail()
-      }
+      try fm.removeItem(atPath: deletePath)
     }
 
     let gallery2 = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery2.output)
+    #expect(gallery2.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery2.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery2.output != nil)
 
-    XCTAssertNotNil(gallery2.changedContent)
-    XCTAssertEqual(
-      gallery2.changedContent!.numberOfPhotos(travers: true), photosToDelete.count)
+    let changed = try #require(gallery2.changedContent)
+    #expect(changed.numberOfPhotos(travers: true) == photosToDelete.count)
   }
 
-  func testClean() async throws {
+  @Test func cleanRemovesUnreferencedOutput() async throws {
     let gallery = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
+    #expect(gallery.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery.input.numberOfAlbums(travers: true) == 12)
+    #expect(gallery.output == nil)
 
     try await gallery.build(ctx: ctx, jsonOnly: false)
 
@@ -177,29 +144,30 @@ final class GalleryTests: XCTestCase {
     gallery.clean(ctx: ctx)
 
     var gallery2 = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
+    #expect(gallery2.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery2.input.numberOfAlbums(travers: true) == 12)
+    let output2 = try #require(gallery2.output)
+    #expect(output2.numberOfPhotos(travers: true) == 104)
+    #expect(output2.numberOfAlbums(travers: true) == 12)
 
     var albums = Array(gallery2.input.albums)
     albums.removeAll(where: { $0.name == "2018" })
     var input = gallery2.input
     input.albums = Set(albums)
     gallery2.setInput(input)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 24)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 7)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
+    #expect(gallery2.input.numberOfPhotos(travers: true) == 24)
+    #expect(gallery2.input.numberOfAlbums(travers: true) == 7)
+    let output2After = try #require(gallery2.output)
+    #expect(output2After.numberOfPhotos(travers: true) == 104)
+    #expect(output2After.numberOfAlbums(travers: true) == 12)
 
     gallery2.clean(ctx: ctx)
 
     let gallery3 = try await Gallery.load(ctx: ctx)
-    XCTAssertEqual(gallery3.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery3.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery3.output)
-    XCTAssertEqual(gallery3.output!.numberOfPhotos(travers: true), 24)
-    XCTAssertEqual(gallery3.output!.numberOfAlbums(travers: true), 7)
+    #expect(gallery3.input.numberOfPhotos(travers: true) == 104)
+    #expect(gallery3.input.numberOfAlbums(travers: true) == 12)
+    let output3 = try #require(gallery3.output)
+    #expect(output3.numberOfPhotos(travers: true) == 24)
+    #expect(output3.numberOfAlbums(travers: true) == 7)
   }
 }

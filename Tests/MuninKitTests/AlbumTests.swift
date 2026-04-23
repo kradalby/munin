@@ -1,58 +1,44 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import MuninKit
 
-final class AlbumTests: XCTestCase {
+@Suite(.serialized)
+final class AlbumTests {
   let albumPath = "example/album/"
   let outPath = "example/content/"
   let configPath = "example/munin.json"
-  var config: GalleryConfiguration!
-  var ctx: Context!
+  let config: GalleryConfiguration
+  let ctx: Context
 
-  override func setUp() {
-    super.setUp()
+  init() {
     VIPSSetup.ensure()
     let manager = ConfigurationManager()
     manager
-      .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
-    config = GalleryConfiguration(manager)
-    ctx = Context(config: config)
+      .load(file: configPath, relativeFrom: .customPath(""))
+      .load(["progress": false])
+    self.config = GalleryConfiguration(manager)
+    self.ctx = Context(config: config)
   }
 
-  override func tearDown() {
-    config = nil
-    ctx = nil
-    super.tearDown()
-  }
-
-  func test() {
-    XCTAssertEqual("test", "test")
-  }
-
-  func testReadStateFromInputDirectory() async throws {
-
+  @Test func readStateFromInputDirectoryReturnsExpectedCounts() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 104)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 12)
+    #expect(album.numberOfPhotos(travers: true) == 104)
+    #expect(album.numberOfAlbums(travers: true) == 12)
   }
 
-  func testExpectedFiles() async throws {
+  @Test func expectedFilesMatchAcrossAlbumTree() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 3)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 0)
+    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfAlbums(travers: true) == 0)
 
     let cwd = FileManager.default.currentDirectoryPath
     let contentDir = "\(cwd)/example/content"
-
     let expectedFiles = [
       "\(contentDir)/test/20180510-171752-IMG_7165.json",
       "\(contentDir)/test/20180510-171752-IMG_7165_180.jpg",
@@ -77,50 +63,38 @@ final class AlbumTests: XCTestCase {
       "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
     let actualFiles = album.expectedFiles.map { $0.path }.sorted()
-    XCTAssertEqual(actualFiles, expectedFiles)
+    #expect(actualFiles == expectedFiles)
   }
 
-  func testUnreferencedFilesNoOutputDirectory() async throws {
+  @Test func unreferencedFilesEmptyWithoutOutputDirectory() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 3)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 0)
-
-    let unreferenced = album.unreferencedFiles
-
-    XCTAssertEqual(unreferenced, [])
+    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfAlbums(travers: true) == 0)
+    #expect(album.unreferencedFiles == [])
   }
 
-  func testUnreferencedFilesWithOutputDirectory() async throws {
+  @Test func unreferencedFilesWithOutputDirectory() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 104)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 12)
-    let unreferenced = album.unreferencedFiles
-
-    XCTAssertEqual(unreferenced, [])
+    #expect(album.numberOfPhotos(travers: true) == 104)
+    #expect(album.numberOfAlbums(travers: true) == 12)
+    #expect(album.unreferencedFiles == [])
   }
 
-  func testMissingFilesNoOutputDirectory() async throws {
+  @Test func missingFilesReportedWhenOutputIsEmpty() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 3)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 0)
+    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfAlbums(travers: true) == 0)
 
     let cwd = FileManager.default.currentDirectoryPath
     let contentDir = "\(cwd)/example/content"
-
     let expectedFiles = [
       "\(contentDir)/test/20180510-171752-IMG_7165.json",
       "\(contentDir)/test/20180510-171752-IMG_7165_180.jpg",
@@ -145,26 +119,19 @@ final class AlbumTests: XCTestCase {
       "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
     let missing = album.missingFiles.map { $0.path }.sorted()
-
-    XCTAssertEqual(missing, expectedFiles)
+    #expect(missing == expectedFiles)
   }
 
-  func testMissingFilesWithOutputDirectory() async throws {
+  @Test func missingFilesEmptyWhenOutputExists() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
-    let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 104)
-    let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 12)
-
-    let expectedFiles: [String] = []
-    let missing = album.missingFiles.map { $0.path }.sorted()
-
-    XCTAssertEqual(missing, expectedFiles)
+    #expect(album.numberOfPhotos(travers: true) == 104)
+    #expect(album.numberOfAlbums(travers: true) == 12)
+    #expect(album.missingFiles.map { $0.path }.sorted() == [])
   }
 
-  func testChangedPhotos() {
+  @Test func changedPhotosDetectedViaSetDifference() {
     var input = Album(name: "root", path: "", parents: [])
     var current = Album(name: "root", path: "", parents: [])
     let ph1 = Photo(
@@ -173,102 +140,81 @@ final class AlbumTests: XCTestCase {
     let ph2 = Photo(name: "photo2")
     let ph3 = Photo(name: "photo3")
     let ph4 = Photo(name: "photo4")
-    let ph1_2 = Photo(
+    let ph1Modified = Photo(
       name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_471_000), parents: [])
 
     input.photos = [ph1, ph2]
     current.photos = [ph3, ph4]
-    XCTAssertEqual(current.changedPhotos(input), [ph1, ph2])
+    #expect(current.changedPhotos(input) == [ph1, ph2])
 
     input.photos = [ph1, ph2, ph3]
     current.photos = [ph3, ph4]
-    XCTAssertEqual(current.changedPhotos(input), [ph1, ph2])
+    #expect(current.changedPhotos(input) == [ph1, ph2])
 
-    input.photos = [ph1_2, ph3]
+    input.photos = [ph1Modified, ph3]
     current.photos = [ph1, ph3, ph2, ph4]
-    XCTAssertEqual(
-      current.changedPhotos(input).map { $0.name }.sorted(), ["photo1"])
+    #expect(current.changedPhotos(input).map { $0.name }.sorted() == ["photo1"])
 
-    input.photos = [ph1_2, ph3, ph2, ph4]
+    input.photos = [ph1Modified, ph3, ph2, ph4]
     current.photos = [ph1, ph3]
-    XCTAssertEqual(
-      current.changedPhotos(input).map { $0.name }.sorted(), ["photo1", "photo2", "photo4"])
+    #expect(
+      current.changedPhotos(input).map { $0.name }.sorted()
+        == ["photo1", "photo2", "photo4"])
   }
 
-  func testChangedAlbums() {
+  @Test func changedAlbumsDetectedViaSetDifference() {
     var input = Album(name: "root", path: "", parents: [])
     var current = Album(name: "root", path: "", parents: [])
 
     let child1 = Album(name: "child1", path: "", parents: [])
     let child2 = Album(name: "child2", path: "", parents: [])
     let child3 = Album(name: "child3", path: "", parents: [])
-    var child1_2 = Album(name: "child1", path: "", parents: [])
-    child1_2.photos = [Photo(name: "photo4")]
-    var child1_3 = Album(name: "child1", path: "", parents: [])
-    child1_3.photos = [Photo(name: "photo2")]
+    var child1Variant = Album(name: "child1", path: "", parents: [])
+    child1Variant.photos = [Photo(name: "photo4")]
+    var child1Deep = Album(name: "child1", path: "", parents: [])
+    child1Deep.photos = [Photo(name: "photo2")]
 
     input.albums = [child1, child2]
     current.albums = [child3]
-    XCTAssertEqual(current.changedAlbums(input), [child1, child2])
+    #expect(current.changedAlbums(input) == [child1, child2])
 
     input.albums = [child1, child2]
     current.albums = [child2, child3]
-    XCTAssertEqual(current.changedAlbums(input), [child1])
+    #expect(current.changedAlbums(input) == [child1])
 
-    input.albums = [child1_2, child3]
+    input.albums = [child1Variant, child3]
     current.albums = [child1, child2]
-    XCTAssertEqual(
-      current.changedAlbums(input).map { $0.name }.sorted(), ["child1", "child3"])
+    #expect(
+      current.changedAlbums(input).map { $0.name }.sorted() == ["child1", "child3"])
 
     var parentOfChild1 = Album(name: "parentOfChild1", path: "", parents: [])
-    var parentOfChild1_3 = Album(name: "parentOfChild1", path: "", parents: [])
+    var parentOfChild1Deep = Album(name: "parentOfChild1", path: "", parents: [])
 
     parentOfChild1.albums = [child1]
-    parentOfChild1_3.albums = [child1_3]
+    parentOfChild1Deep.albums = [child1Deep]
 
     var parentOfParentOfChild1 = Album(name: "parentOfParentOfChild1", path: "", parents: [])
-    var parentOfParentOfChild1_3 = Album(name: "parentOfParentOfChild1", path: "", parents: [])
+    var parentOfParentOfChild1Deep = Album(
+      name: "parentOfParentOfChild1", path: "", parents: [])
 
     parentOfParentOfChild1.albums = [parentOfChild1]
-    parentOfParentOfChild1_3.albums = [parentOfChild1_3]
+    parentOfParentOfChild1Deep.albums = [parentOfChild1Deep]
 
-    input.albums = [parentOfParentOfChild1_3]
+    input.albums = [parentOfParentOfChild1Deep]
     current.albums = [parentOfParentOfChild1]
-    XCTAssertEqual(
-      current.changedAlbums(input).map { $0.name }.sorted(), ["parentOfParentOfChild1"])
-
+    #expect(
+      current.changedAlbums(input).map { $0.name }.sorted() == ["parentOfParentOfChild1"])
   }
 
-  func testChangedAlbumsInputHasChildAlbum() {
-    // input has a new child
-    var input2 = Album(name: "root", path: "", parents: [])
-    let current2 = Album(name: "root", path: "", parents: [])
+  @Test func changedAlbumsDetectsInputHasExtraChild() {
+    var input = Album(name: "root", path: "", parents: [])
+    let current = Album(name: "root", path: "", parents: [])
 
-    let child_2 = Album(name: "child1", path: "", parents: [])
-    input2.albums = [child_2]
-    let changed2 = current2.changedAlbums(input2)
-    XCTAssertNotNil(changed2)
-    XCTAssertEqual(changed2.count, 1)
-    XCTAssertEqual(Array(changed2)[0], child_2)
+    let child = Album(name: "child1", path: "", parents: [])
+    input.albums = [child]
+    let changed = current.changedAlbums(input)
+    #expect(changed.count == 1)
+    #expect(Array(changed)[0] == child)
   }
-
-  func testClean() {}
-
-  // This is a silly test to ensure that concurrency does not
-  // cause inconsistent reads of the albums
-  // func testReadStateFromInputDirectoryMultipleTime() {
-  //   let config = Config.readConfig(configFormat: GalleryConfiguration.self, atPath: configPath)
-
-  //   for _ in 1...100 {
-  //     let ctx = Context(config: config)
-  //     let album = readStateFromInputDirectory(
-  //       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
-
-  //     let photoCount = album.numberOfPhotos(travers: true)
-  //     XCTAssertEqual(photoCount, 102)
-  //     let albumCount = album.numberOfAlbums(travers: true)
-  //     XCTAssertEqual(albumCount, 10)
-  //   }
-  // }
 }

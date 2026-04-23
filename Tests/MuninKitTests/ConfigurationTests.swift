@@ -1,22 +1,23 @@
 import Foundation
-import XCTest
+import Testing
 
 @testable import MuninKit
 
-final class ConfigurationTests: XCTestCase {
+@Suite
+struct ConfigurationTests {
 
-  func testDefaults() {
+  @Test func defaults() {
     let config = MuninConfiguration()
-    XCTAssertEqual(config.name, "root")
-    XCTAssertEqual(config.people, [])
-    XCTAssertEqual(config.resolutions, MuninConfiguration.defaultResolutions)
-    XCTAssertEqual(config.fileExtensions, MuninConfiguration.defaultFileExtensions)
-    XCTAssertEqual(config.jpegCompression, 1.0)
-    XCTAssertFalse(config.diff)
-    XCTAssertTrue(config.progress)
+    #expect(config.name == "root")
+    #expect(config.people == [])
+    #expect(config.resolutions == MuninConfiguration.defaultResolutions)
+    #expect(config.fileExtensions == MuninConfiguration.defaultFileExtensions)
+    #expect(config.jpegCompression == 1.0)
+    #expect(!config.diff)
+    #expect(config.progress)
   }
 
-  func testCodableRoundTrip() throws {
+  @Test func codableRoundTrip() throws {
     let original = MuninConfiguration(
       name: "gallery",
       people: ["Alice", "Bob"],
@@ -26,25 +27,25 @@ final class ConfigurationTests: XCTestCase {
     )
     let encoded = try JSONEncoder().encode(original)
     let decoded = try JSONDecoder().decode(MuninConfiguration.self, from: encoded)
-    XCTAssertEqual(decoded.name, original.name)
-    XCTAssertEqual(decoded.people, original.people)
-    XCTAssertEqual(decoded.resolutions, original.resolutions)
-    XCTAssertEqual(decoded.sourceFolder, original.sourceFolder)
-    XCTAssertEqual(decoded.targetFolder, original.targetFolder)
+    #expect(decoded.name == original.name)
+    #expect(decoded.people == original.people)
+    #expect(decoded.resolutions == original.resolutions)
+    #expect(decoded.sourceFolder == original.sourceFolder)
+    #expect(decoded.targetFolder == original.targetFolder)
   }
 
-  func testDecodeWithMissingKeysFillsDefaults() throws {
+  @Test func decodeWithMissingKeysFillsDefaults() throws {
     let json = #"{"name":"custom","sourceFolder":"/src"}"#
     let decoded = try JSONDecoder().decode(MuninConfiguration.self, from: Data(json.utf8))
-    XCTAssertEqual(decoded.name, "custom")
-    XCTAssertEqual(decoded.sourceFolder, "/src")
+    #expect(decoded.name == "custom")
+    #expect(decoded.sourceFolder == "/src")
     // Unspecified values should fall back to defaults:
-    XCTAssertEqual(decoded.resolutions, MuninConfiguration.defaultResolutions)
-    XCTAssertEqual(decoded.fileExtensions, MuninConfiguration.defaultFileExtensions)
-    XCTAssertTrue(decoded.progress)
+    #expect(decoded.resolutions == MuninConfiguration.defaultResolutions)
+    #expect(decoded.fileExtensions == MuninConfiguration.defaultFileExtensions)
+    #expect(decoded.progress)
   }
 
-  func testManagerDictionaryOverrides() {
+  @Test func managerDictionaryOverrides() {
     let manager = ConfigurationManager()
     manager.load([
       "name": "test-gallery",
@@ -52,13 +53,13 @@ final class ConfigurationTests: XCTestCase {
       "resolutions": [100, 200],
       "progress": false,
     ])
-    XCTAssertEqual(manager["name"] as? String, "test-gallery")
-    XCTAssertEqual(manager["people"] as? [String], ["Alice"])
-    XCTAssertEqual(manager["resolutions"] as? [Int], [100, 200])
-    XCTAssertEqual(manager["progress"] as? Bool, false)
+    #expect(manager["name"] as? String == "test-gallery")
+    #expect(manager["people"] as? [String] == ["Alice"])
+    #expect(manager["resolutions"] as? [Int] == [100, 200])
+    #expect(manager["progress"] as? Bool == false)
   }
 
-  func testManagerOverridesTakePrecedenceOverFile() throws {
+  @Test func managerOverridesTakePrecedenceOverFile() throws {
     // Write a temp config file
     let tmp = URL(
       fileURLWithPath: NSTemporaryDirectory()
@@ -71,28 +72,28 @@ final class ConfigurationTests: XCTestCase {
     manager.load(file: tmp.path, relativeFrom: .pwd)
     manager.load(["name": "from-override"])
 
-    XCTAssertEqual(manager["name"] as? String, "from-override")  // dict wins
-    XCTAssertEqual(manager["sourceFolder"] as? String, "/file-src")  // file value retained
+    #expect(manager["name"] as? String == "from-override")  // dict wins
+    #expect(manager["sourceFolder"] as? String == "/file-src")  // file value retained
   }
 
-  func testManagerReturnsNilForUnknownKey() {
+  @Test func managerReturnsNilForUnknownKey() {
     let manager = ConfigurationManager()
-    XCTAssertNil(manager["totally-unknown-key"])
+    #expect(manager["totally-unknown-key"] == nil)
   }
 
-  func testLoadOrThrowMissingFileThrowsTypedError() {
+  @Test func loadOrThrowMissingFileThrowsTypedError() {
     let manager = ConfigurationManager()
-    XCTAssertThrowsError(
-      try manager.loadOrThrow(file: "/definitely/does/not/exist.json")
-    ) { error in
-      guard case MuninError.configurationFileUnreadable = error else {
-        XCTFail("Expected .configurationFileUnreadable, got \(error)")
-        return
-      }
+    do {
+      _ = try manager.loadOrThrow(file: "/definitely/does/not/exist.json")
+      Issue.record("Expected a throw, got success")
+    } catch MuninError.configurationFileUnreadable {
+      // expected
+    } catch {
+      Issue.record("Expected .configurationFileUnreadable, got \(error)")
     }
   }
 
-  func testLoadOrThrowMalformedJSONThrowsTypedError() throws {
+  @Test func loadOrThrowMalformedJSONThrowsTypedError() throws {
     let tmp = URL(
       fileURLWithPath: NSTemporaryDirectory()
     ).appendingPathComponent("munin-bad-\(UUID().uuidString).json")
@@ -100,18 +101,20 @@ final class ConfigurationTests: XCTestCase {
     try Data("{ this is not json".utf8).write(to: tmp)
 
     let manager = ConfigurationManager()
-    XCTAssertThrowsError(try manager.loadOrThrow(file: tmp.path)) { error in
-      guard case MuninError.configurationFileUnreadable = error else {
-        XCTFail("Expected .configurationFileUnreadable, got \(error)")
-        return
-      }
+    do {
+      _ = try manager.loadOrThrow(file: tmp.path)
+      Issue.record("Expected a throw, got success")
+    } catch MuninError.configurationFileUnreadable {
+      // expected
+    } catch {
+      Issue.record("Expected .configurationFileUnreadable, got \(error)")
     }
   }
 
-  func testLoadIsSilentOnMissingFile() {
+  @Test func loadIsSilentOnMissingFile() {
     let manager = ConfigurationManager()
     _ = manager.load(file: "/definitely/does/not/exist.json")
     // Still works with defaults.
-    XCTAssertEqual(manager["name"] as? String, "root")
+    #expect(manager["name"] as? String == "root")
   }
 }
