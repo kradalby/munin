@@ -1,0 +1,140 @@
+{
+  "entries" : [
+    {
+      "kind" : "directory",
+      "path" : "keywords"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/2018.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/IL.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Israel.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Martin_Peter_Meuche.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Midtøsten.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Spring.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Tel_Aviv.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "keywords/Tel_Aviv_District.json"
+    },
+    {
+      "kind" : "directory",
+      "path" : "root"
+    },
+    {
+      "kind" : "directory",
+      "path" : "root/2024"
+    },
+    {
+      "kind" : "directory",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera/_DSF0055.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera/_DSF0055_180.JPG"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera/_DSF0055_340.JPG"
+    },
+    {
+      "kind" : "symlink",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera/_DSF0055_original.JPG"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/2024/2024-06-21_Håkon_har_nytt_kamera/index.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/2024/index.json"
+    },
+    {
+      "kind" : "directory",
+      "path" : "root/Misc"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/20180510-171752-IMG_7165.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/20180510-171752-IMG_7165_180.jpg"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/20180510-171752-IMG_7165_340.jpg"
+    },
+    {
+      "kind" : "symlink",
+      "path" : "root/Misc/20180510-171752-IMG_7165_original.jpg"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/index.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/portrait_mm.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/portrait_mm_180.jpeg"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/portrait_mm_340.jpeg"
+    },
+    {
+      "kind" : "symlink",
+      "path" : "root/Misc/portrait_mm_original.jpeg"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/test_special_chars.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/Misc/test_special_chars_180.jpg"
+    },
+    {
+      "kind" : "symlink",
+      "path" : "root/Misc/test_special_chars_original.jpg"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/index.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/locations.json"
+    },
+    {
+      "kind" : "file",
+      "path" : "root/stats.json"
+    }
+  ]
+}
