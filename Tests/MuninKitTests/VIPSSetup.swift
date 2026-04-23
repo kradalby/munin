@@ -1,29 +1,16 @@
 import Foundation
-import VIPS
 
-/// One-shot VIPS initialization for the test process.
+@testable import MuninKit
+
+/// Test-side wrapper that delegates to `MuninKit.VIPSBootstrap`.
 ///
-/// Swift's thread-safe static-let initialization guarantees this runs at most
-/// once even when called from multiple test cases concurrently.
-///
-/// We intentionally do **not** call `VIPS.shutdown()` on teardown. Doing so
-/// causes SIGSEGV because libvips worker threads may still be active. Process
-/// exit cleans up the resources.
+/// Keeps the existing `VIPSSetup.ensure()` call sites in the test suite
+/// stable while the real bootstrap logic lives in the library alongside
+/// the production `VIPSBootstrap.start(concurrency:)`.
 enum VIPSSetup {
-  private static let initialized: Void = {
-    // Stable test environment: no disk cache, single-threaded, malloc-only.
-    setenv("G_SLICE", "always-malloc", 1)
-    setenv("VIPS_DISC_THRESHOLD", "0", 1)
-    setenv("VIPS_CACHE_MAX", "0", 1)
-    do {
-      try VIPS.start(concurrency: 1)
-    } catch {
-      fatalError("Failed to initialize VIPS for tests: \(error)")
-    }
-  }()
-
-  /// Call from test `setUp()` to ensure VIPS is initialized once.
+  /// Call from test `setUp()` to ensure VIPS is initialised exactly once
+  /// per test process, configured for deterministic single-threaded use.
   static func ensure() {
-    _ = initialized
+    VIPSBootstrap.startForTesting()
   }
 }

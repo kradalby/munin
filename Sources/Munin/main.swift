@@ -2,7 +2,6 @@ import ArgumentParser
 import Foundation
 import Logging
 import MuninKit
-import VIPS
 
 let log = Logger(label: "no.kradalby.Munin.main")
 
@@ -28,8 +27,10 @@ struct Munin: AsyncParsableCommand {
 
     let galleryConfig = GalleryConfiguration(manager)
 
-    // VIPS must be initialized once per process before any VIPSImage use.
-    try VIPS.start(concurrency: galleryConfig.concurrency)
+    // VIPS must be initialised once per process before any VIPSImage use.
+    // `VIPSBootstrap.start` is idempotent and documents the no-shutdown
+    // policy we rely on for process-exit safety.
+    try VIPSBootstrap.start(concurrency: galleryConfig.concurrency)
 
     let ctx = Context(config: galleryConfig)
     let gallery = try await Gallery.load(ctx: ctx)
