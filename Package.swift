@@ -70,6 +70,7 @@ let package = Package(
         .product(name: "VIPS", package: "swift-vips"),
         .product(name: "ConsoleKitTerminal", package: "console-kit"),
         .product(name: "SystemPackage", package: "swift-system"),
+        .product(name: "Crypto", package: "swift-crypto"),
         "SwiftExif",
         "Rainbow",
       ],

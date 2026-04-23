@@ -193,7 +193,15 @@ extension Photo: Equatable {
     guard lhs.meteringModeFormatted == rhs.meteringModeFormatted else {
       return false
     }
-    guard lhs.modifiedDate == rhs.modifiedDate else {
+    // `modifiedDate` is deliberately excluded from equality. It is the
+    // filesystem mtime of the source photo, which can move without any
+    // content change (e.g. `touch`, rsync preserving ownership but not
+    // mtime, backup/restore). The content-addressed `sourceHash` below
+    // is the authoritative "has this photo's bytes changed" signal.
+    //
+    // If this stencil ever gets regenerated via Sourcery, preserve this
+    // exclusion (same rationale as `next`/`previous` below).
+    guard lhs.sourceHash == rhs.sourceHash else {
       return false
     }
     guard lhs.orientation == rhs.orientation else {

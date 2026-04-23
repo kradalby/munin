@@ -43,6 +43,16 @@ struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
   var shutterSpeedFormatted: String?
   var width: Int?
 
+  /// Lowercase SHA-256 hex digest of the source image bytes at read time.
+  /// Primary signal for incremental rebuilds: a photo is considered
+  /// unchanged iff its source bytes are identical between runs.
+  ///
+  /// Optional so on-disk JSONs written before this field existed still
+  /// decode cleanly. On the first rebuild after upgrade the on-disk value
+  /// will be `nil` while the newly-read value will be a real hash, so
+  /// every photo is treated as changed exactly once.
+  var sourceHash: String?
+
   var keywords: [KeywordPointer]
   var people: [KeywordPointer]
   var next: String?
@@ -138,11 +148,11 @@ extension Photo: AutoEquatable {
     }
 
     // If only one has a date, consider that the winner
-    if let _ = lhs.dateTime {
+    if lhs.dateTime != nil {
       return true
     }
 
-    if let _ = rhs.dateTime {
+    if rhs.dateTime != nil {
       return false
     }
 

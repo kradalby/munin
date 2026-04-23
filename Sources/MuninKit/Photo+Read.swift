@@ -38,6 +38,16 @@ func readPhotoFromPath(
     parents: parents
   )
 
+  // sourceHash is the incremental-rebuild signal: identical bytes →
+  // equal Photo → no re-encode. A hash failure here is non-fatal (the
+  // photo falls back to nil, which compares unequal to any hashed
+  // counterpart and forces a rebuild — the conservative choice).
+  do {
+    photo.sourceHash = try ContentHash.sha256(ofFileAt: atPath)
+  } catch {
+    ctx.log.warning("Could not hash source photo at \(atPath): \(error)")
+  }
+
   do {
     let image = try VIPSImage(fromFilePath: fileURL.path)
     let width = image.size.width
@@ -82,7 +92,7 @@ func readPhotoFromPath(
 
   if let exif = exifDict["EXIF"] {
     if let width = exif["Pixel X Dimension"] {
-      if let _ = photo.width {
+      if photo.width != nil {
         ctx.log.trace("Width already set, ignoring EXIF width")
       } else {
         photo.width = Int(width)
@@ -90,7 +100,7 @@ func readPhotoFromPath(
     }
 
     if let height = exif["Pixel Y Dimension"] {
-      if let _ = photo.height {
+      if photo.height != nil {
         ctx.log.trace("Height already set, ignoring EXIF height")
       } else {
         photo.height = Int(height)

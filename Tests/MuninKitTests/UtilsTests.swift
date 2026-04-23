@@ -153,15 +153,22 @@ struct UtilsTests {
     let in_child1_of_child2 = Album(name: "child1_of_child2", path: "", parents: [])
     var in_child2_of_child2 = Album(name: "child2_of_child2", path: "", parents: [])
 
-    let in_photo1 = Photo(
+    // Photo equality is now content-addressed (sourceHash), not mtime-
+    // based. Construct input photos such that photo1 is unchanged
+    // between in and out (same v1 hash), while photo2 and photo3 have
+    // been rewritten (v2 vs v1). The diff should flag the latter two.
+    var in_photo1 = Photo(
       name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_482_000), parents: [])
-    let in_photo2 = Photo(
+    in_photo1.sourceHash = "hash-photo1-v1"
+    var in_photo2 = Photo(
       name: "photo2", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_485_000), parents: [])
-    let in_photo3 = Photo(
+    in_photo2.sourceHash = "hash-photo2-v2"
+    var in_photo3 = Photo(
       name: "photo3", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_485_000), parents: [])
+    in_photo3.sourceHash = "hash-photo3-v2"
     in_root.photos = [in_photo1]
     in_child1_of_root.photos = [in_photo2]
     in_child2_of_child2.photos = [in_photo3]
@@ -181,15 +188,23 @@ struct UtilsTests {
     let out_child1_of_child2 = Album(name: "child1_of_child2", path: "", parents: [])
     var out_child2_of_child2 = Album(name: "child2_of_child2", path: "", parents: [])
 
-    let out_photo1 = Photo(
+    // out_photo2 and out_photo3 represent the previously-written state:
+    // in_photo2 has been modified (v1 → v2) and in_photo3 is the same
+    // (v1). in_photo1 is also the same (v1). So the diff should contain
+    // exactly the single changed photo (`photo2`) plus its containing
+    // albums.
+    var out_photo1 = Photo(
       name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_482_000), parents: [])
-    let out_photo2 = Photo(
+    out_photo1.sourceHash = "hash-photo1-v1"
+    var out_photo2 = Photo(
       name: "photo2", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_482_000), parents: [])
-    let out_photo3 = Photo(
+    out_photo2.sourceHash = "hash-photo2-v1"
+    var out_photo3 = Photo(
       name: "photo3", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_482_000), parents: [])
+    out_photo3.sourceHash = "hash-photo3-v1"
     out_root.photos = [out_photo1]
     out_child1_of_root.photos = [out_photo2]
     out_child2_of_child2.photos = [out_photo3]

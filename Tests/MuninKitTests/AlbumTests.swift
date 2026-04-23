@@ -134,15 +134,19 @@ final class AlbumTests {
   @Test func changedPhotosDetectedViaSetDifference() {
     var input = Album(name: "root", path: "", parents: [])
     var current = Album(name: "root", path: "", parents: [])
-    let ph1 = Photo(
+    // Photo equality keys on sourceHash, not mtime. Use distinct hashes to
+    // differentiate an "original" and "modified" version of the same file.
+    var ph1 = Photo(
       name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
       modifiedDate: Date(timeIntervalSince1970: 1_610_472_000), parents: [])
+    ph1.sourceHash = "hash-photo1-v1"
     let ph2 = Photo(name: "photo2")
     let ph3 = Photo(name: "photo3")
     let ph4 = Photo(name: "photo4")
-    let ph1Modified = Photo(
+    var ph1Modified = Photo(
       name: "photo1", url: "", originalImageURL: "", originalImagePath: "", scaledPhotos: [],
-      modifiedDate: Date(timeIntervalSince1970: 1_610_471_000), parents: [])
+      modifiedDate: Date(timeIntervalSince1970: 1_610_472_000), parents: [])
+    ph1Modified.sourceHash = "hash-photo1-v2"
 
     input.photos = [ph1, ph2]
     current.photos = [ph3, ph4]
