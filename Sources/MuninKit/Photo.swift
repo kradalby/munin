@@ -119,6 +119,15 @@ enum Orientation: String, Codable, Sendable {
   case portrait
 }
 
+/// Central home for domain constants that would otherwise appear as magic
+/// strings scattered across the codebase.
+enum PhotoConstants {
+  /// Tagging a source photo with this keyword excludes it from the gallery.
+  /// The name is historical — it originates from the Hugin panorama stitcher
+  /// workflow — but is now just the agreed "do not publish" signal.
+  static let excludeKeyword = "NO_HUGIN"
+}
+
 extension Photo: AutoEquatable {
   static func < (lhs: Photo, rhs: Photo) -> Bool {
     // Sort by date (exif, taken date) if it is available
@@ -249,9 +258,9 @@ extension Photo {
   }
 
   /// Whether this photo should be included in the gallery. Photos tagged
-  /// with the `NO_HUGIN` keyword are excluded.
+  /// with `PhotoConstants.excludeKeyword` are excluded.
   var shouldInclude: Bool {
-    !keywords.contains { $0.name == "NO_HUGIN" }
+    !keywords.contains { $0.name == PhotoConstants.excludeKeyword }
   }
 }
 

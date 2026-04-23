@@ -494,7 +494,8 @@ func readStateFromInputDirectory(
 
         guard let photo else { return nil }
         if !photo.shouldInclude {
-          ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
+          ctx.log.debug(
+            "Photo \(photo.name) included \(PhotoConstants.excludeKeyword) keyword, ignoring...")
           return nil
         }
         return photo
