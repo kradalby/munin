@@ -175,7 +175,7 @@ extension Photo {
             ctx.log.error("Could open image \(fileURL.path)")
         }
         
-      let relativeOriginialPath = Array(repeating: "..", count: depth()) + [originalImagePath]
+      let relativeOriginialPath = Array(repeating: "..", count: depth) + [originalImagePath]
       ctx.log.trace("Symlinking original image \(name) to \(originalImageURL)")
       do {
         try createOrReplaceSymlink(
@@ -232,29 +232,26 @@ extension Photo {
     }
   }
 
-  func expectedFiles() -> [URL] {
+  // MARK: - Computed Properties
+
+  /// All files expected to exist on disk for this photo: JSON metadata, the
+  /// symlinked original, and every scaled resolution.
+  var expectedFiles: [URL] {
     let jsonURL = URL(fileURLWithPath: url)
     let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
-    let expectedFiles =
-      [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
-
-    return expectedFiles
+    return [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
   }
 
-  func depth() -> Int {
-    let urlSeparator: Character = "/"
-    var counter = 0
-    for char in url where char == urlSeparator {
-      counter += 1
-    }
-    return counter
+  /// Depth of this photo's URL in the gallery hierarchy, measured by
+  /// `/` separators.
+  var depth: Int {
+    url.filter { $0 == "/" }.count
   }
 
-  func include() -> Bool {
-    for keyword in keywords where keyword.name == "NO_HUGIN" {
-      return false
-    }
-    return true
+  /// Whether this photo should be included in the gallery. Photos tagged
+  /// with the `NO_HUGIN` keyword are excluded.
+  var shouldInclude: Bool {
+    !keywords.contains { $0.name == "NO_HUGIN" }
   }
 }
 
@@ -443,7 +440,7 @@ func readPhotoFromPath(
         name: keyword,
         url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
       )
-      if ctx.config.allPeople().contains(keyword) {
+      if ctx.config.allPeople.contains(keyword) {
         photo.people.append(keywordPointer)
       } else {
         photo.keywords.append(keywordPointer)
@@ -451,28 +448,23 @@ func readPhotoFromPath(
     }
   }
 
-  if let gpsDict = exifDict["GPS"] {
-    if let altitudeStr = gpsDict["Altitude"],
-      let latitudeStr = gpsDict["Latitude"],
-      let longitudeStr = gpsDict["Longitude"] {
-      if let altitude = Double(altitudeStr),
-        let latitude = LocationDegree.fromString(latitudeStr),
-        let longitude = LocationDegree.fromString(longitudeStr),
-        let longitudeRef = gpsDict["East or West Longitude"],
-        let latitudeRef = gpsDict["North or South Latitude"] {
-        photo.gps = GPS(
-          altitude: altitude,
-          latitude: latitudeRef == "N"
-            ? latitude.toDecimal()
-            : latitude.toDecimal() * -1,
-          longitude: longitudeRef == "E" ? longitude.toDecimal() : longitude.toDecimal() * -1
-        )
-      }
-
-    }
-
+  if let gpsDict = exifDict["GPS"],
+    let altitudeStr = gpsDict["Altitude"],
+    let latitudeStr = gpsDict["Latitude"],
+    let longitudeStr = gpsDict["Longitude"],
+    let altitude = Double(altitudeStr),
+    let latitude = LocationDegree.fromString(latitudeStr),
+    let longitude = LocationDegree.fromString(longitudeStr),
+    let longitudeRef = gpsDict["East or West Longitude"],
+    let latitudeRef = gpsDict["North or South Latitude"]
+  {
+    let latDecimal = latitudeRef == "N" ? latitude.toDecimal() : -latitude.toDecimal()
+    let lonDecimal = longitudeRef == "E" ? longitude.toDecimal() : -longitude.toDecimal()
+    photo.gps = GPS(altitude: altitude, latitude: latDecimal, longitude: lonDecimal)
   } else {
-    ctx.log.warning("GPS tag not found for photo, some metatags will be unavailable")
+    // Missing GPS data is a normal condition (indoor shots, anonymised EXIF),
+    // not a warning.
+    ctx.log.trace("GPS tag not found for photo")
   }
 
   photo.keywords = Array(Set(photo.keywords)).sorted()

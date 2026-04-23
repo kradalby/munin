@@ -76,7 +76,7 @@ final class AlbumTests: XCTestCase {
       "\(contentDir)/test/portrait_mm_1600.jpeg",
       "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
-    let actualFiles = album.expectedFiles().map { $0.path }.sorted()
+    let actualFiles = album.expectedFiles.map { $0.path }.sorted()
     XCTAssertEqual(actualFiles, expectedFiles)
   }
 
@@ -90,7 +90,7 @@ final class AlbumTests: XCTestCase {
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
-    let unreferenced = album.unreferencedFiles()
+    let unreferenced = album.unreferencedFiles
 
     XCTAssertEqual(unreferenced, [])
   }
@@ -103,7 +103,7 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 12)
-    let unreferenced = album.unreferencedFiles()
+    let unreferenced = album.unreferencedFiles
 
     XCTAssertEqual(unreferenced, [])
   }
@@ -144,7 +144,7 @@ final class AlbumTests: XCTestCase {
       "\(contentDir)/test/portrait_mm_1600.jpeg",
       "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
-    let missing = album.missingFiles().map { $0.path }.sorted()
+    let missing = album.missingFiles.map { $0.path }.sorted()
 
     XCTAssertEqual(missing, expectedFiles)
   }
@@ -159,7 +159,7 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(albumCount, 12)
 
     let expectedFiles: [String] = []
-    let missing = album.missingFiles().map { $0.path }.sorted()
+    let missing = album.missingFiles.map { $0.path }.sorted()
 
     XCTAssertEqual(missing, expectedFiles)
   }

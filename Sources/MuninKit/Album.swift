@@ -260,13 +260,14 @@ extension Album {
     }
   }
 
+  /// Remove files and folders on disk that no longer belong to this album.
   public func clean(ctx: Context) {
     let fileManager = FileManager()
-    let unrefFiles = unreferencedFiles()
-    let unrefFolders = unreferencedFolders()
+    let unrefFiles = unreferencedFiles
+    let unrefFolders = unreferencedFolders
 
     ctx.log.info("Cleaning album \(name) of unreferenced files: \(unrefFiles)")
-    ctx.log.info("Cleaning album \(name) of unreferenced folders: \(unrefFiles)")
+    ctx.log.info("Cleaning album \(name) of unreferenced folders: \(unrefFolders)")
 
     for album in albums {
       album.clean(ctx: ctx)
@@ -276,66 +277,66 @@ extension Album {
       do {
         try fileManager.removeItem(at: file)
       } catch {
-        ctx.log.error("Could not remove album \(name) at path \(path)")
+        ctx.log.error("Could not remove album \(name) at path \(path): \(error)")
       }
     }
   }
 
-  func expectedFolders() -> [URL] {
-    // let folderPath = URL(fileURLWithPath: path)
+  // MARK: - Computed Properties
 
-    let expectedFiles = albums.map { URL(fileURLWithPath: $0.path) }
-
-    return expectedFiles
+  /// All sub-album folders expected to exist under this album on disk.
+  var expectedFolders: [URL] {
+    albums.map { URL(fileURLWithPath: $0.path) }
   }
 
-  func expectedFiles() -> [URL] {
+  /// All files expected to exist directly in this album's folder: the album
+  /// JSON, every photo's expected files, and (for the root album only) the
+  /// shared `stats.json` / `locations.json`.
+  ///
+  /// Does **not** recurse into sub-albums — those are their own folders and
+  /// own expected-files lists.
+  var expectedFiles: [URL] {
     let jsonURL = URL(fileURLWithPath: url)
 
-    // TODO: replace this with expectedFiles in Keywords, Locations and Stats
-    let rootFiles =
+    // TODO(FUTURES.md): replace with explicit expectedFiles on Keywords,
+    // Locations, and Stats once those become first-class types.
+    let rootFiles: [URL] =
       parents.isEmpty
       ? [
         URL(fileURLWithPath: joinPath(path, "stats.json")),
-        URL(fileURLWithPath: joinPath(path, "locations.json"))
-      ] : []
+        URL(fileURLWithPath: joinPath(path, "locations.json")),
+      ]
+      : []
 
-    // We get the list of files expected for each Photo as that is
-    // relevant for this folder directly, we do not recurse to the
-    // next album in case of nested albums as that is a folder and
-    // not files.
-    let expectedFiles = [jsonURL] + photos.flatMap { $0.expectedFiles() } + rootFiles
-
-    return expectedFiles
+    return [jsonURL] + photos.flatMap { $0.expectedFiles } + rootFiles
   }
 
-  func unreferencedFolders() -> [URL] {
+  /// Folders that exist on disk under `path` but are not represented by any
+  /// sub-album.
+  var unreferencedFolders: [URL] {
     let fileManager = FileManager()
-    let expectedFolders = self.expectedFolders()
     let actualFolders = fileManager.directoriesOfDirectory(atPath: path).map {
       URL(fileURLWithPath: joinPath(path, $0))
     }
-
     return actualFolders.filter { !expectedFolders.contains($0) }
   }
 
-  func unreferencedFiles() -> [URL] {
+  /// Files that exist on disk under `path` but are not part of this album's
+  /// expected output.
+  var unreferencedFiles: [URL] {
     let fileManager = FileManager()
-    let expectedFiles = self.expectedFiles()
     let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
       URL(fileURLWithPath: joinPath(path, $0))
     }
-
     return actualFiles.filter { !expectedFiles.contains($0) }
   }
 
-  func missingFiles() -> [URL] {
+  /// Files this album declares as expected but that are missing from disk.
+  var missingFiles: [URL] {
     let fileManager = FileManager()
-    let expectedFiles = self.expectedFiles()
     let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
       URL(fileURLWithPath: joinPath(path, $0))
     }
-
     return expectedFiles.filter { !actualFiles.contains($0) }
   }
 
@@ -492,7 +493,7 @@ func readStateFromInputDirectory(
         await sem.signal()
 
         guard let photo else { return nil }
-        if !photo.include() {
+        if !photo.shouldInclude {
           ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
           return nil
         }

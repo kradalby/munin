@@ -143,8 +143,10 @@ public struct GalleryConfiguration: Sendable {
     self.combinedPeople = Set(people).union(peopleFromFiles.flatMap { $0 })
   }
 
-  func allPeople() -> Set<String> {
-    return combinedPeople
+  /// All people recognised by this gallery: the `people` list from config
+  /// plus everyone referenced in the `peopleFiles` JSON.
+  var allPeople: Set<String> {
+    combinedPeople
   }
 }
 
