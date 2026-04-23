@@ -1,4 +1,22 @@
 {
+  # Development-environment-only flake.
+  #
+  # This flake provides the C library dependencies Munin needs (libvips,
+  # libexif, libiptcdata, libgd, glib, pkg-config, plus the transitive
+  # swift-vips pile) and related development tooling (swift-format,
+  # sourcekit-lsp).
+  #
+  # The Swift toolchain is **deliberately not provided** by this flake. The
+  # Swift packages in nixpkgs lag the official Swift.org releases and mix
+  # oddly with the C-library stdenv, so we keep Swift out of scope here and
+  # rely on the developer to install a matching toolchain themselves. See
+  # README.md for installation instructions (swiftly or the Swift.org
+  # tarball; the CI workflow pins Swift 6.3.1).
+  #
+  # The `nix build` target has been dropped along with Swift — it depended
+  # on `swiftpm2nix` and the in-nix Swift packages. Releases come from
+  # `swift build -c release` run against this devShell.
+
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -10,21 +28,16 @@
     flake-utils,
     ...
   }: let
-    version =
-      if (self ? shortRev)
-      then self.shortRev
-      else "dev";
-
+    # Native build-tool dependencies: just pkg-config, for discovering the C
+    # libraries below. Swift is intentionally not in this list.
     ndeps = pkgs:
-      with pkgs;
-        [
-          pkg-config
-        ]
-        ++ lib.optionals stdenv.isLinux [
-          swiftPackages.swiftNoSwiftDriver
-          swiftPackages.swiftpm
-        ];
+      with pkgs; [
+        pkg-config
+      ];
 
+    # C library dependencies linked against by SwiftExif, swift-vips, and
+    # Munin itself. Everything here must be present at compile *and* run
+    # time (they're shared libraries, not headers-only).
     bdeps = pkgs:
       with pkgs;
         [
@@ -32,7 +45,7 @@
           libexif
           libiptcdata
 
-          # swift-vips deps
+          # swift-vips: image processing + transitive pile
           cfitsio
           expat.dev
           fftw.dev
@@ -53,125 +66,58 @@
           pcre2.dev
           vips.dev
 
-          # Added 2024-02-07
           libarchive.dev
           cgif
           libspng.dev
           xorg.libXdmcp.dev
           libhwy
 
-          # Added 2024-06-04
           openssl.dev
 
-          # If the compilation of swift-vips is failing with something like:
-          # fatal error: 'glib.h' file not found
-          # look for a warning before the error like:
-          # warning: couldn't find pc file for spng
-          # and find that library in Nix and add it to the buildDeps.
+          # If compiling swift-vips fails with something like:
+          #   fatal error: 'glib.h' file not found
+          # look for a warning just before it:
+          #   warning: couldn't find pc file for spng
+          # and add the corresponding nixpkgs package here.
         ]
         ++ lib.optionals stdenv.isLinux [
-          swiftPackages.stdenv
-          swiftPackages.XCTest
-          swiftPackages.Foundation
-          swiftPackages.Dispatch
-
-          swift-corelibs-libdispatch
+          # swift-vips Linux-only C deps
           glibc.dev
-
-          # swift-vips linux deps
           libselinux.dev
           libsepol.dev
           pcre.dev
           util-linux.dev
         ];
   in
-    {
-      overlay = _: prev: let
-        pkgs = nixpkgs.legacyPackages.${prev.system};
-      in {
-        munin = let
-          generated = pkgs.swiftpm2nix.helpers ./nix;
-          src = builtins.filterSource (path: _:
-            !(builtins.elem (baseNameOf path) [
-              "flake.nix"
-              "flake.lock"
-              ".git"
-              ".build"
-              ".direnv"
-            ]))
-          ./.;
-        in
-          pkgs.swift.stdenv.mkDerivation {
-            pname = "munin";
-            inherit version;
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import nixpkgs {inherit system;};
 
-            inherit src;
-            LD_LIBRARY_PATH =
-              if pkgs.stdenv.isLinux
-              then "${pkgs.swiftPackages.Dispatch}/lib"
-              else null;
-
-            strictDeps = true;
-
-            # Including SwiftPM as a nativeBuildInput provides a buildPhase for you.
-            # This by default performs a release build using SwiftPM, essentially:
-            #   swift build -c release
-            nativeBuildInputs = ndeps pkgs;
-            buildInputs = bdeps pkgs;
-
-            # The helper provides a configure snippet that will prepare all dependencies
-            # in the correct place, where SwiftPM expects them.
-            configurePhase = generated.configure;
-
-            # swiftpmFlags = ["--target x86_64-pc-linux-gnu"];
-
-            installPhase = ''
-              # This is a special function that invokes swiftpm to find the location
-              # of the binaries it produced.
-              binPath="$(swiftpmBinPath)"
-              # Now perform any installation steps.
-              mkdir -p $out/bin
-              cp $binPath/munin $out/bin/
-            '';
-          };
-      };
-    }
-    // flake-utils.lib.eachDefaultSystem
-    (system: let
-      pkgs = import nixpkgs {
-        overlays = [self.overlay];
-        inherit system;
-      };
+      # Shell hook that nudges the user towards installing Swift if it is
+      # missing. We don't provide it from nixpkgs (see the file header for
+      # why), but without Swift on PATH the devShell is not much use.
+      swiftCheckHook = ''
+        if ! command -v swift >/dev/null 2>&1; then
+          echo
+          echo "  ⚠  swift not found on PATH."
+          echo "     Install the Swift 6.3.1 toolchain (matching CI) via either:"
+          echo "       • swiftly:  https://www.swift.org/install/"
+          echo "       • tarball:  https://download.swift.org/"
+          echo
+        else
+          echo "  swift found: $(command -v swift)"
+          swift --version 2>/dev/null | head -n 1 | sed 's/^/  /'
+        fi
+      '';
     in {
-      # `nix develop`
-      devShell = pkgs.mkShell.override {inherit (pkgs.swift) stdenv;} {
-        LD_LIBRARY_PATH =
-          if pkgs.stdenv.isLinux
-          then "${pkgs.swiftPackages.Dispatch}/lib"
-          else null;
+      devShells.default = pkgs.mkShell {
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
           (bdeps pkgs)
           ++ [
             pkgs.swift-format
             pkgs.sourcekit-lsp
-            pkgs.swiftpm2nix
-
-            # pkgs.swiftPackages.xcbuild
           ];
+        shellHook = swiftCheckHook;
       };
-
-      apps = {
-        inherit (pkgs) munin;
-      };
-      defaultApp = pkgs.munin;
-
-      overlays.default = self.overlay;
-
-      # `nix build`
-      packages = with pkgs; {
-        inherit munin;
-      };
-      defaultPackage = pkgs.munin;
     });
 }
