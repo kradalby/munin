@@ -13,6 +13,7 @@ final class KeywordTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
+    VIPSSetup.ensure()
     let manager = ConfigurationManager()
     manager
       .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])

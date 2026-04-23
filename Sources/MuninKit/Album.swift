@@ -109,7 +109,7 @@ struct AlbumInAlbum: Codable {
   var scaledPhotos: [ScaledPhoto]
 }
 
-struct Parent: Codable, AutoEquatable, Comparable {
+struct Parent: Codable, AutoEquatable, Comparable, Sendable {
   var name: String
   var url: String
 
@@ -444,7 +444,7 @@ func readStateFromInputDirectory(
     album.people = album.people.union(childAlbum.people)
   }
 
-  var photos = [Photo]()
+  let photosContainer = ThreadSafeArray<Photo>()
   let files = FileManager.default.filesOfDirectoryByExtensions(
     atPath: joinPath(atPath), extensions: ctx.config.fileExtensions
   )
@@ -453,7 +453,7 @@ func readStateFromInputDirectory(
       atPath: joinPath(atPath, file))
     if let fileExtension = fileExtension(atPath: joinPath(atPath, file)) {
       photoToReadGroup.enter()
-      photoQueue.async {
+      photoQueue.async { [newParents] in
         let maybePhoto = readPhotoFromPath(
           atPath: joinPath(atPath, file),
           outPath: joinPath(outPath, urlifyName(name)),
@@ -463,17 +463,16 @@ func readStateFromInputDirectory(
           ctx: ctx
         )
 
-        stateQueue.sync {
-          if let photo = maybePhoto {
-            if photo.include() {
-              photos.append(photo)
-            } else {
-              ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-            }
+        if let photo = maybePhoto {
+          if photo.include() {
+            photosContainer.append(photo)
+          } else {
+            ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
           }
+        }
 
+        stateQueue.sync {
           ctx.state.updatePhotosToWrite(name: joinPath(atPath, file))
-
         }
         photoToReadGroup.leave()
         ctx.sema.signal()
@@ -488,8 +487,9 @@ func readStateFromInputDirectory(
   photoToReadGroup.wait()
 
   // Ensure that we have a stable order before building next/previous map.
-  photos.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
+  photosContainer.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
 
+  var photos = photosContainer.all
   for (index, photo) in photos.enumerated() {
     let previous = photos.index(before: index)
     let next = photos.index(after: index)

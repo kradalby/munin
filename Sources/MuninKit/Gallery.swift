@@ -9,8 +9,6 @@ import Configuration
 import Dispatch
 import Foundation
 import Logging
-import TSCBasic
-import TSCUtility
 
 let stateQueue = DispatchQueue(label: "no.kradalby.MuninKit.stateQueue", qos: .userInteractive)
 let photoQueue = DispatchQueue(
@@ -25,9 +23,12 @@ struct Timings {
   var generateDiff: TimeInterval?
 }
 
-class State {
-  let writingProgress: PercentProgressAnimation?
-  let readingProgress: ReadingProgressAnimation?
+// @unchecked Sendable: temporary. State mutates via GCD queue serialization in
+// the current code. Scheduled to become a proper `actor State` in commit 6 of
+// the MUNIN_MODERNISE_PLAN.md sequence.
+final class State: @unchecked Sendable {
+  let writingProgress: WritingProgress?
+  let readingProgress: ReadingProgress?
 
   var lastReadPhoto: String = ""
   var photosToWrite: Int {
@@ -45,23 +46,12 @@ class State {
     photosToWrite = 0
     photosWritten = 0
 
-    writingProgress =
-      progress
-      ? PercentProgressAnimation(
-        stream: TSCBasic.stdoutStream, header: "Writing images") : nil
-
-    if progress, let terminal = TerminalController(stream: TSCBasic.stdoutStream) {
-      readingProgress = ReadingProgressAnimation(terminal: terminal, header: "Finding images")
-    } else {
-      readingProgress = nil
-    }
+    writingProgress = progress ? WritingProgress(title: "Writing images") : nil
+    readingProgress = progress ? ReadingProgress(header: "Finding images") : nil
   }
 
   func completeRead() {
-    if let progress = readingProgress {
-      progress.complete(
-        success: true)
-    }
+    readingProgress?.complete()
   }
 
   func resetWrite(photosWritten: Int) {
@@ -78,27 +68,23 @@ class State {
   }
 
   func renderReading() {
-    if let progress = readingProgress {
-      progress.update(
-        step: photosToWrite, total: 0,
-        text: "Reading: \(lastReadPhoto)")
-    }
+    readingProgress?.update(count: photosToWrite, text: "Reading: \(lastReadPhoto)")
   }
 
   func renderWriting() {
-    if let progress = writingProgress {
-      progress.update(
-        step: photosWritten, total: photosToWrite,
-        text: "Writing: \(photosWritten) out of \(photosToWrite)")
-
-      if photosToWrite == photosWritten {
-        progress.complete(success: true)
-      }
+    guard let progress = writingProgress else { return }
+    progress.update(step: photosWritten, total: photosToWrite)
+    if photosToWrite == photosWritten {
+      progress.complete(success: true)
     }
   }
 }
 
-public struct Context {
+// @unchecked Sendable: temporary. Context contains a mutable Logger, a
+// DispatchSemaphore, and a State class whose mutations are serialized through
+// `stateQueue`. Scheduled to become truly Sendable once State is an actor and
+// rate-limiting moves to an AsyncSemaphore (commits 6–8).
+public struct Context: @unchecked Sendable {
   let config: GalleryConfiguration
   var time: Timings?
   var state: State
@@ -159,7 +145,7 @@ public struct GalleryConfiguration {
   public init(
     _ manager: ConfigurationManager
   ) {
-    name = "root"
+    name = manager["name"] as? String ?? "root"
     people = manager["people"] as? [String] ?? []
     peopleFiles = manager["peopleFiles"] as? [String] ?? []
     resolutions = manager["resolutions"] as? [Int] ?? [1600, 1200, 992, 768, 576, 340, 220, 180]

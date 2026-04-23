@@ -51,11 +51,19 @@ func createOrReplaceSymlink(ctx: Context, source: String, destination: String) t
 }
 
 func joinPath(_ paths: String...) -> String {
-  return paths.filter { $0 != "" }.joined(separator: "/")
+  return joinPath(paths)
 }
 
 func joinPath(_ paths: [String]) -> String {
-  return paths.filter { $0 != "" }.joined(separator: "/")
+  let nonEmpty = paths.filter { !$0.isEmpty }
+  guard !nonEmpty.isEmpty else { return "" }
+  // Preserve a leading slash from the first component so absolute paths stay
+  // absolute, but collapse any other leading/trailing slashes on components.
+  let leading = nonEmpty[0].hasPrefix("/") ? "/" : ""
+  let trimmed = nonEmpty
+    .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "/")) }
+    .filter { !$0.isEmpty }
+  return leading + trimmed.joined(separator: "/")
 }
 
 func fileExtension(atPath: String) -> String? {

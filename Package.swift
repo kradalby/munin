@@ -1,7 +1,5 @@
-// swift-tools-version:5.8
+// swift-tools-version:6.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
-
-// https://theswiftdev.com/the-swift-package-manifest-file/
 
 import PackageDescription
 
@@ -20,11 +18,9 @@ var linkerSettings: [LinkerSetting]? {
 let package = Package(
   name: "Munin",
   platforms: [
-    .macOS(.v10_15),
-    // .linux
+    .macOS(.v14),
   ],
   products: [
-    // Products define the executables and libraries produced by a package, and make them visible to other packages.
     .executable(
       name: "munin",
       targets: ["Munin"]
@@ -35,16 +31,23 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/t089/swift-vips.git", branch: "main"),
-    .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.0.7"),
-    // .package(path: "../SwiftExif"),
-    .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
+    // swift-vips tracks `main`; SHA-pinned for reproducibility.
+    .package(
+      url: "https://github.com/t089/swift-vips.git",
+      revision: "d01b393ef30b3a2ae6ed97a02f61edab3d44b4af"),
+    // SwiftExif: upstream tag 0.0.7 predates the Swift 6.3 fix; pin to master
+    // SHA until a new tag is released. Tracked in FUTURES.md.
+    .package(
+      url: "https://github.com/kradalby/SwiftExif.git",
+      revision: "eb7c5c4e034f0fc01c5a11b3c1d1ac3074f0acb1"),
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
+    // TODO(commit 3): remove Kitura/Configuration; replaced by in-tree Codable.
     .package(url: "https://github.com/Kitura/Configuration.git", from: "3.1.0"),
     .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.0.1"),
-    .package(
-      url: "https://github.com/apple/swift-tools-support-core.git",
-      .upToNextMajor(from: "0.6.1")),
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
+    // vapor/console-kit provides the progress/activity indicator UI that
+    // replaced swift-tools-support-core's PercentProgressAnimation.
+    .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
   ],
   targets: [
     .executableTarget(
@@ -59,9 +62,9 @@ let package = Package(
     .target(
       name: "MuninKit",
       dependencies: [
-        .product(name: "SwiftToolsSupport-auto", package: "swift-tools-support-core"),
         .product(name: "Logging", package: "swift-log"),
         .product(name: "VIPS", package: "swift-vips"),
+        .product(name: "ConsoleKitTerminal", package: "console-kit"),
         "SwiftExif",
         "Configuration",
         "Rainbow",

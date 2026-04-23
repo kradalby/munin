@@ -11,6 +11,11 @@ final class PhotoTests: XCTestCase {
   let outPath = "example/content/"
   let configPath = "example/munin.json"
 
+  override func setUp() {
+    super.setUp()
+    VIPSSetup.ensure()
+  }
+
   func test() {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct
@@ -48,7 +53,7 @@ final class PhotoTests: XCTestCase {
     )
 
     XCTAssertEqual(photo?.name, "test")
-    XCTAssertEqual(photo?.url, "example/content//test.json")
+    XCTAssertEqual(photo?.url, "example/content/test.json")
     XCTAssertEqual(photo?.scaledPhotos.count, 7)
     XCTAssertEqual(photo?.aperture, 2.64386)
     XCTAssertEqual(photo?.orientation, Orientation.landscape)
@@ -58,7 +63,7 @@ final class PhotoTests: XCTestCase {
       ["Jul", "Aspargesgården", "Christmas", "Tjodalyng", "2017", "Norway", "Vestfold"].sorted())
 
     XCTAssertEqual(photo2?.name, "test2")
-    XCTAssertEqual(photo2?.url, "example/content//test2.json")
+    XCTAssertEqual(photo2?.url, "example/content/test2.json")
     XCTAssertEqual(photo2?.scaledPhotos.count, 7)
     XCTAssertEqual(photo2?.aperture, 2.97085)
     XCTAssertEqual(photo2?.orientation, Orientation.landscape)
@@ -68,7 +73,7 @@ final class PhotoTests: XCTestCase {
       ["Aspargesgården", "Tjodalyng", "Norway", "Jul", "2017", "Vestfold", "Christmas"].sorted())
 
     XCTAssertEqual(photo3?.name, "test3")
-    XCTAssertEqual(photo3?.url, "example/content//test3.json")
+    XCTAssertEqual(photo3?.url, "example/content/test3.json")
     XCTAssertEqual(photo3?.scaledPhotos.count, 7)
     XCTAssertEqual(photo3?.aperture, 4.64386)
     XCTAssertEqual(photo3?.orientation, Orientation.portrait)
@@ -78,7 +83,7 @@ final class PhotoTests: XCTestCase {
       ["Denmark", "2017", "Århus", "Central Denmark Region", "DK", "Street art"].sorted())
 
     XCTAssertEqual(photo4?.name, "test4")
-    XCTAssertEqual(photo4?.url, "example/content//test4.json")
+    XCTAssertEqual(photo4?.url, "example/content/test4.json")
     XCTAssertEqual(photo4?.scaledPhotos.count, 8)
     XCTAssertEqual(photo4?.aperture, 1.696)
     XCTAssertEqual(photo4?.orientation, Orientation.portrait)
@@ -100,11 +105,12 @@ final class PhotoTests: XCTestCase {
       ctx: ctx
     )
 
+    let cwd = FileManager.default.currentDirectoryPath
     let expectedFiles = [
       "test.json", "test_180.jpg", "test_220.jpg",
       "test_340.jpg", "test_576.jpg", "test_768.jpg",
       "test_992.jpg", "test_1200.jpg", "test_original.jpg",
-    ].map { URL(fileURLWithPath: "example/content/" + $0).path }.sorted()
+    ].map { "\(cwd)/example/content/\($0)" }.sorted()
     let actualFiles = photo!.expectedFiles().map { $0.path }.sorted()
 
     XCTAssertEqual(actualFiles, expectedFiles)

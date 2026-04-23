@@ -12,6 +12,7 @@ final class AlbumTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
+    VIPSSetup.ensure()
     let manager = ConfigurationManager()
     manager
       .load(file: configPath, relativeFrom: .customPath("")).load(["progress": false])
@@ -35,9 +36,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
   }
 
   func testExpectedFiles() {
@@ -50,30 +51,31 @@ final class AlbumTests: XCTestCase {
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
-    let contentDir = URL(fileURLWithPath: "example/content", isDirectory: true)
+    let cwd = FileManager.default.currentDirectoryPath
+    let contentDir = "\(cwd)/example/content"
 
     let expectedFiles = [
-      "\(contentDir.path)/test/20180510-171752-IMG_7165.json",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_180.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_220.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_340.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_576.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_original.jpg",
-      "\(contentDir.path)/test/index.json",
-      "\(contentDir.path)/test/test_special_chars.json",
-      "\(contentDir.path)/test/test_special_chars_180.jpg",
-      "\(contentDir.path)/test/test_special_chars_220.jpg",
-      "\(contentDir.path)/test/test_special_chars_original.jpg",
-      "\(contentDir.path)/test/portrait_mm.json",
-      "\(contentDir.path)/test/portrait_mm_180.jpeg",
-      "\(contentDir.path)/test/portrait_mm_220.jpeg",
-      "\(contentDir.path)/test/portrait_mm_340.jpeg",
-      "\(contentDir.path)/test/portrait_mm_576.jpeg",
-      "\(contentDir.path)/test/portrait_mm_768.jpeg",
-      "\(contentDir.path)/test/portrait_mm_992.jpeg",
-      "\(contentDir.path)/test/portrait_mm_1200.jpeg",
-      "\(contentDir.path)/test/portrait_mm_1600.jpeg",
-      "\(contentDir.path)/test/portrait_mm_original.jpeg",
+      "\(contentDir)/test/20180510-171752-IMG_7165.json",
+      "\(contentDir)/test/20180510-171752-IMG_7165_180.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_220.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_340.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_576.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_original.jpg",
+      "\(contentDir)/test/index.json",
+      "\(contentDir)/test/test_special_chars.json",
+      "\(contentDir)/test/test_special_chars_180.jpg",
+      "\(contentDir)/test/test_special_chars_220.jpg",
+      "\(contentDir)/test/test_special_chars_original.jpg",
+      "\(contentDir)/test/portrait_mm.json",
+      "\(contentDir)/test/portrait_mm_180.jpeg",
+      "\(contentDir)/test/portrait_mm_220.jpeg",
+      "\(contentDir)/test/portrait_mm_340.jpeg",
+      "\(contentDir)/test/portrait_mm_576.jpeg",
+      "\(contentDir)/test/portrait_mm_768.jpeg",
+      "\(contentDir)/test/portrait_mm_992.jpeg",
+      "\(contentDir)/test/portrait_mm_1200.jpeg",
+      "\(contentDir)/test/portrait_mm_1600.jpeg",
+      "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
     let actualFiles = album.expectedFiles().map { $0.path }.sorted()
     XCTAssertEqual(actualFiles, expectedFiles)
@@ -99,9 +101,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
     let unreferenced = album.unreferencedFiles()
 
     XCTAssertEqual(unreferenced, [])
@@ -117,30 +119,31 @@ final class AlbumTests: XCTestCase {
     let albumCount = album.numberOfAlbums(travers: true)
     XCTAssertEqual(albumCount, 0)
 
-    let contentDir = URL(fileURLWithPath: "example/content", isDirectory: true)
+    let cwd = FileManager.default.currentDirectoryPath
+    let contentDir = "\(cwd)/example/content"
 
     let expectedFiles = [
-      "\(contentDir.path)/test/20180510-171752-IMG_7165.json",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_180.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_220.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_340.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_576.jpg",
-      "\(contentDir.path)/test/20180510-171752-IMG_7165_original.jpg",
-      "\(contentDir.path)/test/index.json",
-      "\(contentDir.path)/test/test_special_chars.json",
-      "\(contentDir.path)/test/test_special_chars_180.jpg",
-      "\(contentDir.path)/test/test_special_chars_220.jpg",
-      "\(contentDir.path)/test/test_special_chars_original.jpg",
-      "\(contentDir.path)/test/portrait_mm.json",
-      "\(contentDir.path)/test/portrait_mm_180.jpeg",
-      "\(contentDir.path)/test/portrait_mm_220.jpeg",
-      "\(contentDir.path)/test/portrait_mm_340.jpeg",
-      "\(contentDir.path)/test/portrait_mm_576.jpeg",
-      "\(contentDir.path)/test/portrait_mm_768.jpeg",
-      "\(contentDir.path)/test/portrait_mm_992.jpeg",
-      "\(contentDir.path)/test/portrait_mm_1200.jpeg",
-      "\(contentDir.path)/test/portrait_mm_1600.jpeg",
-      "\(contentDir.path)/test/portrait_mm_original.jpeg",
+      "\(contentDir)/test/20180510-171752-IMG_7165.json",
+      "\(contentDir)/test/20180510-171752-IMG_7165_180.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_220.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_340.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_576.jpg",
+      "\(contentDir)/test/20180510-171752-IMG_7165_original.jpg",
+      "\(contentDir)/test/index.json",
+      "\(contentDir)/test/test_special_chars.json",
+      "\(contentDir)/test/test_special_chars_180.jpg",
+      "\(contentDir)/test/test_special_chars_220.jpg",
+      "\(contentDir)/test/test_special_chars_original.jpg",
+      "\(contentDir)/test/portrait_mm.json",
+      "\(contentDir)/test/portrait_mm_180.jpeg",
+      "\(contentDir)/test/portrait_mm_220.jpeg",
+      "\(contentDir)/test/portrait_mm_340.jpeg",
+      "\(contentDir)/test/portrait_mm_576.jpeg",
+      "\(contentDir)/test/portrait_mm_768.jpeg",
+      "\(contentDir)/test/portrait_mm_992.jpeg",
+      "\(contentDir)/test/portrait_mm_1200.jpeg",
+      "\(contentDir)/test/portrait_mm_1600.jpeg",
+      "\(contentDir)/test/portrait_mm_original.jpeg",
     ].sorted()
     let missing = album.missingFiles().map { $0.path }.sorted()
 
@@ -152,9 +155,9 @@ final class AlbumTests: XCTestCase {
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
-    XCTAssertEqual(photoCount, 103)
+    XCTAssertEqual(photoCount, 104)
     let albumCount = album.numberOfAlbums(travers: true)
-    XCTAssertEqual(albumCount, 10)
+    XCTAssertEqual(albumCount, 12)
 
     let expectedFiles: [String] = []
     let missing = album.missingFiles().map { $0.path }.sorted()

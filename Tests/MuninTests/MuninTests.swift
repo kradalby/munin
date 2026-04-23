@@ -7,7 +7,7 @@ final class MuninTests: XCTestCase {
     // results.
     XCTAssertEqual("test", "test")
   }
-  static var __allTests = [
+  static let __allTests = [
     ("test", test)
   ]
 }

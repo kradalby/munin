@@ -165,7 +165,7 @@ extension Photo {
                     ctx.log.trace(
                       "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
                     try image.thumbnailImage(width: scaledPhoto.maxResolution, crop: .none)
-                        .write(toFilePath: URL(fileURLWithPath: scaledPhoto.url).path, quality: Int(ctx.config.jpegCompression * 100))
+                        .writeToFile(URL(fileURLWithPath: scaledPhoto.url).path, quality: Int(ctx.config.jpegCompression * 100))
                 } catch {
                     ctx.log.error("Could not write image \(name) to \(scaledPhoto.url)")
                 }
@@ -299,25 +299,14 @@ func readPhotoFromPath(
         let height = image.size.height
         photo.width = width
         photo.height = height
-        
-        // This bit seems a bit unnecessarily complicated.
-        // It is a naive implementation taking into the capture orientation (EXIF) and
-        // the orientation of the actual pixels.
-        if width < height {
-//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-//            photo.orientation = Orientation.portrait
-//          } else {
-//            photo.orientation = Orientation.landscape
-//          }
-            photo.orientation = Orientation.portrait
 
+        // Determine display orientation by combining the raw pixel dimensions
+        // with the EXIF orientation hint. EXIF orientations 5–8 imply a 90°
+        // or 270° rotation, which effectively swaps the width/height we see.
+        if image.orientationSwap {
+          photo.orientation = width > height ? .portrait : .landscape
         } else {
-//          if [.topLeft, .topRight, .bottomLeft, .bottomRight].contains(image.orientation) {
-//            photo.orientation = Orientation.landscape
-//          } else {
-//            photo.orientation = Orientation.portrait
-//          }
-            photo.orientation = Orientation.landscape
+          photo.orientation = width < height ? .portrait : .landscape
         }
         
     } catch {
