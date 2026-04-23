@@ -17,20 +17,29 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-24.04
+    # Run on both Linux and macOS so the cross-platform stability claims
+    # in the README (macOS + Linux) are actually exercised.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Swift toolchain
-        id: cache-swift
+      # --- Swift toolchain -------------------------------------------------
+
+      - name: Cache Swift toolchain (Linux)
+        if: runner.os == 'Linux'
+        id: cache-swift-linux
         uses: actions/cache@v4
         with:
           path: /opt/swift
           key: swift-6.3.1-ubuntu-24.04
 
-      - name: Install Swift 6.3.1
-        if: steps.cache-swift.outputs.cache-hit != 'true'
+      - name: Install Swift 6.3.1 (Linux)
+        if: runner.os == 'Linux' && steps.cache-swift-linux.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cd /tmp
@@ -39,13 +48,37 @@ jobs:
           sudo tar -xzf swift-6.3.1-RELEASE-ubuntu24.04.tar.gz \
             -C /opt/swift --strip-components=1
 
-      - name: Put Swift on PATH
+      - name: Put Swift on PATH (Linux)
+        if: runner.os == 'Linux'
         run: echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Swift toolchain (macOS)
+        if: runner.os == 'macOS'
+        id: cache-swift-macos
+        uses: actions/cache@v4
+        with:
+          path: /Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain
+          key: swift-6.3.1-macos-14
+
+      - name: Install Swift 6.3.1 (macOS)
+        if: runner.os == 'macOS' && steps.cache-swift-macos.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          cd /tmp
+          curl -sSLO https://download.swift.org/swift-6.3.1-release/xcode/swift-6.3.1-RELEASE/swift-6.3.1-RELEASE-osx.pkg
+          sudo installer -pkg swift-6.3.1-RELEASE-osx.pkg -target /
+
+      - name: Put Swift on PATH (macOS)
+        if: runner.os == 'macOS'
+        run: echo "/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
 
       - name: Verify Swift toolchain
         run: swift --version
 
-      - name: Install system dependencies
+      # --- System C libraries ----------------------------------------------
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -54,6 +87,14 @@ jobs:
             libexif-dev \
             libvips-dev \
             pkg-config
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install vips libexif libiptcdata pkg-config
+
+      # --- Build + test ----------------------------------------------------
 
       - name: Cache Swift build artefacts
         uses: actions/cache@v4
