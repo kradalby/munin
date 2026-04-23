@@ -50,6 +50,7 @@ func readPhotoFromPath(
 
   do {
     let image = try VIPSImage(fromFilePath: fileURL.path)
+    VIPSBootstrap.didRunPipeline()
     let width = image.size.width
     let height = image.size.height
     photo.width = width

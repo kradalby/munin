@@ -104,8 +104,26 @@ final class GalleryHarness {
   /// - Parameter jsonOnly: forwarded to `Gallery.build(ctx:jsonOnly:)`.
   @discardableResult
   func build(jsonOnly: Bool = false) async throws -> Gallery {
+    // libvips' process-wide operation cache keys entries by filename; a
+    // second in-process build that points at the same source path with
+    // different bytes would otherwise receive the first build's cached
+    // pixel data. Dropping the cache before every load matches what a
+    // fresh `munin` process would see.
+    VIPSBootstrap.dropPipelineCache()
     let gallery = try await Gallery.load(ctx: ctx)
     try await gallery.build(ctx: ctx, jsonOnly: jsonOnly)
+    return gallery
+  }
+
+  /// Mirror of the CLI's run loop: `load` → `build` → `clean`. Tests that
+  /// exercise the incremental-rebuild contract should use this rather
+  /// than ``build(jsonOnly:)`` alone so orphan cleanup is also covered.
+  @discardableResult
+  func buildAndClean(jsonOnly: Bool = false) async throws -> Gallery {
+    VIPSBootstrap.dropPipelineCache()
+    let gallery = try await Gallery.load(ctx: ctx)
+    try await gallery.build(ctx: ctx, jsonOnly: jsonOnly)
+    gallery.clean(ctx: ctx)
     return gallery
   }
 

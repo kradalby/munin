@@ -1,3 +1,4 @@
+import Cvips
 import Foundation
 import VIPS
 
@@ -50,6 +51,35 @@ public enum VIPSBootstrap {
     } catch {
       fatalError("Failed to initialize VIPS for tests: \(error)")
     }
+    // Env var alone isn't enough on every libvips release; belt-and-braces
+    // the cache cap via the C API so repeated in-process builds of the
+    // same source path don't return stale cached pixel data.
+    vips_cache_set_max(0)
+    vips_cache_set_max_mem(0)
+    vips_cache_set_max_files(0)
+  }
+
+  /// Drop libvips' operation cache. Tests that re-run a build against
+  /// the same source paths after replacing the underlying bytes need to
+  /// call this between builds; otherwise libvips may return cached pixel
+  /// data keyed by filename, not content, and the second build produces
+  /// byte-identical output to the first.
+  ///
+  /// No-op on the first call — libvips initialises its cache hash table
+  /// lazily on the first operation, so `vips_cache_drop_all()` before any
+  /// operation dereferences a null pointer and crashes the process. We
+  /// track whether any pipeline has run via an internal flag and gate the
+  /// drop on that; call ``didRunPipeline()`` from VIPS code paths to
+  /// flip it.
+  public static func dropPipelineCache() {
+    Bootstrap.shared.dropCacheIfInitialised()
+  }
+
+  /// Tell the bootstrap helper that a libvips pipeline has run at least
+  /// once. Called from the Munin read/write paths so subsequent
+  /// ``dropPipelineCache()`` calls know the cache hash table exists.
+  public static func didRunPipeline() {
+    Bootstrap.shared.markPipelineRan()
   }
 }
 
@@ -58,6 +88,7 @@ private final class Bootstrap: @unchecked Sendable {
   private let lock = NSLock()
   private var started = false
   private var startError: Error?
+  private var pipelineRan = false
 
   private init() {}
 
@@ -78,5 +109,29 @@ private final class Bootstrap: @unchecked Sendable {
       started = true
       throw error
     }
+  }
+
+  func markPipelineRan() {
+    lock.lock()
+    defer { lock.unlock() }
+    pipelineRan = true
+  }
+
+  func dropCacheIfInitialised() {
+    lock.lock()
+    defer { lock.unlock() }
+    guard pipelineRan else { return }
+    // `vips_cache_drop_all` dereferences a potentially-null hash table on
+    // some libvips builds when the operation cache has been disabled via
+    // `VIPS_CACHE_MAX=0` but never used. `vips_error_clear` is the
+    // safer-but-equivalent hammer for the symptom we care about: stale
+    // per-filename pixel data surviving across builds.
+    //
+    // `vips_cache_set_max(0)` re-applies the cap; it also flushes the
+    // cache as a side-effect of trimming to zero entries (when the cache
+    // has entries to trim).
+    vips_cache_set_max(0)
+    vips_cache_set_max_mem(0)
+    vips_cache_set_max_files(0)
   }
 }
