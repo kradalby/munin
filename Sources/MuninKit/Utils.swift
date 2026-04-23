@@ -51,31 +51,23 @@ func createOrReplaceSymlink(ctx: Context, source: String, destination: String) t
 }
 
 func joinPath(_ paths: String...) -> String {
-  return joinPath(paths)
+  return Paths.join(paths)
 }
 
 func joinPath(_ paths: [String]) -> String {
-  let nonEmpty = paths.filter { !$0.isEmpty }
-  guard !nonEmpty.isEmpty else { return "" }
-  // Preserve a leading slash from the first component so absolute paths stay
-  // absolute, but collapse any other leading/trailing slashes on components.
-  let leading = nonEmpty[0].hasPrefix("/") ? "/" : ""
-  let trimmed = nonEmpty
-    .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "/")) }
-    .filter { !$0.isEmpty }
-  return leading + trimmed.joined(separator: "/")
+  return Paths.join(paths)
 }
 
 func fileExtension(atPath: String) -> String? {
-  let url = URL(fileURLWithPath: atPath)
-  return url.pathExtension
+  // Historical behaviour: a file with no extension returned `""`, not nil,
+  // because `URL.pathExtension` does. Preserve that for callers that rely on
+  // the non-nil result (e.g. the `guard let fileExt` in Album+Read.swift
+  // currently treats `""` as a missing extension anyway).
+  return Paths.extension(atPath) ?? ""
 }
 
 func fileNameWithoutExtension(atPath: String) -> String {
-  let url = URL(fileURLWithPath: atPath)
-  let fileName = url.lastPathComponent
-  let fileExtension = url.pathExtension
-  return fileName.replacingOccurrences(of: ".\(fileExtension)", with: "")
+  return Paths.stem(atPath)
 }
 
 func pathWithoutFileName(atPath: String) -> String {
@@ -151,7 +143,7 @@ func prettyPrintAlbumCompact(_ album: Album, marker: String) {
 }
 
 func urlifyName(_ name: String) -> String {
-  return name.replacingOccurrences(of: " ", with: "_")
+  return Paths.urlify(name)
 }
 
 extension Collection {
