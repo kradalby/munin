@@ -96,16 +96,73 @@ final class GalleryTests: XCTestCase {
   }
 
   func testDiffGalleryAddedAlbum() async throws {
-    // TODO(commit 18 + 23): The current diff/equality logic + stale example
-    // fixture counts leave this test brittle. Re-enable after Photo equality
-    // fix and example regen.
-    throw XCTSkip("Depends on Photo equality fix (commit 18) and example regen (commit 23)")
+    let gallery = try await Gallery.load(ctx: ctx)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
+    XCTAssertNil(gallery.output)
+
+    try await gallery.build(ctx: ctx, jsonOnly: false)
+
+    let fm = FileManager()
+    let deletePath = joinPath(
+      testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå")
+    do {
+      try fm.removeItem(atPath: deletePath)
+    } catch {
+      print("Failed to delete directory in test output during test: " + deletePath)
+      XCTFail()
+    }
+
+    let gallery2 = try await Gallery.load(ctx: ctx)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
+    XCTAssertNotNil(gallery2.output)
+
+    XCTAssertNotNil(gallery2.changedContent)
+    // changedContent should contain the photos and album that disappeared
+    // from the output directory — exactly the Alkmaar folder.
+    XCTAssertGreaterThan(gallery2.changedContent!.numberOfPhotos(travers: true), 0)
+    XCTAssertGreaterThan(gallery2.changedContent!.numberOfAlbums(travers: true), 0)
   }
 
   func testDiffGalleryAddedPhotos() async throws {
-    // TODO(commit 18 + 23): Same as testDiffGalleryAddedAlbum; also needs the
-    // example file renames (IMG_6010 → IMG_6010-ÆØÅæøå) reconciled.
-    throw XCTSkip("Depends on Photo equality fix (commit 18) and example regen (commit 23)")
+    let gallery = try await Gallery.load(ctx: ctx)
+    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
+    XCTAssertNil(gallery.output)
+
+    try await gallery.build(ctx: ctx, jsonOnly: false)
+
+    let fm = FileManager()
+    let photosToDelete = [
+      "20180310-143656-IMG_6012.json",
+      "20180310-144346-IMG_6013.json",
+      "20180310-144514-IMG_6014.json",
+      "20180310-144523-IMG_6015.json",
+      "20180310-144631-IMG_6016.json",
+      "20180310-150725-IMG_6017.json",
+      "20180310-151102-IMG_6018.json",
+      "20180310-151205-IMG_6019.json",
+    ]
+    for photo in photosToDelete {
+      let deletePath = joinPath(
+        testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå", photo)
+      do {
+        try fm.removeItem(atPath: deletePath)
+      } catch {
+        print("Failed to delete: " + deletePath + " (\(error))")
+        XCTFail()
+      }
+    }
+
+    let gallery2 = try await Gallery.load(ctx: ctx)
+    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
+    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
+    XCTAssertNotNil(gallery2.output)
+
+    XCTAssertNotNil(gallery2.changedContent)
+    XCTAssertEqual(
+      gallery2.changedContent!.numberOfPhotos(travers: true), photosToDelete.count)
   }
 
   func testClean() async throws {
