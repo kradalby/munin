@@ -6,21 +6,21 @@ Munin is a static "api" image gallery generator. Munin will take a folder struct
 
 Munin does not come with a frontend, and encourages you to "build your own" or pair it with [Hugin](https://github.com/kradalby/hugin).
 
-Munin uses [libgd](https://libgd.github.io) (via [SwiftGD](https://github.com/twostraws/SwiftGD)), [libexif](https://libexif.github.io) and [libiptcdata](http://libiptcdata.sourceforge.net) to read, resize, write images and their metadata. Munin runs on both macOS and Linux.
+Munin uses [libvips](https://www.libvips.org/) (via [swift-vips](https://github.com/t089/swift-vips)), [libexif](https://libexif.github.io) and [libiptcdata](http://libiptcdata.sourceforge.net) to read, resize, write images and their metadata. Munin runs on both macOS and Linux.
 
 ## Features
 
 - Organise your album as folders
 - Generate albums fast!
   - Generate only changed albums/images
-  - Encode with all available cores
-  - Reuse original images by symlinking ([example](example/content/root/2018/2018-03-10_Alkmaar/20180310-133656-IMG_6007_original.jpg))
+  - Encode with all available cores via Swift structured concurrency (`TaskGroup` + `AsyncSemaphore`)
+  - Reuse original images by symlinking
   - Generate multiple sizes for responsive usage
-- Structure EXIF and other metadata as JSON ([example]())
-- Structure image by keywords ([example]())
-- Structure image by people ([example]())
-- Extract location data from images ([example]())
-- Statistics ([example]())
+- Structure EXIF and other metadata as JSON
+- Structure image by keywords
+- Structure image by people
+- Extract location data from images
+- Statistics
 
 ## Usage
 
@@ -39,88 +39,109 @@ Usage:
 
 ### Configuration
 
-Munin is configured with a simple json file:
+Munin is configured with a simple JSON file:
 
 ```json
 {
   "name": "root",
   "resolutions": [1600, 1200, 992, 768, 576, 340, 220, 180],
   "jpegCompression": 0.75,
-  "inputPath": "album",
-  "outputPath": "content",
-  "fileExtentions": ["jpg", "jpeg", "JPG", "JPEG"],
-  "logLevel": 1,
+  "sourceFolder": "album",
+  "targetFolder": "content",
+  "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
+  "logLevel": "info",
   "diff": true,
   "people": ["Kristoffer Andreas Dalby"]
 }
 ```
 
+Every field has a sensible default (see `MuninConfiguration` in
+`Sources/MuninKit/Configuration.swift`); the only fields you likely need to
+set are `sourceFolder` and `targetFolder`.
+
+Configuration values can also be overridden with `MUNIN_*` environment
+variables (e.g. `MUNIN_SOURCE_FOLDER`, `MUNIN_CONCURRENCY`) or with
+`--key value` command-line arguments.
+
 ## Install
 
-### Installing with [mint](https://github.com/yonaskolb/Mint)
+### Requirements
+
+- **Swift 6.3.1** (matches CI) — install via
+  [swiftly](https://www.swift.org/install/) or the
+  [Swift.org tarball](https://download.swift.org/). `nixpkgs`' Swift lags
+  upstream and is not used by this project; see `flake.nix` for the dev
+  shell that provides just the C library deps.
+- **Ubuntu 24.04** (primary CI target) or macOS 14+
+- **System C libraries**:
+
+  Ubuntu / Debian:
+
+  ```bash
+  sudo apt install libvips-dev libexif-dev libiptcdata0-dev libgd-dev pkg-config
+  ```
+
+  macOS (Homebrew):
+
+  ```bash
+  brew install vips libexif libiptcdata pkg-config
+  ```
+
+  Nix (via the bundled flake):
+
+  ```bash
+  nix develop
+  ```
+
+  The devShell provides every C dependency and the developer tools
+  (`swift-format`, `sourcekit-lsp`). It **does not** provide Swift — install
+  that separately via swiftly or the Swift.org tarball.
+
+### Build and install
 
 ```bash
-mint run kradalby/munin --help
+git clone https://github.com/kradalby/munin
+cd munin
+make install   # builds release, copies binary to ~/bin/munin
 ```
 
-### Docker
-
-You can run Munin in a Docker container, but it requires you to mount some folders into the container.
+Or, for a static-stdlib build (~73MB, no Swift runtime dependencies):
 
 ```bash
-docker run --rm -ti kradalby/munin:latest --help
+make build-static
 ```
-
-Wrap the Docker command in a script that can handle the mounting for you:
-
-```bash
-
-```
-
-### Building yourself
-
-This installation will put the binary to `~/bin` which needs to be in your path. If you would like to install it elsewhere, take a look at the `Makefile`
-
-Requirements:
-
-- Linux (Ubuntu 20.10 tested) or macOS (10.15 tested)
-- Swift 5.2
-- git
-
-Clone:
-
-    git clone https://github.com/kradalby/munin
-
-Build and install:
-
-    cd munin
-    make install
 
 ## Development
 
-Please see the requirements in [Building yourself](#Building yourself).
+Assuming Swift and the system libraries from the Requirements section above
+are in place:
 
-Generate a Xcode project:
-
-    make dev
-    open Munin.xcodeproj
-
-or bring your favourite editor.
+```bash
+make build         # debug build
+make test          # run test suite (requires libvips on your system)
+make run           # build + run the binary
+make lint          # swiftlint
+make fmt           # swiftlint --fix + swift-format
+```
 
 ### Code style
 
-When developing on the project, be sure to follow the standard setup of [SwiftLint](https://github.com/realm/SwiftLint) and [swift-format](https://github.com/apple/swift-format)
+Follow [SwiftLint](https://github.com/realm/SwiftLint) and
+[swift-format](https://github.com/swiftlang/swift-format) defaults. Both
+tools are available in the nix devShell; `make fmt` runs both.
 
-All linters can be run with:
+### Architecture notes
 
-```bash
-make lint
-```
+- `Sources/MuninKit` — library: gallery model, read/write pipelines, config.
+  The code lives across small, focused files split by concern
+  (`Album+Read.swift`, `Album+Write.swift`, `Photo+EXIF` inlined in
+  `Photo+Read.swift`, etc.).
+- `Sources/Munin` — `AsyncParsableCommand` CLI entrypoint.
+- `Tests/MuninKitTests` — XCTest-based; each test uses a unique temp
+  directory and shares a single VIPS initialisation via
+  `VIPSBootstrap.startForTesting()`.
 
-All formatters can be run with:
-
-```bash
-make fmt
-```
-
-All linters are ran on the CI whenever a change is comitted.
+Concurrency is based on `async`/`await` + `TaskGroup`; there are no
+`DispatchQueue`s or `DispatchGroup`s in the source. `AsyncSemaphore`
+bounds concurrent VIPS/EXIF reads and image writes per-gallery based on
+the `concurrency` config value.

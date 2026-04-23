@@ -6,20 +6,19 @@ publish: build
 
 generate:
 	sourcery
-	swift test --generate-linuxmain
 	make fmt
 
 build:
-	swift build -c debug --sanitize=thread
+	swift build -c debug
 
 build-release:
 	swift build --configuration release
 
+build-static:
+	swift build --static-swift-stdlib --configuration release
+
 test:
 	swift test
-
-dev:
-	swift package generate-xcodeproj
 
 upgrade:
 	echo "Not implemented"
@@ -32,17 +31,15 @@ reinstall:
 
 lint:
 	swiftlint
-	# swiftformat --lint Sources
 
 fmt:
 	swiftlint autocorrect
-	swift-format --recursive --in-place Sources/ Package.swift
+	swift-format --recursive --in-place Sources/ Tests/ Package.swift
 
 run: build
-	./.build/x86_64-apple-macosx/debug/munin
+	./.build/debug/munin
 
 reset-lsp:
 	swift package reset
 	swift package update
-	killall sourcekit-lsp
-
+	killall sourcekit-lsp || true
