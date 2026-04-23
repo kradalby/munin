@@ -42,8 +42,7 @@ public struct Statistics: Codable, Sendable {
     let fileURL = URL(
       fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
 
-    let encoder = JSONEncoder()
-    encoder.dateEncodingStrategy = .iso8601
+    let encoder = MuninJSON.encoder()
 
     if let encodedData = try? encoder.encode(self) {
       do {

@@ -25,8 +25,7 @@ public struct Locations: Codable, Sendable {
     let fileURL = URL(
       fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
 
-    let encoder = JSONEncoder()
-    encoder.dateEncodingStrategy = .iso8601
+    let encoder = MuninJSON.encoder()
 
     if let encodedData = try? encoder.encode(self) {
       do {

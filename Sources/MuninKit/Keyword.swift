@@ -77,8 +77,7 @@ extension Keyword {
       try fileManager.createDirectory(at: path, withIntermediateDirectories: true)
 
       ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
-      let encoder = JSONEncoder()
-      encoder.dateEncodingStrategy = .iso8601
+      let encoder = MuninJSON.encoder()
 
       if let encodedData = try? encoder.encode(self) {
         do {

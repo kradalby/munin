@@ -17,8 +17,7 @@ where T: Decodable {
 
   if exists, !isDirectory.boolValue {
     if let indexFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
-      let decoder = JSONDecoder()
-      decoder.dateDecodingStrategy = .iso8601
+      let decoder = MuninJSON.decoder()
 
       if let decodedData = try? decoder.decode(type, from: indexFile) {
         return decodedData

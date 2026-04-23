@@ -47,8 +47,7 @@ extension Photo {
 
     if writeJson {
       ctx.log.trace("Writing metadata for image \(name)")
-      let encoder = JSONEncoder()
-      encoder.dateEncodingStrategy = .iso8601
+      let encoder = MuninJSON.encoder()
 
       if let encodedData = try? encoder.encode(self) {
         do {

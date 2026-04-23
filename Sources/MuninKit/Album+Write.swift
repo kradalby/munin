@@ -25,8 +25,7 @@ extension Album {
 
     ctx.log.trace("Writing metadata for album \(name)")
     if writeJson {
-      let encoder = JSONEncoder()
-      encoder.dateEncodingStrategy = .iso8601
+      let encoder = MuninJSON.encoder()
       if let encodedData = try? encoder.encode(self) {
         do {
           ctx.log.trace("Writing album metadata \(name) to \(url)")
