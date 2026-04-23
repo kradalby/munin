@@ -33,8 +33,8 @@ final class KeywordTests: XCTestCase {
     XCTAssertEqual("test", "test")
   }
 
-  func testBuildKeywordsFromAlbum() {
-    let album = readStateFromInputDirectory(
+  func testBuildKeywordsFromAlbum() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let keywords = buildKeywordsFromAlbum(album: album)

@@ -6,7 +6,8 @@ import VIPS
 
 let log = Logger(label: "no.kradalby.Munin.main")
 
-struct Munin: ParsableCommand {
+@main
+struct Munin: AsyncParsableCommand {
   @Option(help: "Specify the configuration to load")
   var config = "munin.json"
 
@@ -16,7 +17,7 @@ struct Munin: ParsableCommand {
   @Flag(help: "Dry run")
   var dry = false
 
-  func run() throws {
+  func run() async throws {
     let configPath = URL(fileURLWithPath: config)
 
     let manager = ConfigurationManager()
@@ -25,25 +26,23 @@ struct Munin: ParsableCommand {
       .load(.environmentVariables)
       .load(.commandLineArguments)
 
-    let config = GalleryConfiguration(manager)
+    let galleryConfig = GalleryConfiguration(manager)
 
-    let ctx = Context(config: config)
+    // VIPS must be initialized once per process before any VIPSImage use.
+    try VIPS.start(concurrency: galleryConfig.concurrency)
 
-    let gallery = Gallery(ctx: ctx)
-
-    try VIPS.start(concurrency: config.concurrency)
+    let ctx = Context(config: galleryConfig)
+    let gallery = try await Gallery.load(ctx: ctx)
 
     if !dry {
       let start = Date()
       gallery.build(ctx: ctx, jsonOnly: json)
       let end = Date()
-
       let executionTime = end.timeIntervalSince(start)
 
       let startClean = Date()
       gallery.clean(ctx: ctx)
       let endClean = Date()
-
       let executionTimeClean = endClean.timeIntervalSince(startClean)
 
       print("Generated in: \(executionTime) seconds")
@@ -51,8 +50,5 @@ struct Munin: ParsableCommand {
     }
     let stats = gallery.statistics(ctx: ctx).toString()
     print(stats)
-
   }
 }
-
-Munin.main()

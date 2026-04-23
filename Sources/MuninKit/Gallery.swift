@@ -190,53 +190,63 @@ public struct Gallery: Sendable {
 
   let changedContent: Album?
 
-  // swiftlint:disable function_body_length
-  public init(ctx: Context) {
+  private init(input: Album, output: Album?, changedContent: Album?) {
+    self.input = input
+    self.output = output
+    self.changedContent = changedContent
+  }
 
+  /// Load a gallery by reading the configured input directory, optionally
+  /// diffing it against an existing output directory.
+  ///
+  /// - Parameter ctx: Shared configuration/state/log for the build.
+  /// - Returns: A `Gallery` with its input tree populated and, if an
+  ///   existing output directory was found, its `output` and `changedContent`
+  ///   fields set.
+  public static func load(ctx: Context) async throws -> Gallery {
     var time = Timings()
 
-    // read input directory
     let inputStart = Date()
-    input = readStateFromInputDirectory(
+    let input = try await readStateFromInputDirectory(
       ctx: ctx,
       atPath: ctx.config.inputPath,
       outPath: ctx.config.outputPath,
       name: ctx.config.name,
       parents: []
     )
-    photoToReadGroup.wait()
     ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
 
     ctx.log.debug(
       "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     let outputStart = Date()
-    if let outputAlbum = readStateFromOutputDirectory(
-      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json") {
-      time.readOutputDirectory = Date().timeIntervalSince(outputStart)
-      ctx.log.debug(
-        "Output directory read from disk")
+    let outputAlbum = readStateFromOutputDirectory(
+      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
 
-      ctx.log.debug(
-        "Creating diff between input and output album")
+    var output: Album? = nil
+    var changedContent: Album? = nil
+
+    if let outputAlbum {
+      time.readOutputDirectory = Date().timeIntervalSince(outputStart)
+      ctx.log.debug("Output directory read from disk")
+
+      ctx.log.debug("Creating diff between input and output album")
       let diffStart = Date()
       let changed = computeChangedPhotos(input: input, output: outputAlbum)
       time.generateDiff = Date().timeIntervalSince(diffStart)
 
-      if let a = changed, ctx.config.diff {
-        prettyPrintAdded(a)
+      if let changed, ctx.config.diff {
+        prettyPrintAdded(changed)
       }
-
-      // ctx.time = time
 
       output = outputAlbum
       changedContent = changed
     } else {
-      output = nil
-      changedContent = nil
       ctx.log.info("Could not find any output album, assuming new is to be created")
     }
     print("Times: ", time)
+
+    return Gallery(input: input, output: output, changedContent: changedContent)
   }
 
   public func build(ctx: Context, jsonOnly: Bool) {

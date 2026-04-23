@@ -414,99 +414,106 @@ extension Album: CustomStringConvertible {
   }
 }
 
-// swiftlint:disable cyclomatic_complexity
-// swiftlint:disable function_body_length
+/// Recursively read an input directory into an `Album` tree.
+///
+/// Photos within a single directory are read in parallel via
+/// `withThrowingTaskGroup`, bounded by an `AsyncSemaphore` sized from
+/// `ctx.config.concurrency` so we never have more than N VIPS/EXIF reads in
+/// flight at once. Sub-album directories are traversed sequentially (they in
+/// turn parallelise their own photo reads).
 func readStateFromInputDirectory(
   ctx: Context,
   atPath: String,
   outPath: String,
   name: String,
-  parents: [Parent]
-) -> Album {
+  parents: [Parent],
+  sem: AsyncSemaphore? = nil
+) async throws -> Album {
+  let sem = sem ?? AsyncSemaphore(value: max(ctx.config.concurrency, 1))
   ctx.log.trace("Creating album from path: \(joinPath(atPath))")
 
   var album = Album(name: name, path: joinPath(outPath, urlifyName(name)), parents: parents)
   let parent = Parent(name: album.name, url: album.url)
   var newParents = parents
   newParents.append(parent)
+  let capturedParents = newParents
 
+  // Sub-albums (depth-first).
   let directories = FileManager.default.directoriesOfDirectory(atPath: joinPath(atPath))
   for directory in directories {
-    let childAlbum = readStateFromInputDirectory(
+    let childAlbum = try await readStateFromInputDirectory(
       ctx: ctx,
       atPath: joinPath(atPath, directory),
       outPath: joinPath(outPath, name),
       name: directory,
-      parents: newParents
+      parents: capturedParents,
+      sem: sem
     )
     album.albums.insert(childAlbum)
     album.keywords = album.keywords.union(childAlbum.keywords)
     album.people = album.people.union(childAlbum.people)
   }
 
-  let photosContainer = ThreadSafeArray<Photo>()
+  // Parallel photo reads with bounded concurrency.
   let files = FileManager.default.filesOfDirectoryByExtensions(
     atPath: joinPath(atPath), extensions: ctx.config.fileExtensions
   )
-  for file in files {
-    let fileNameWithoutExt = fileNameWithoutExtension(
-      atPath: joinPath(atPath, file))
-    if let fileExtension = fileExtension(atPath: joinPath(atPath, file)) {
-      photoToReadGroup.enter()
-      photoQueue.async { [newParents] in
-        let maybePhoto = readPhotoFromPath(
-          atPath: joinPath(atPath, file),
-          outPath: joinPath(outPath, urlifyName(name)),
+  let albumOutPath = joinPath(outPath, urlifyName(name))
+
+  let readPhotos: [Photo] = try await withThrowingTaskGroup(of: Photo?.self) { group in
+    for file in files {
+      let filePath = joinPath(atPath, file)
+      let fileNameWithoutExt = fileNameWithoutExtension(atPath: filePath)
+      guard let fileExt = fileExtension(atPath: filePath) else {
+        ctx.log.warning("File found, but it was not a photo, path: \(filePath)")
+        continue
+      }
+
+      await sem.wait()
+      group.addTask {
+        let photo = readPhotoFromPath(
+          atPath: filePath,
+          outPath: albumOutPath,
           name: fileNameWithoutExt,
-          fileExtension: fileExtension,
-          parents: newParents,
+          fileExtension: fileExt,
+          parents: capturedParents,
           ctx: ctx
         )
+        ctx.state.updatePhotosToWrite(name: filePath)
+        await sem.signal()
 
-        if let photo = maybePhoto {
-          if photo.include() {
-            photosContainer.append(photo)
-          } else {
-            ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
-          }
+        guard let photo else { return nil }
+        if !photo.include() {
+          ctx.log.debug("Photo \(photo.name) included NO_HUGIN keyword, ignoring...")
+          return nil
         }
-
-        stateQueue.sync {
-          ctx.state.updatePhotosToWrite(name: joinPath(atPath, file))
-        }
-        photoToReadGroup.leave()
-        ctx.sema.signal()
+        return photo
       }
-      ctx.sema.wait()
-
-    } else {
-      ctx.log.warning(
-        "File found, but it was not a photo, path: \(joinPath(atPath, file))")
     }
+
+    var collected: [Photo] = []
+    for try await result in group {
+      if let photo = result {
+        collected.append(photo)
+      }
+    }
+    return collected
   }
-  photoToReadGroup.wait()
 
-  // Ensure that we have a stable order before building next/previous map.
-  photosContainer.sort(by: { $0.dateTime ?? Date.distantPast < $1.dateTime ?? Date.distantPast })
+  // Sort by capture time, then wire up next/previous navigation.
+  var photos = readPhotos.sorted {
+    ($0.dateTime ?? .distantPast) < ($1.dateTime ?? .distantPast)
+  }
+  let photoCount = photos.count
+  for index in photos.indices {
+    let previousIndex = index == 0 ? photoCount - 1 : index - 1
+    let nextIndex = index == photoCount - 1 ? 0 : index + 1
+    photos[index].previous = photos[previousIndex].url
+    photos[index].next = photos[nextIndex].url
+  }
 
-  var photos = photosContainer.all
-  for (index, photo) in photos.enumerated() {
-    let previous = photos.index(before: index)
-    let next = photos.index(after: index)
-    if previous == -1 {
-      photos[index].previous = photos[photos.count - 1].url
-
-    } else {
-      photos[index].previous = photos[photos.index(before: index)].url
-    }
-    if next == photos.count {
-      photos[index].next = photos[0].url
-    } else {
-      photos[index].next = photos[photos.index(after: index)].url
-    }
-
-    album.photos.insert(photos[index])
-
+  for photo in photos {
+    album.photos.insert(photo)
     album.keywords = album.keywords.union(photo.keywords)
     album.people = album.people.union(photo.people)
   }

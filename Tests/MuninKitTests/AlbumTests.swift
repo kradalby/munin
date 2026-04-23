@@ -29,9 +29,9 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual("test", "test")
   }
 
-  func testReadStateFromInputDirectory() {
+  func testReadStateFromInputDirectory() async throws {
 
-    let album = readStateFromInputDirectory(
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
@@ -40,8 +40,8 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(albumCount, 12)
   }
 
-  func testExpectedFiles() {
-    let album = readStateFromInputDirectory(
+  func testExpectedFiles() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
@@ -80,8 +80,8 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(actualFiles, expectedFiles)
   }
 
-  func testUnreferencedFilesNoOutputDirectory() {
-    let album = readStateFromInputDirectory(
+  func testUnreferencedFilesNoOutputDirectory() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
@@ -95,8 +95,8 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(unreferenced, [])
   }
 
-  func testUnreferencedFilesWithOutputDirectory() {
-    let album = readStateFromInputDirectory(
+  func testUnreferencedFilesWithOutputDirectory() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)
@@ -108,8 +108,8 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(unreferenced, [])
   }
 
-  func testMissingFilesNoOutputDirectory() {
-    let album = readStateFromInputDirectory(
+  func testMissingFilesNoOutputDirectory() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
@@ -149,8 +149,8 @@ final class AlbumTests: XCTestCase {
     XCTAssertEqual(missing, expectedFiles)
   }
 
-  func testMissingFilesWithOutputDirectory() {
-    let album = readStateFromInputDirectory(
+  func testMissingFilesWithOutputDirectory() async throws {
+    let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
     let photoCount = album.numberOfPhotos(travers: true)

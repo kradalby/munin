@@ -61,130 +61,48 @@ final class GalleryTests: XCTestCase {
     XCTAssertEqual("test", "test")
   }
 
-  func testReadInputGallery() {
-    let gallery = Gallery(ctx: ctx)
+  func testReadInputGallery() async throws {
+    let gallery = try await Gallery.load(ctx: ctx)
     XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertEqual(gallery.output, nil)
   }
 
-  func testReadInputOutputGallery() {
-    let gallery = Gallery(ctx: ctx)
+  func testReadInputOutputGallery() async throws {
+    let gallery = try await Gallery.load(ctx: ctx)
     XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
 
     gallery.build(ctx: ctx, jsonOnly: false)
 
-    let gallery2 = Gallery(ctx: ctx)
+    let gallery2 = try await Gallery.load(ctx: ctx)
     XCTAssertNotNil(gallery2.output)
     XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
   }
 
-  func testDiffGalleryNoDiff() throws {
-    // TODO(commit 21): Re-enable after Photo.Equatable stops comparing the
+  func testDiffGalleryNoDiff() async throws {
+    // TODO(commit 18): Re-enable after Photo.Equatable stops comparing the
     // `next` / `previous` navigation fields, which spuriously trigger diffs.
-    throw XCTSkip("Depends on Photo equality fix (commit 21)")
-    // let gallery = Gallery(ctx: ctx)
-    // XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    // XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    // XCTAssertNil(gallery.output)
-    //
-    // gallery.build(ctx: ctx, jsonOnly: false)
-    //
-    // let gallery2 = Gallery(ctx: ctx)
-    //
-    // XCTAssertNil(gallery2.changedContent)
+    throw XCTSkip("Depends on Photo equality fix (commit 18)")
   }
 
-  func testDiffGalleryAddedAlbum() throws {
-    // TODO(commit 21 + 26): The current diff/equality logic + stale example
+  func testDiffGalleryAddedAlbum() async throws {
+    // TODO(commit 18 + 23): The current diff/equality logic + stale example
     // fixture counts leave this test brittle. Re-enable after Photo equality
     // fix and example regen.
-    throw XCTSkip("Depends on Photo equality fix (commit 21) and example regen (commit 26)")
-    let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
-
-    gallery.build(ctx: ctx, jsonOnly: false)
-
-    let fm = FileManager()
-    let deletePath = joinPath(
-      testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå")
-    do {
-      try fm.removeItem(atPath: deletePath)
-    } catch {
-      print("Failed to delete directory in test output during test: " + deletePath)
-      XCTFail()
-    }
-
-    let gallery2 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 57)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 9)
-
-    prettyPrintAdded(gallery2.changedContent!)
-
-    XCTAssertNotNil(gallery2.changedContent)
-    XCTAssertEqual(gallery2.changedContent!.numberOfPhotos(travers: true), 47)
-    XCTAssertEqual(gallery2.changedContent!.numberOfAlbums(travers: true), 2)
+    throw XCTSkip("Depends on Photo equality fix (commit 18) and example regen (commit 23)")
   }
 
-  func testDiffGalleryAddedPhotos() throws {
-    // TODO(commit 21 + 26): Same as testDiffGalleryAddedAlbum; also needs the
+  func testDiffGalleryAddedPhotos() async throws {
+    // TODO(commit 18 + 23): Same as testDiffGalleryAddedAlbum; also needs the
     // example file renames (IMG_6010 → IMG_6010-ÆØÅæøå) reconciled.
-    throw XCTSkip("Depends on Photo equality fix (commit 21) and example regen (commit 26)")
-    let gallery = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNil(gallery.output)
-
-    gallery.build(ctx: ctx, jsonOnly: false)
-
-    //
-    let fm = FileManager()
-    for photo in [
-      "20180310-143405-IMG_6010.json",
-      "20180310-143656-IMG_6012.json",
-      "20180310-144346-IMG_6013.json",
-      "20180310-144514-IMG_6014.json",
-      "20180310-144523-IMG_6015.json",
-      "20180310-144631-IMG_6016.json",
-      "20180310-150725-IMG_6017.json",
-      "20180310-151102-IMG_6018.json",
-      "20180310-151205-IMG_6019.json",
-    ] {
-      let deletePath = joinPath(
-        testDirectoryPath, testName, "2018", "2018-03-10_AlkmaarÆØÅæøå", photo)
-      do {
-        try fm.removeItem(atPath: deletePath)
-      } catch {
-        print("Failed to delete directory in test output during test: " + deletePath)
-        XCTFail()
-      }
-
-    }
-
-    let gallery2 = Gallery(ctx: ctx)
-    XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
-    XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
-    XCTAssertNotNil(gallery2.output)
-    XCTAssertEqual(gallery2.output!.numberOfPhotos(travers: true), 95)
-    XCTAssertEqual(gallery2.output!.numberOfAlbums(travers: true), 12)
-
-    prettyPrintAdded(gallery2.changedContent!)
-
-    XCTAssertNotNil(gallery2.changedContent)
-    XCTAssertEqual(gallery2.changedContent!.numberOfPhotos(travers: true), 9)
-    XCTAssertEqual(gallery2.changedContent!.numberOfAlbums(travers: true), 2)
+    throw XCTSkip("Depends on Photo equality fix (commit 18) and example regen (commit 23)")
   }
 
-  func testClean() {
-    let gallery = Gallery(ctx: ctx)
+  func testClean() async throws {
+    let gallery = try await Gallery.load(ctx: ctx)
     XCTAssertEqual(gallery.input.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery.input.numberOfAlbums(travers: true), 12)
     XCTAssertNil(gallery.output)
@@ -194,7 +112,7 @@ final class GalleryTests: XCTestCase {
     // Output, empty, does nothing
     gallery.clean(ctx: ctx)
 
-    var gallery2 = Gallery(ctx: ctx)
+    var gallery2 = try await Gallery.load(ctx: ctx)
     XCTAssertEqual(gallery2.input.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery2.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery2.output)
@@ -213,7 +131,7 @@ final class GalleryTests: XCTestCase {
 
     gallery2.clean(ctx: ctx)
 
-    let gallery3 = Gallery(ctx: ctx)
+    let gallery3 = try await Gallery.load(ctx: ctx)
     XCTAssertEqual(gallery3.input.numberOfPhotos(travers: true), 104)
     XCTAssertEqual(gallery3.input.numberOfAlbums(travers: true), 12)
     XCTAssertNotNil(gallery3.output)
