@@ -553,4 +553,558 @@ struct IncrementalRebuildTests {
       try fm.setAttributes([.modificationDate: now], ofItemAtPath: url.path)
     }
   }
+
+  // MARK: - Full-gallery scenarios
+  //
+  // These ten tests stage the complete `example/album` tree and walk
+  // realistic user workflows (edit none / edit some / edit all / mixed /
+  // multi-round / adversarial / known-gap), asserting both content-level
+  // diffs and hash-call ceilings. Seeds are per-scenario constants so
+  // failures are reproducible and each test exercises a different subset
+  // of the 104-photo tree.
+
+  /// #1 — edit nothing, rebuild three times. Every rebuild must be a
+  /// complete no-op at the image level and every rebuild must hash zero
+  /// source files. (Three rounds is enough to catch "the cache works on
+  /// rebuild N but breaks on rebuild N+1"; more rounds only adds time.)
+  @Test func editNone_threeRebuildsStayQuiet() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    var previous = try harness.snapshotOutput()
+
+    for round in 1...3 {
+      try await sleepPastMtimeResolution()
+
+      ContentHash.resetCallCount()
+      try await harness.buildAndClean()
+      let current = try harness.snapshotOutput()
+
+      let hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+      #expect(
+        hashes == 0,
+        "round \(round): expected 0 hashes on a no-op rebuild, got \(hashes)")
+
+      let diff = previous.diff(against: current)
+      let classification = RebuildClassification(
+        from: diff, before: previous, after: current)
+
+      #expect(
+        classification.scaledImagesReencoded == [],
+        "round \(round) re-encoded scaled images:\n\(classification.summary)")
+      #expect(
+        classification.scaledImagesRewrittenSameBytes == [],
+        "round \(round) rewrote scaled images with identical bytes:\n\(classification.summary)"
+      )
+      #expect(
+        classification.originalSymlinksAdded == [],
+        "round \(round) added original symlinks:\n\(classification.summary)")
+      #expect(
+        classification.originalSymlinksRemoved == [],
+        "round \(round) removed original symlinks:\n\(classification.summary)")
+
+      previous = current
+    }
+  }
+
+  /// #2 — "edit some": replace the bytes of seven seeded-random photos
+  /// spanning multiple albums. Exactly those seven photos' scaled
+  /// outputs must be re-encoded; everything else must be untouched.
+  @Test func editSome_replaceSevenPhotosReencodesOnlyThose() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let before = try harness.snapshotOutput()
+
+    // "edit some" as hex, mnemonic per this scenario.
+    let seed: UInt64 = 0xED17_5073
+    let targets = fixture.pickRandomPhotos(count: 7, seed: seed)
+    #expect(targets.count == 7)
+
+    // Donor pool: every photo NOT in `targets`, as absolute origin paths.
+    // The round-robin replacement will give each target a different-
+    // bytes replacement drawn from the existing example set.
+    let donorPool = fixture.allPhotos
+      .filter { !targets.contains($0) }
+      .map { fixture.originPhoto($0) }
+    try fixture.replacePhotos(targets, withDonorPool: donorPool)
+
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let after = try harness.snapshotOutput()
+
+    let hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      hashes == 7,
+      "expected exactly 7 hashes for 7 replaced photos, got \(hashes)")
+
+    let diff = before.diff(against: after)
+    let classification = RebuildClassification(
+      from: diff, before: before, after: after)
+
+    // At resolutions=[180, 340] every replaced photo produces exactly
+    // two scaled outputs, all of which must be byte-changed.
+    #expect(
+      classification.scaledImagesReencoded.count == 7 * 2,
+      "expected 14 scaled images re-encoded, got \(classification.scaledImagesReencoded.count):\n\(classification.summary)"
+    )
+    #expect(
+      classification.scaledImagesRewrittenSameBytes == [],
+      "unrelated scaled images were rewritten with identical bytes:\n\(classification.summary)"
+    )
+    // Sanity: scaled output paths correspond to the seven target stems.
+    for target in targets {
+      let stem = URL(fileURLWithPath: target).deletingPathExtension().lastPathComponent
+      let hits = classification.scaledImagesReencoded.filter { $0.contains(stem + "_") }
+      #expect(hits.count == 2, "expected 2 scaled outputs for \(stem), got \(hits.count)")
+    }
+  }
+
+  /// #3/#4 — "edit all": replace every single source photo, verify a
+  /// full re-encode, then confirm the next rebuild is a complete no-op
+  /// (the cache recovers from full churn).
+  @Test func editAll_replaceEveryPhotoThenRebuildIsQuiet() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let baseline = try harness.snapshotOutput()
+
+    // Donor pool: every staged photo, rotated so each target gets a
+    // different donor than itself (swap-style). Using all photos as
+    // both targets and donors means each photo gets someone else's
+    // bytes, guaranteeing content drift across the whole tree.
+    let allPhotos = fixture.allPhotos
+    #expect(allPhotos.count == 104, "expected 104 example photos, got \(allPhotos.count)")
+
+    let rotatedDonors = Array(allPhotos.dropFirst()) + [allPhotos.first!]
+    let donorAbsolute = rotatedDonors.map { fixture.originPhoto($0) }
+    try fixture.replacePhotos(allPhotos, withDonorPool: donorAbsolute)
+
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let afterReplace = try harness.snapshotOutput()
+
+    let hashesAfterReplace = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      hashesAfterReplace == 104,
+      "full replacement should hash all 104 photos, got \(hashesAfterReplace)")
+
+    let replaceDiff = baseline.diff(against: afterReplace)
+    let replaceClass = RebuildClassification(
+      from: replaceDiff, before: baseline, after: afterReplace)
+    #expect(
+      replaceClass.scaledImagesReencoded.count == 104 * 2,
+      "expected 208 scaled images re-encoded, got \(replaceClass.scaledImagesReencoded.count)"
+    )
+    #expect(
+      replaceClass.scaledImagesRewrittenSameBytes == [],
+      "full replacement produced wasted identical encodes:\n\(replaceClass.summary)")
+
+    // Second rebuild: must be a no-op.
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let afterQuiet = try harness.snapshotOutput()
+
+    let hashesAfterQuiet = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      hashesAfterQuiet == 0,
+      "post-replace quiet rebuild hashed \(hashesAfterQuiet) files; cache failed to absorb the replacement"
+    )
+
+    let quietDiff = afterReplace.diff(against: afterQuiet)
+    let quietClass = RebuildClassification(
+      from: quietDiff, before: afterReplace, after: afterQuiet)
+    #expect(
+      quietClass.scaledImagesReencoded == [],
+      "quiet rebuild re-encoded scaled images:\n\(quietClass.summary)")
+    #expect(
+      quietClass.scaledImagesRewrittenSameBytes == [],
+      "quiet rebuild rewrote scaled images identically:\n\(quietClass.summary)")
+  }
+
+  /// #5 — touch every source mtime on the full gallery. The next build
+  /// hashes each file exactly once (to prove bytes are unchanged) and
+  /// then subsequent rebuilds return to zero hashing. No scaled image is
+  /// ever re-encoded.
+  @Test func mtimeDriftAtFullScaleIsOptimal() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let baseline = try harness.snapshotOutput()
+
+    try await sleepPastMtimeResolution()
+    try fixture.touchPhotos(fixture.allPhotos)
+
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let afterDrift = try harness.snapshotOutput()
+
+    let driftHashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      driftHashes == 104,
+      "touching 104 mtimes should hash all 104 once; got \(driftHashes)")
+
+    let driftDiff = baseline.diff(against: afterDrift)
+    let driftClass = RebuildClassification(
+      from: driftDiff, before: baseline, after: afterDrift)
+    #expect(
+      driftClass.scaledImagesReencoded == [],
+      "mtime drift re-encoded scaled images:\n\(driftClass.summary)")
+    #expect(
+      driftClass.scaledImagesRewrittenSameBytes == [],
+      "mtime drift rewrote scaled images identically:\n\(driftClass.summary)")
+
+    // Now the cache has absorbed the new mtimes — the next rebuild is
+    // free again.
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+
+    let quietHashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      quietHashes == 0,
+      "post-drift rebuild still hashed \(quietHashes) files; cache was not updated")
+  }
+
+  /// #6 — mixed mutations in one rebuild: three photos added, three
+  /// removed, three byte-replaced. Each category's output must show
+  /// exactly the expected delta; nothing else must move.
+  @Test func mixedMutations_addRemoveModifyInOneRebuild() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let before = try harness.snapshotOutput()
+
+    let mixedSeed: UInt64 = 0x1EDA_5EED
+    let toReplace = fixture.pickRandomPhotos(count: 3, seed: mixedSeed)
+    let remainingAfterReplace = fixture.allPhotos.filter { !toReplace.contains($0) }
+    // Pick more than 3 to leave room for filtering — pickRandomPhotos
+    // draws from the full pool which could overlap with `toReplace`.
+    let toRemove = Array(
+      fixture.pickRandomPhotos(count: 10, seed: mixedSeed &+ 1)
+        .filter { !toReplace.contains($0) }
+        .prefix(3)
+    )
+    #expect(toRemove.count == 3, "unable to pick 3 distinct removal targets")
+
+    // Replace: use other photos as donors.
+    let donorPool =
+      remainingAfterReplace
+      .filter { !toRemove.contains($0) }
+      .map { fixture.originPhoto($0) }
+    try fixture.replacePhotos(toReplace, withDonorPool: donorPool)
+
+    // Remove.
+    try fixture.removePhotos(toRemove)
+
+    // Add three new photos to Misc. Source them from 2017 (known to
+    // always have >3 photos).
+    let donorsForAdd =
+      (try? FileManager.default.contentsOfDirectory(
+        atPath: fixture.originRoot + "/2017/2017-12-22 Juleferie")) ?? []
+    let addDonorPaths = donorsForAdd.prefix(3).map {
+      fixture.originRoot + "/2017/2017-12-22 Juleferie/" + $0
+    }
+    #expect(addDonorPaths.count == 3)
+    for (idx, donor) in addDonorPaths.enumerated() {
+      try fixture.addPhoto(
+        toAlbum: "Misc",
+        fromSourceFile: donor,
+        as: "added_\(idx).jpg"
+      )
+    }
+
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let after = try harness.snapshotOutput()
+
+    let hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      hashes == 6,
+      "mixed (3 replace + 3 add + 3 remove) should hash 6, got \(hashes)")
+
+    let diff = before.diff(against: after)
+    let classification = RebuildClassification(
+      from: diff, before: before, after: after)
+
+    // 3 added × 2 scaled = 6 new scaled jpegs added.
+    // 3 replaced × 2 scaled = 6 byte-changed.
+    // 3 removed × 2 scaled = 6 removed (present in classification's
+    // reencoded bucket per the "A scaled image removed means encoding
+    // went away" rule). Grand total: 18.
+    #expect(
+      classification.scaledImagesReencoded.count == 18,
+      "mixed mutation scaled-image delta: \(classification.scaledImagesReencoded.count)\n\(classification.summary)"
+    )
+    // Symlinks: 3 added for added photos, 3 removed for removed photos.
+    #expect(
+      classification.originalSymlinksAdded.count == 3,
+      "expected 3 new original symlinks, got \(classification.originalSymlinksAdded.count)")
+    #expect(
+      classification.originalSymlinksRemoved.count == 3,
+      "expected 3 removed original symlinks, got \(classification.originalSymlinksRemoved.count)")
+  }
+
+  /// #7 — a five-round evolution simulating a user working with their
+  /// gallery over time. Each round's specific expectations are asserted
+  /// against the snapshot from the previous round.
+  @Test func multiRoundEvolution() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    var previous = try harness.snapshotOutput()
+
+    // R1: touch 10 random mtimes.
+    try await sleepPastMtimeResolution()
+    let touchSeed: UInt64 = 0x0701_C470  // "touch r1" vaguely
+    let r1Targets = fixture.pickRandomPhotos(count: 10, seed: touchSeed)
+    try fixture.touchPhotos(r1Targets)
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    var current = try harness.snapshotOutput()
+    var hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 10, "R1 (touch 10) expected 10 hashes, got \(hashes)")
+    var cls = RebuildClassification(
+      from: previous.diff(against: current), before: previous, after: current)
+    #expect(
+      cls.scaledImagesReencoded == [],
+      "R1 (touch only) must not re-encode images:\n\(cls.summary)")
+    previous = current
+
+    // R2: replace 3 random photos.
+    try await sleepPastMtimeResolution()
+    let replaceSeed: UInt64 = 0x2222_2222
+    let r2Targets = fixture.pickRandomPhotos(count: 3, seed: replaceSeed)
+    let r2Donors = fixture.allPhotos
+      .filter { !r2Targets.contains($0) }
+      .map { fixture.originPhoto($0) }
+    try fixture.replacePhotos(r2Targets, withDonorPool: r2Donors)
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    current = try harness.snapshotOutput()
+    hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 3, "R2 (replace 3) expected 3 hashes, got \(hashes)")
+    cls = RebuildClassification(
+      from: previous.diff(against: current), before: previous, after: current)
+    #expect(
+      cls.scaledImagesReencoded.count == 6,
+      "R2 scaled re-encodes: \(cls.scaledImagesReencoded.count)\n\(cls.summary)")
+    previous = current
+
+    // R3: clone an album. Pick Misc (three photos, pure ASCII).
+    try await sleepPastMtimeResolution()
+    try fixture.cloneAlbum(originRelative: "Misc", asNewName: "MiscClone")
+    let clonedPhotos =
+      (try? FileManager.default.contentsOfDirectory(
+        atPath: fixture.sourceRoot + "/MiscClone"))?.filter {
+        $0.hasSuffix(".jpg") || $0.hasSuffix(".jpeg")
+      } ?? []
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    current = try harness.snapshotOutput()
+    hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(
+      hashes == clonedPhotos.count,
+      "R3 (clone Misc) expected \(clonedPhotos.count) hashes, got \(hashes)")
+    // New scaled images must appear under root/MiscClone/.
+    let newMiscCloneScaled = current.entries.keys.filter {
+      $0.hasPrefix("root/MiscClone/") && ($0.hasSuffix(".jpg") || $0.hasSuffix(".jpeg"))
+        && !$0.hasSuffix("_original.jpg") && !$0.hasSuffix("_original.jpeg")
+    }
+    #expect(
+      !newMiscCloneScaled.isEmpty,
+      "R3 clone produced no scaled outputs under root/MiscClone/")
+    previous = current
+
+    // R4: delete 2017 album (a whole year, three sub-albums).
+    try await sleepPastMtimeResolution()
+    try fixture.removeAlbum("2017")
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    current = try harness.snapshotOutput()
+    hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 0, "R4 (delete album, no reads required) expected 0 hashes, got \(hashes)")
+    let survivingUnder2017 = current.entries.keys.filter { $0.hasPrefix("root/2017/") }
+    #expect(
+      survivingUnder2017.isEmpty,
+      "R4: root/2017/ should be fully cleaned, still present: \(survivingUnder2017.sorted().prefix(3))"
+    )
+    previous = current
+
+    // R5: nothing changed. Rebuild must be entirely quiet.
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    current = try harness.snapshotOutput()
+    hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 0, "R5 quiet rebuild hashed \(hashes) files")
+    cls = RebuildClassification(
+      from: previous.diff(against: current), before: previous, after: current)
+    #expect(
+      cls.scaledImagesReencoded == [],
+      "R5 should re-encode nothing:\n\(cls.summary)")
+    #expect(
+      cls.scaledImagesRewrittenSameBytes == [],
+      "R5 should not rewrite scaled images identically:\n\(cls.summary)")
+  }
+
+  /// #8 — swap the bytes of two photos. Munin should treat both as
+  /// changed even though the *set* of scaled output paths is unchanged.
+  @Test func adversarial_swapTwoPhotosBytes() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+    let before = try harness.snapshotOutput()
+
+    // Two specific photos from 2017-12-19 Aarhus, chosen so both always
+    // exist in the fixture and both are full-resolution cameras shots.
+    let albumRel = "2017/2017-12-19 Aarhus"
+    let nameA = "20171219-132134-20171219-IMG_5239.jpg"
+    let nameB = "20171219-132212-20171219-IMG_5241.jpg"
+
+    let srcRoot = fixture.sourceRoot
+    let pathA = srcRoot + "/" + albumRel + "/" + nameA
+    let pathB = srcRoot + "/" + albumRel + "/" + nameB
+
+    let dataA = try Data(contentsOf: URL(fileURLWithPath: pathA))
+    let dataB = try Data(contentsOf: URL(fileURLWithPath: pathB))
+    try dataB.write(to: URL(fileURLWithPath: pathA))
+    try dataA.write(to: URL(fileURLWithPath: pathB))
+
+    try await sleepPastMtimeResolution()
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let after = try harness.snapshotOutput()
+
+    let hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 2, "swap should hash exactly 2 files, got \(hashes)")
+
+    let diff = before.diff(against: after)
+    let classification = RebuildClassification(
+      from: diff, before: before, after: after)
+
+    // Both photos' scaled outputs must be re-encoded (2 × 2 = 4); no
+    // other scaled image should be touched.
+    let scaledForSwap = classification.scaledImagesReencoded.filter {
+      $0.contains("IMG_5239") || $0.contains("IMG_5241")
+    }
+    #expect(
+      scaledForSwap.count == 4,
+      "swap should re-encode 4 scaled images, got \(scaledForSwap.count): \(scaledForSwap)")
+    let unrelatedScaled = classification.scaledImagesReencoded.filter {
+      !$0.contains("IMG_5239") && !$0.contains("IMG_5241")
+    }
+    #expect(
+      unrelatedScaled == [],
+      "swap re-encoded unrelated scaled images: \(unrelatedScaled)")
+  }
+
+  /// #9 — delete a photo, rebuild+clean, then add a different photo
+  /// under the same relative path. The re-added photo must be treated
+  /// as fresh (one hash, new outputs with new bytes).
+  @Test func adversarial_readdDeletedNameWithDifferentBytes() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+
+    let victim = "Misc/portrait_mm.jpeg"
+
+    // Step 1: remove, rebuild+clean.
+    try await sleepPastMtimeResolution()
+    try fixture.removePhotos([victim])
+    try await harness.buildAndClean()
+    let afterDelete = try harness.snapshotOutput()
+    #expect(
+      !afterDelete.entries.keys.contains("root/Misc/portrait_mm.json"),
+      "delete+clean should remove portrait_mm's JSON")
+
+    // Step 2: re-add with completely different bytes at the same name.
+    try await sleepPastMtimeResolution()
+    try fixture.addPhoto(
+      toAlbum: "Misc",
+      fromSourceFile: fixture.originPhoto(
+        "2024/2024-06-21_Håkon_har_nytt_kamera/_DSF0055.JPG"),
+      as: "portrait_mm.jpeg"
+    )
+    ContentHash.resetCallCount()
+    try await harness.buildAndClean()
+    let afterReadd = try harness.snapshotOutput()
+
+    let hashes = ContentHash.callCount(forPathsUnder: fixture.sourceRoot)
+    #expect(hashes == 1, "re-add should hash only the new file, got \(hashes)")
+    #expect(
+      afterReadd.entries.keys.contains("root/Misc/portrait_mm.json"),
+      "re-add should recreate the photo JSON")
+    #expect(
+      afterReadd.entries.keys.contains("root/Misc/portrait_mm_180.jpeg"),
+      "re-add should recreate the 180px scaled output")
+    #expect(
+      afterReadd.entries.keys.contains("root/Misc/portrait_mm_340.jpeg"),
+      "re-add should recreate the 340px scaled output")
+  }
+
+  /// #10 — documented gap: Munin does not detect or heal missing
+  /// expected outputs. Deleting a scaled JPEG from the output tree while
+  /// leaving the source intact produces a rebuild that *does not*
+  /// regenerate the missing file. See FUTURES.md for the fix sketch.
+  ///
+  /// If this assertion ever starts failing (i.e. Munin has learned
+  /// self-healing), flip the expectation and note the improvement in
+  /// the release log.
+  @Test func documentedGap_missingScaledOutputIsNotAutoHealed() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+    try await harness.buildAndClean()
+
+    // Sanity: the file we're about to delete actually exists first.
+    let missingPath = harness.outputRoot + "/root/Misc/portrait_mm_180.jpeg"
+    #expect(
+      FileManager.default.fileExists(atPath: missingPath),
+      "precondition: baseline build should produce portrait_mm_180.jpeg")
+
+    try FileManager.default.removeItem(atPath: missingPath)
+
+    try await sleepPastMtimeResolution()
+    try await harness.buildAndClean()
+
+    #expect(
+      !FileManager.default.fileExists(atPath: missingPath),
+      """
+      portrait_mm_180.jpeg reappeared — Munin has learned to self-heal \
+      missing outputs! Flip this assertion (and drop the matching \
+      FUTURES.md entry). Congrats :)
+      """
+    )
+  }
 }

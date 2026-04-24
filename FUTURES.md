@@ -187,3 +187,65 @@ system's C libraries (libvips, libexif, etc.). The truly-static
 (musl-based) build path was investigated on the old `swift-61-2` branch
 and abandoned — see that branch's history for the detailed notes. Revisit
 if the `sharp-libvips` approach becomes more broadly usable.
+
+---
+
+## 14. Self-heal missing output files
+
+**Symptom.** If a scaled image or photo JSON disappears from the output
+tree while its corresponding source photo is unchanged, Munin does not
+regenerate the missing file on the next rebuild. The user must either
+delete the owning photo's JSON (forcing the input→output diff to see it
+as missing) or wipe the output directory entirely.
+
+**Why it happens.** `Gallery.load` decodes the output album's photos
+from their on-disk JSONs and compares them to the freshly-read input
+photos. Equality uses `sourceHash`, so a photo whose source bytes are
+unchanged is considered `==` to its counterpart on disk and does not
+appear in `changedContent`. The first write pass in `Gallery.build`
+only writes images for the sparse `changedContent` tree; the second
+pass writes JSONs for the full input tree but never images. A physically
+missing `_180.jpg` with a present JSON therefore slips through both
+passes.
+
+**Fix sketch.** In `readStateFromOutputDirectory` (or at decode time
+inside `Album.init(from:)`), cross-check each `Photo.scaledPhotos[*].url`
+and `Photo.originalImageURL` against the filesystem. A photo with any
+missing expected output is treated as "not present in output" — the
+diff then marks it as new, and the write pass re-encodes. Alternatively
+keep the photo in `output` but add it to `changedContent` unconditionally
+so image writes cover it.
+
+**Locked by tests.** `documentedGap_missingScaledOutputIsNotAutoHealed`
+in `Tests/MuninKitTests/IncrementalRebuildTests.swift` asserts the
+current broken behaviour. When a fix lands, flip the expectation
+there (and delete this FUTURES entry).
+
+---
+
+## 15. `jpegCompression` changes don't trigger a rebuild
+
+**Symptom.** Changing `jpegCompression` in `munin.json` (e.g. 0.75 →
+0.9) does not cause any photo to be re-encoded. The scaled JPEGs keep
+their old quality until their source file is otherwise modified. A
+user who wants to re-encode after tweaking quality must bump an
+mtime-invariant field on every photo, or delete the output tree.
+
+**Why it happens.** `jpegCompression` is read from config at
+`Photo.write` time and passed as `quality:` to
+`VIPSImage.thumbnailImage(...).writeToFile(...)`, but it is not stored
+on `Photo` and not part of `Photo.==`. The incremental diff therefore
+has no way to know the output is stale relative to the config.
+
+**Fix sketch.** Include a config fingerprint on each `Photo` (e.g.
+`encodingFingerprint: String` holding a SHA-1 of
+`resolutions + jpegCompression + fileExtensions`). A mismatch between
+stored and current fingerprint adds the photo to `changedContent`
+regardless of source-bytes equality. Simpler alternative: derive a
+top-level output fingerprint, compare at `Gallery.load`, and invalidate
+the output album wholesale if fingerprints differ.
+
+**Related.** Changing `resolutions` *does* correctly trigger a rebuild
+today because `scaledPhotos` (which is in `Photo.==`) re-derives from
+the current `resolutions` array on every read. `jpegCompression` is
+not visible in the model so it slips through.
