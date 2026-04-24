@@ -171,6 +171,110 @@ final class SourceFixture {
     originRoot + "/" + relativePath
   }
 
+  // MARK: - Bulk queries and mutators
+
+  /// Every staged photo path, relative to ``sourceRoot``. Sorted for
+  /// determinism so `pickRandomPhotos(count:seed:)` returns the same
+  /// subset on macOS and Linux.
+  var allPhotos: [String] {
+    let extensions: Set<String> = ["jpg", "jpeg", "JPG", "JPEG"]
+    let rootURL = URL(fileURLWithPath: sourceRoot)
+    guard let enumerator = fm.enumerator(at: rootURL, includingPropertiesForKeys: nil)
+    else { return [] }
+
+    var out: [String] = []
+    let prefix = sourceRoot.hasSuffix("/") ? sourceRoot : sourceRoot + "/"
+    for case let url as URL in enumerator {
+      guard extensions.contains(url.pathExtension) else { continue }
+      let absolute = url.path
+      if absolute.hasPrefix(prefix) {
+        out.append(String(absolute.dropFirst(prefix.count)))
+      }
+    }
+    return out.sorted()
+  }
+
+  /// Pick `count` photos deterministically from ``allPhotos`` using a
+  /// SplitMix64-seeded PRNG. Same `seed` produces the same subset on
+  /// every run / platform.
+  ///
+  /// - Parameters:
+  ///   - count: number of photos to select. Capped at `allPhotos.count`.
+  ///   - seed: 64-bit seed; any value is fine, pick a memorable constant
+  ///     per scenario so failures are reproducible.
+  func pickRandomPhotos(count: Int, seed: UInt64) -> [String] {
+    let pool = allPhotos
+    let n = min(count, pool.count)
+    guard n > 0 else { return [] }
+    // Fisher-Yates partial shuffle. Deterministic RNG so cross-platform
+    // stable.
+    var rng = SplitMix64(state: seed)
+    var indices = Array(0..<pool.count)
+    for i in 0..<n {
+      let j = Int(rng.next() % UInt64(pool.count - i)) + i
+      indices.swapAt(i, j)
+    }
+    return indices.prefix(n).map { pool[$0] }.sorted()
+  }
+
+  /// Bump the mtime on every photo in `relativePaths`.
+  func touchPhotos(_ relativePaths: [String]) throws {
+    let now = Date()
+    for relative in relativePaths {
+      let absolute = absolutePath(for: relative)
+      guard fm.fileExists(atPath: absolute) else {
+        throw FixtureError.fileMissing(path: absolute)
+      }
+      try fm.setAttributes([.modificationDate: now], ofItemAtPath: absolute)
+    }
+  }
+
+  /// Delete every photo in `relativePaths`. Leaves empty directories in
+  /// place (Munin's clean sweeps those).
+  func removePhotos(_ relativePaths: [String]) throws {
+    for relative in relativePaths {
+      try fm.removeItem(atPath: absolutePath(for: relative))
+    }
+  }
+
+  /// Replace every photo in `relativePaths` with bytes drawn from
+  /// `donorPool` in round-robin order. `donorPool` is a list of absolute
+  /// paths (typically obtained via ``originPhoto(_:)``).
+  ///
+  /// If the donor pool is smaller than `relativePaths` the pool is
+  /// cycled; a single donor therefore produces identical replacement
+  /// bytes across multiple targets, which is a legitimate "edit all"
+  /// scenario.
+  func replacePhotos(_ relativePaths: [String], withDonorPool donorPool: [String]) throws {
+    guard !donorPool.isEmpty else {
+      throw FixtureError.fileMissing(path: "<empty donor pool>")
+    }
+    for (idx, relative) in relativePaths.enumerated() {
+      let donor = donorPool[idx % donorPool.count]
+      let dst = absolutePath(for: relative)
+      if fm.fileExists(atPath: dst) {
+        try fm.removeItem(atPath: dst)
+      }
+      try fm.copyItem(atPath: donor, toPath: dst)
+    }
+  }
+
+  /// Copy a staged sub-album under a new top-level name. The clone lives
+  /// at `sourceRoot/<asNewName>` and contains the same photos as the
+  /// origin. Used for "add album" scenarios without spinning up a second
+  /// fixture.
+  func cloneAlbum(originRelative: String, asNewName: String) throws {
+    let src = absolutePath(for: originRelative)
+    let dst = absolutePath(for: asNewName)
+    guard fm.fileExists(atPath: src) else {
+      throw FixtureError.fileMissing(path: src)
+    }
+    if fm.fileExists(atPath: dst) {
+      try fm.removeItem(atPath: dst)
+    }
+    try fm.copyItem(atPath: src, toPath: dst)
+  }
+
   // MARK: - Helpers
 
   private func absolutePath(for relative: String) -> String {
@@ -182,6 +286,22 @@ final class SourceFixture {
     try fm.createDirectory(
       at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
     try fm.copyItem(at: src, to: dst)
+  }
+}
+
+/// Deterministic 64-bit PRNG (Sebastiano Vigna's SplitMix64). Tiny and
+/// pure-Swift so `pickRandomPhotos(count:seed:)` produces identical
+/// subsets on every platform — unlike `SystemRandomNumberGenerator`
+/// which is host-specific.
+private struct SplitMix64 {
+  var state: UInt64
+
+  mutating func next() -> UInt64 {
+    state &+= 0x9E37_79B9_7F4A_7C15
+    var z = state
+    z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+    z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+    return z ^ (z >> 31)
   }
 }
 
