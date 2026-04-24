@@ -5,37 +5,6 @@ are known and tracked here. Loosely ordered by impact / cost.
 
 ---
 
-## 1. Deeper `apple/swift-system` (`FilePath`) adoption
-
-`Sources/MuninKit/Paths.swift` currently uses `FilePath` internally only
-(Scope A from the plan). The larger scopes are:
-
-### Scope B — model fields as `FilePath`
-Convert the `String`-typed path fields on domain types to `FilePath`:
-- `Album.path`, `Album.url`
-- `Photo.url`, `Photo.originalImageURL`, `Photo.originalImagePath`
-- `ScaledPhoto.url`
-- `KeywordPointer.url`, `Parent.url`
-
-`Codable` serializes `FilePath` via its `String` raw representation, so the
-on-disk JSON format stays identical. Estimated ~500 LOC touched across
-models and every call site that reads those fields.
-
-Benefit: type-safe path composition in the domain model. Today, mixing an
-album-relative URL with a filesystem path silently produces nonsense.
-
-### Scope C — `FileDescriptor`-based I/O
-Replace `FileManager.default` / `Data(contentsOf:)` / `data.write(to:)` /
-`fileManager.createSymbolicLink(...)` with `swift-system`'s
-`FileDescriptor.open(...)` + `read()` / `write()`. Loses the convenience
-`FileManager.filesOfDirectory(atPath:)` so directory traversal either keeps
-using `FileManager` selectively or switches to `readdir(3)` via
-`FileDescriptor`. Estimated 5+ commits.
-
-Benefit: lower-level I/O, fewer allocations, Linux-first semantics.
-
----
-
 ## 2. VIPS wrapper inside a dedicated actor
 
 Today the `VIPSImage` C wrapper isn't explicitly isolated; we trust libvips
@@ -113,19 +82,6 @@ nixpkgs' Swift derivations trail Swift.org releases and interact awkwardly
 with the C-library stdenv. Revisit if nixpkgs' `swift` package becomes
 current and reliably builds on Linux — at that point `nix build` could
 return (previously dropped with `swiftpm2nix`).
-
----
-
-## 9. Test-suite paper cuts
-
-- Several of the deep GalleryTests assertions (57 photos / 9 albums / 47
-  changed) were hard-coded based on specific fixture counts that have
-  since changed twice. Commit 23's relaxed assertions trade exact-count
-  coverage for robustness; refine to exact counts once the example tree
-  stabilises, or parameterise on the actual source tree.
-- The GalleryTests suite creates a fresh temp directory per test via
-  `randomString` to guarantee isolation under `@Suite(.serialized)`.
-  Consider amortising setup cost further if test run time grows.
 
 ---
 
