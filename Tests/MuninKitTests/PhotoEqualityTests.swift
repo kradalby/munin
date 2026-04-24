@@ -93,6 +93,35 @@ struct PhotoEqualityTests {
     #expect(a != b)
   }
 
+  // MARK: - encodingFingerprint catches config-only changes
+
+  @Test func encodingFingerprintChangesProduceInequality() {
+    // Same source bytes, same resolutions on the URL list — but the
+    // encoded JPEG bytes differ because the config quality changed.
+    // Without the fingerprint guard, diff would silently keep stale
+    // output.
+    var a = Self.minimalPhoto()
+    var b = Self.minimalPhoto()
+    a.sourceHash = "h"
+    b.sourceHash = "h"
+    a.encodingFingerprint = "q50_r180_r340"
+    b.encodingFingerprint = "q90_r180_r340"
+    #expect(a != b)
+  }
+
+  @Test func encodingFingerprintNilOnOneSideProducesInequality() {
+    // First build after upgrade: on-disk JSON has no fingerprint while
+    // the freshly-read Photo carries one. Must compare unequal to force
+    // a one-time re-encode.
+    var a = Self.minimalPhoto()
+    var b = Self.minimalPhoto()
+    a.sourceHash = "h"
+    b.sourceHash = "h"
+    a.encodingFingerprint = nil
+    b.encodingFingerprint = "q90_r180_r340"
+    #expect(a != b)
+  }
+
   // MARK: - Fixtures
 
   private static let now = Date(timeIntervalSince1970: 1_710_000_000)

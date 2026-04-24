@@ -44,27 +44,42 @@ final class GalleryHarness {
   ///     (`180`, `340`) because larger sets slow down VIPS without
   ///     improving test coverage.
   ///   - peopleFiles: optional list of JSON files providing people names.
+  ///   - jpegCompression: VIPS encoder quality, 0.0–1.0. Tests that need to
+  ///     exercise a config change across two harnesses can pass different
+  ///     values here.
   ///   - concurrency: VIPS/read concurrency. Defaults to 1 to keep output
   ///     deterministic and avoid stressing the test host.
+  ///   - outputRoot: optional pre-existing output directory to reuse. When
+  ///     `nil` (the default) a fresh UUID-named tempdir is created and
+  ///     owned by this harness. Pass a path from an earlier harness to
+  ///     build two back-to-back runs against the same output tree — useful
+  ///     for tests that swap a config knob (`jpegCompression`,
+  ///     `resolutions`) between builds.
   init(
     sourceRoot: String,
     name: String = "root",
     resolutions: [Int] = [180, 340],
     peopleFiles: [String] = [],
-    concurrency: Int = 1
+    jpegCompression: Double = 0.1,
+    concurrency: Int = 1,
+    outputRoot: String? = nil
   ) {
     VIPSSetup.ensure()
 
     self.sourceRoot = sourceRoot
     self.name = name
 
-    let fm = FileManager.default
-    let tempDir = fm.temporaryDirectory
-      .appendingPathComponent("munin-harness-\(UUID().uuidString)", isDirectory: true)
-    // Fail hard: if we can't create the output dir we can't test anything
-    // meaningful.
-    try? fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
-    self.outputRoot = tempDir.path
+    if let outputRoot {
+      self.outputRoot = outputRoot
+    } else {
+      let fm = FileManager.default
+      let tempDir = fm.temporaryDirectory
+        .appendingPathComponent("munin-harness-\(UUID().uuidString)", isDirectory: true)
+      // Fail hard: if we can't create the output dir we can't test anything
+      // meaningful.
+      try? fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
+      self.outputRoot = tempDir.path
+    }
 
     let manager = ConfigurationManager()
     manager.load([
@@ -72,9 +87,9 @@ final class GalleryHarness {
       "people": [],
       "peopleFiles": peopleFiles,
       "resolutions": resolutions,
-      "jpegCompression": 0.1,
+      "jpegCompression": jpegCompression,
       "sourceFolder": sourceRoot,
-      "targetFolder": outputRoot,
+      "targetFolder": self.outputRoot,
       "fileExtensions": ["jpg", "jpeg", "JPG", "JPEG"],
       "diff": false,
       "progress": false,

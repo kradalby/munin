@@ -215,15 +215,6 @@ func readPhotoFromPath(
     ctx.log.warning("Exif tag not found for photo, some metatags will be unavailable")
   }
 
-  let maxResolution = max(photo.width ?? 0, photo.height ?? 0)
-
-  photo.scaledPhotos = ctx.config.resolutions.filter { $0 < maxResolution }.map({
-    ScaledPhoto(
-      url: "\(joinPath(outPath, name))_\($0).\(fileExtension)",
-      maxResolution: $0
-    )
-  })
-
   if let zero = exifDict["0"] {
     photo.cameraMake = zero["Manufacturer"]
     photo.cameraModel = zero["Model"]
@@ -297,26 +288,28 @@ func readPhotoFromPath(
     ctx.log.trace("GPS tag not found for photo")
   }
 
-  photo.keywords = Array(Set(photo.keywords)).sorted()
-  photo.people = Array(Set(photo.people)).sorted()
+  applyConfigDerivedFields(
+    to: &photo, outPath: outPath, name: name, fileExtension: fileExtension, ctx: ctx)
 
   return photo
 }
 
-/// Re-derive the parts of a reused `Photo` that depend on configuration
-/// rather than source bytes. Call this on the fast path after trusting
-/// the prior's EXIF/dimensions so a config change (resolutions,
-/// peopleFiles) still propagates to the emitted JSON without incurring
-/// EXIF/VIPS/hash work.
+/// Re-derive the parts of a `Photo` that depend on configuration rather
+/// than source bytes. Called from every read path (fast and slow) so the
+/// same logic covers cache-hit reuse and a fresh VIPS read.
 ///
 /// Fields touched:
 /// - `scaledPhotos`: recomputed from the current `ctx.config.resolutions`
-///   using the prior's cached `width`/`height` for the max-resolution
+///   using the photo's cached `width`/`height` for the max-resolution
 ///   filter.
 /// - `keywords` / `people`: the union of both lists is re-split against
 ///   `ctx.config.allPeople`, so adding or removing an entry from
 ///   `peopleFiles` moves the pointer to the other bucket on the next
 ///   build.
+/// - `encodingFingerprint`: a stable readable string over the config
+///   values that determine encoded JPEG bytes. A mismatch between the
+///   stored fingerprint on disk and the one computed here propagates
+///   through `Photo.==` and re-encodes the scaled outputs.
 private func applyConfigDerivedFields(
   to photo: inout Photo,
   outPath: String,
@@ -343,4 +336,16 @@ private func applyConfigDerivedFields(
   }
   photo.keywords = Array(Set(newKeywords)).sorted()
   photo.people = Array(Set(newPeople)).sorted()
+
+  photo.encodingFingerprint = encodingFingerprint(for: ctx.config)
+}
+
+/// Human-readable fingerprint over the config values that determine the
+/// encoded bytes of the scaled JPEGs. `fileExtensions` is deliberately
+/// excluded: it filters which files count as photos on input, not how
+/// the encoder writes them on output.
+func encodingFingerprint(for config: GalleryConfiguration) -> String {
+  let quality = Int(config.jpegCompression * 100)
+  let resolutions = config.resolutions.sorted().map(String.init).joined(separator: "_")
+  return "q\(quality)_r\(resolutions)"
 }

@@ -1106,4 +1106,56 @@ struct IncrementalRebuildTests {
       FileManager.default.fileExists(atPath: siblingJsonPath),
       "self-heal should leave portrait_mm.json in place")
   }
+
+  /// #11 — changing `jpegCompression` between two rebuilds re-encodes
+  /// every scaled output. Without `encodingFingerprint` on `Photo.==`
+  /// the on-disk JPEGs silently keep their old quality.
+  @Test func jpegCompressionChangeReencodesAllScaledImages() async throws {
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let low = GalleryHarness(
+      sourceRoot: fixture.sourceRoot, name: "root", jpegCompression: 0.5)
+    defer { low.cleanup() }
+    try await low.buildAndClean()
+    let before = try low.snapshotOutput()
+
+    // Count the baseline's scaled JPEGs so we can assert "every one of
+    // them was re-encoded" without hard-coding per-fixture expectations.
+    // The fixture spans `.jpg` and `.jpeg` sources, so match on the
+    // `_<resolution>.` stem convention rather than a fixed extension.
+    let scaledPaths = before.entries.keys.filter {
+      $0.contains("_180.") || $0.contains("_340.")
+    }
+    #expect(!scaledPaths.isEmpty, "baseline should produce scaled images to compare against")
+
+    try await sleepPastMtimeResolution()
+
+    let high = GalleryHarness(
+      sourceRoot: fixture.sourceRoot,
+      name: "root",
+      jpegCompression: 0.9,
+      outputRoot: low.outputRoot)
+    try await high.buildAndClean()
+    let after = try high.snapshotOutput()
+
+    let diff = before.diff(against: after)
+    let classification = RebuildClassification(from: diff, before: before, after: after)
+
+    #expect(
+      classification.scaledImagesReencoded.count == scaledPaths.count,
+      """
+      expected all \(scaledPaths.count) scaled images re-encoded after \
+      jpegCompression change, got \(classification.scaledImagesReencoded.count):
+      \(classification.summary)
+      """
+    )
+    #expect(
+      classification.scaledImagesRewrittenSameBytes == [],
+      """
+      changing jpegCompression should never produce identical-byte rewrites:
+      \(classification.summary)
+      """
+    )
+  }
 }

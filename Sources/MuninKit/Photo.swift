@@ -60,6 +60,18 @@ struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
   /// (EXIF/VIPS/hash) can be skipped. Optional for on-disk back-compat.
   var fileSize: Int?
 
+  /// Fingerprint of the config values that determine the encoded bytes
+  /// of the scaled JPEGs (`jpegCompression` and `resolutions`). Derived
+  /// from current `ctx.config` on every read, so a config change flows
+  /// through `Photo.==` and re-encodes the affected outputs — the same
+  /// way `scaledPhotos` already catches a `resolutions` change.
+  ///
+  /// Optional so on-disk JSONs written before this field existed still
+  /// decode cleanly. On the first rebuild after upgrade the on-disk
+  /// value will be `nil` while the newly-read value will be a real
+  /// fingerprint, so every photo is treated as changed exactly once.
+  var encodingFingerprint: String?
+
   var keywords: [KeywordPointer]
   var people: [KeywordPointer]
   var next: String?

@@ -188,31 +188,3 @@ system's C libraries (libvips, libexif, etc.). The truly-static
 and abandoned — see that branch's history for the detailed notes. Revisit
 if the `sharp-libvips` approach becomes more broadly usable.
 
----
-
-## 14. `jpegCompression` changes don't trigger a rebuild
-
-**Symptom.** Changing `jpegCompression` in `munin.json` (e.g. 0.75 →
-0.9) does not cause any photo to be re-encoded. The scaled JPEGs keep
-their old quality until their source file is otherwise modified. A
-user who wants to re-encode after tweaking quality must bump an
-mtime-invariant field on every photo, or delete the output tree.
-
-**Why it happens.** `jpegCompression` is read from config at
-`Photo.write` time and passed as `quality:` to
-`VIPSImage.thumbnailImage(...).writeToFile(...)`, but it is not stored
-on `Photo` and not part of `Photo.==`. The incremental diff therefore
-has no way to know the output is stale relative to the config.
-
-**Fix sketch.** Include a config fingerprint on each `Photo` (e.g.
-`encodingFingerprint: String` holding a SHA-1 of
-`resolutions + jpegCompression + fileExtensions`). A mismatch between
-stored and current fingerprint adds the photo to `changedContent`
-regardless of source-bytes equality. Simpler alternative: derive a
-top-level output fingerprint, compare at `Gallery.load`, and invalidate
-the output album wholesale if fingerprints differ.
-
-**Related.** Changing `resolutions` *does* correctly trigger a rebuild
-today because `scaledPhotos` (which is in `Photo.==`) re-derives from
-the current `resolutions` array on every read. `jpegCompression` is
-not visible in the model so it slips through.

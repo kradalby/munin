@@ -206,6 +206,14 @@ extension Photo: Equatable {
     guard lhs.sourceHash == rhs.sourceHash else {
       return false
     }
+    // `encodingFingerprint` captures config values (`jpegCompression`,
+    // `resolutions`) that determine encoded JPEG bytes but are not
+    // reflected in `sourceHash`. A mismatch means the on-disk scaled
+    // outputs were written under different encoder settings and must
+    // be regenerated.
+    guard lhs.encodingFingerprint == rhs.encodingFingerprint else {
+      return false
+    }
     guard lhs.orientation == rhs.orientation else {
       return false
     }
