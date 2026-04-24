@@ -5,19 +5,6 @@ are known and tracked here. Loosely ordered by impact / cost.
 
 ---
 
-## 2. VIPS wrapper inside a dedicated actor
-
-Today the `VIPSImage` C wrapper isn't explicitly isolated; we trust libvips
-to be thread-safe with the `concurrency` set via `VIPSBootstrap.start(...)`.
-A cleaner design would wrap all VIPS calls in a `actor VIPSWorker` with an
-explicit serial executor so the rest of the codebase can be strict
-concurrency without any `@unchecked Sendable` escapes on VIPS types.
-
-Also applies to `SwiftExif` reads (EXIF/IPTC dictionaries from
-`SwiftExif.Image`).
-
----
-
 ## 3. Streaming read pipeline
 
 `readStateFromInputDirectory` currently returns a fully-realized `Album`.
@@ -42,22 +29,10 @@ options:
   (Keywords, City, Province/State, Country Code, Country Name). Most of
   SwiftExif's surface is unused by Munin.
 
----
-
-## 5. Error handling rollout
-
-`Sources/MuninKit/Errors.swift` defines `MuninError` with cases for
-configuration, directory, metadata, and image-operation failures. Today
-only `ConfigurationManager.loadOrThrow(file:)` actually throws it — every
-other failure site still logs-and-continues. Incrementally route errors
-through `MuninError` so callers can distinguish:
-
-- Photo write failures (surface to the caller; maybe partial-failure
-  tolerance with a summary at the end)
-- Symlink failures (often benign but currently only logged)
-- IPTC/EXIF parse errors (currently silent)
-- Missing directories vs. permission errors on output (today both produce
-  the same generic log line)
+A replacement would also let us distinguish "no EXIF present" from
+"EXIF present but corrupt" — SwiftExif swallows both into empty
+dictionaries today, so `Imaging.readExif` can't log which one
+happened.
 
 ---
 
@@ -90,8 +65,9 @@ return (previously dropped with `swiftpm2nix`).
 `swift-vips` main has evolved; the project is SHA-pinned. When a tag is
 cut upstream:
 - Move the dependency back to a `from:` version pin.
-- Re-examine Photo+Write.swift for the `Optional<VipsInteresting>.none`
-  warning — it's a pre-existing type-inference nit in swift-vips' API.
+- Re-examine `Sources/MuninKit/IO/Imaging/VIPS.swift` for the
+  `Optional<VipsInteresting>.none` workaround — it's a pre-existing
+  type-inference nit in swift-vips' API.
 
 ---
 
