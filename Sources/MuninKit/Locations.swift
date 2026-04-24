@@ -21,20 +21,21 @@ public struct Locations: Codable, Sendable {
     try container.encode(Array(locations).sorted(), forKey: .locations)
   }
 
-  public func write(ctx: Context) {
+  public func write(ctx: Context) throws {
     ctx.log.info("Writing locations")
     let path = FilePath(joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
 
     let encoder = MuninJSON.encoder()
-
-    if let encodedData = try? encoder.encode(self) {
-      do {
-        ctx.log.trace("Writing locations to json to \(path)")
-        try FileIO.writeAtomic(encodedData, to: path)
-      } catch {
-        ctx.log.error("Could not write locations json to \(path) with error: \n\(error)")
-      }
+    let encodedData: Data
+    do {
+      encodedData = try encoder.encode(self)
+    } catch {
+      throw MuninError.metadataWriteFailed(
+        path: path.string, underlying: String(describing: error))
     }
+
+    ctx.log.trace("Writing locations to json to \(path)")
+    try FileIO.writeAtomic(encodedData, to: path)
   }
 }
 

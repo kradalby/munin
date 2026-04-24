@@ -75,27 +75,28 @@ extension Keyword {
 }
 
 extension Keyword {
-  func write(ctx: Context) {
+  func write(ctx: Context) throws {
     let parentDir = url.removingLastComponent()
     do {
       try POSIX.createDirectory(parentDir)
     } catch {
-      ctx.log.error("Failed creating directory \(parentDir) with error: \n\(error)")
-      return
+      throw MuninError.directoryCreationFailed(
+        path: parentDir.string, underlying: String(describing: error))
     }
 
     ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
     let encoder = MuninJSON.encoder()
 
-    if let encodedData = try? encoder.encode(self) {
-      do {
-        ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
-        try FileIO.writeAtomic(encodedData, to: url)
-      } catch {
-        ctx.log.error(
-          "Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
-      }
+    let encodedData: Data
+    do {
+      encodedData = try encoder.encode(self)
+    } catch {
+      throw MuninError.metadataWriteFailed(
+        path: url.string, underlying: String(describing: error))
     }
+
+    ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
+    try FileIO.writeAtomic(encodedData, to: url)
   }
 }
 

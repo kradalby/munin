@@ -15,24 +15,29 @@ extension Album {
     sem: AsyncSemaphore? = nil
   ) async throws {
     let sem = sem ?? AsyncSemaphore(value: max(ctx.config.concurrency, 1))
+    // A directory we can't create means every photo and sub-album
+    // underneath has nowhere to write to. This used to log-and-return,
+    // silently dropping the whole subtree; now it throws so the build
+    // aborts rather than producing a hollow output.
     do {
       try POSIX.createDirectory(path)
     } catch {
-      ctx.log.error("Failed creating directory \(path) with error: \n\(error)")
-      return
+      throw MuninError.directoryCreationFailed(
+        path: path.string, underlying: String(describing: error))
     }
 
     ctx.log.trace("Writing metadata for album \(name)")
     if writeJson {
       let encoder = MuninJSON.encoder()
-      if let encodedData = try? encoder.encode(self) {
-        do {
-          ctx.log.trace("Writing album metadata \(name) to \(url)")
-          try FileIO.writeAtomic(encodedData, to: url)
-        } catch {
-          ctx.log.error("Could not write album \(name) to \(url) with error: \n\(error)")
-        }
+      let encodedData: Data
+      do {
+        encodedData = try encoder.encode(self)
+      } catch {
+        throw MuninError.metadataWriteFailed(
+          path: url.string, underlying: String(describing: error))
       }
+      ctx.log.trace("Writing album metadata \(name) to \(url)")
+      try FileIO.writeAtomic(encodedData, to: url)
     }
 
     for album in albums {

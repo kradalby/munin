@@ -310,17 +310,21 @@ public struct Gallery: Sendable {
     ctx.log.info("Images written in \(writeJsonEnd.timeIntervalSince(writeJsonStart)) seconds")
 
     let buildKeywordsStart = Date()
-    buildKeywordsFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
-    buildPeopleFromAlbum(album: input).forEach { $0.write(ctx: ctx) }
+    for keyword in buildKeywordsFromAlbum(album: input) {
+      try keyword.write(ctx: ctx)
+    }
+    for person in buildPeopleFromAlbum(album: input) {
+      try person.write(ctx: ctx)
+    }
     let buildKeywordsEnd = Date()
     ctx.log.info(
       "Keywords and people built in \(buildKeywordsEnd.timeIntervalSince(buildKeywordsStart)) seconds"
     )
 
-    statistics(ctx: ctx).write(ctx: ctx)
+    try statistics(ctx: ctx).write(ctx: ctx)
 
     let locationStart = Date()
-    Locations(gallery: self).write(ctx: ctx)
+    try Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
     ctx.log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
 
