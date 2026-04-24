@@ -7,7 +7,14 @@
 
 import Foundation
 import Logging
-import Rainbow
+
+// ANSI escapes for the `--diff` pretty-print markers. `prettyPrintAlbum`
+// writes through `print(...)` which already bypasses any colour-aware
+// terminal abstraction, so keeping two local constants is simpler than
+// pulling in a colour-helper dependency.
+private let ansiGreen = "\u{001B}[32m"
+private let ansiRed = "\u{001B}[31m"
+private let ansiReset = "\u{001B}[0m"
 
 func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
 where T: Decodable {
@@ -136,11 +143,11 @@ func prettyPrintAlbum(_ album: Album, marker: String = "") {
 }
 
 func prettyPrintAdded(_ album: Album) {
-  prettyPrintAlbum(album, marker: "[+]".green)
+  prettyPrintAlbum(album, marker: "\(ansiGreen)[+]\(ansiReset)")
 }
 
 func prettyPrintRemoved(_ album: Album) {
-  prettyPrintAlbumCompact(album, marker: "[-]".red)
+  prettyPrintAlbumCompact(album, marker: "\(ansiRed)[-]\(ansiReset)")
 }
 
 func prettyPrintAlbumCompact(_ album: Album, marker: String) {

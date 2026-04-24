@@ -169,17 +169,7 @@ cut upstream:
 
 ---
 
-## 12. Consolidate Rainbow vs. ConsoleKit
-
-Both `onevcat/Rainbow` and `vapor/console-kit` provide terminal colour
-APIs. Today Rainbow is used only in `Utils.swift` for `prettyPrintAdded`
-(green `+`) and `prettyPrintRemoved` (red `-`). Migrating those to
-ConsoleKit would let us drop Rainbow entirely, removing a dependency for
-trivial gain.
-
----
-
-## 13. Static binary distribution
+## 12. Static binary distribution
 
 `make build-static` uses `--static-swift-stdlib` which produces a ~73 MB
 binary with no Swift-runtime `.so` dependencies but still depends on the
