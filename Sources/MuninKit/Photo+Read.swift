@@ -1,7 +1,5 @@
 import Foundation
-import SwiftExif
 import SystemPackage
-import VIPS
 
 /// Read a photo from disk, extracting EXIF/IPTC metadata, orientation, GPS,
 /// keywords/people, location data, and building the `scaledPhotos` list.
@@ -38,7 +36,6 @@ func readPhotoFromPath(
   ctx: Context,
   prior: Photo? = nil
 ) -> Photo? {
-  let fileURL = URL(fileURLWithPath: atPath)
   let filePath = FilePath(atPath)
   let currentMtime = fileModificationDate(path: filePath) ?? Date()
   let currentSize = fileSizeInBytes(path: filePath)
@@ -96,10 +93,9 @@ func readPhotoFromPath(
   let dateFormatter = DateFormatter()
   dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
 
-  let exifImage = SwiftExif.Image(imagePath: fileURL)
-  let exifDict = exifImage.Exif()
-  let exifRawDict = exifImage.ExifRaw()
-  let iptcDict = exifImage.Iptc()
+  let exifSnapshot = Imaging.readExif(source: filePath)
+  let exifDict = exifSnapshot.exif
+  let exifRawDict = exifSnapshot.exifRaw
 
   var photo = Photo(
     name: name,
@@ -122,24 +118,21 @@ func readPhotoFromPath(
   }
 
   do {
-    let image = try VIPSImage(fromFilePath: fileURL.path)
-    VIPSBootstrap.didRunPipeline()
-    let width = image.size.width
-    let height = image.size.height
-    photo.width = width
-    photo.height = height
+    let probe = try Imaging.probe(source: filePath)
+    photo.width = probe.width
+    photo.height = probe.height
 
     // Determine display orientation by combining the raw pixel dimensions
     // with the EXIF orientation hint. EXIF orientations 5–8 imply a 90°
     // or 270° rotation, which effectively swaps the width/height we see.
-    if image.orientationSwap {
-      photo.orientation = width > height ? .portrait : .landscape
+    if probe.orientationSwap {
+      photo.orientation = probe.width > probe.height ? .portrait : .landscape
     } else {
-      photo.orientation = width < height ? .portrait : .landscape
+      photo.orientation = probe.width < probe.height ? .portrait : .landscape
     }
 
   } catch {
-    ctx.log.error("Could not open image at \(fileURL.path): \(error)")
+    ctx.log.error("Could not open image at \(atPath): \(error)")
   }
 
   if let exif = exifRawDict["EXIF"] {
@@ -227,10 +220,10 @@ func readPhotoFromPath(
   }
 
   // Add location data if available
-  if let city = iptcDict["City"] as? String,
-    let state = iptcDict["Province/State"] as? String,
-    let locationCode = iptcDict["Country Code"] as? String,
-    let locationName = iptcDict["Country Name"] as? String
+  if let city = exifSnapshot.iptcStrings["City"],
+    let state = exifSnapshot.iptcStrings["Province/State"],
+    let locationCode = exifSnapshot.iptcStrings["Country Code"],
+    let locationName = exifSnapshot.iptcStrings["Country Name"]
   {
     photo.location = LocationData(
       city: city,
@@ -257,17 +250,15 @@ func readPhotoFromPath(
     photo.keywords.append(locationNameKeyword)
   }
 
-  if let keywords = iptcDict["Keywords"] as? [String] {
-    for keyword in keywords {
-      let keywordPointer = KeywordPointer(
-        name: keyword,
-        url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
-      )
-      if ctx.config.allPeople.contains(keyword) {
-        photo.people.append(keywordPointer)
-      } else {
-        photo.keywords.append(keywordPointer)
-      }
+  for keyword in exifSnapshot.iptcKeywords {
+    let keywordPointer = KeywordPointer(
+      name: keyword,
+      url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
+    )
+    if ctx.config.allPeople.contains(keyword) {
+      photo.people.append(keywordPointer)
+    } else {
+      photo.keywords.append(keywordPointer)
     }
   }
 
