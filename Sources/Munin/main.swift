@@ -35,9 +35,10 @@ struct Munin: AsyncParsableCommand {
     let ctx = Context(config: galleryConfig)
     let gallery = try await Gallery.load(ctx: ctx)
 
+    var report = BuildReport()
     if !dry {
       let start = Date()
-      try await gallery.build(ctx: ctx, jsonOnly: json)
+      report = try await gallery.build(ctx: ctx, jsonOnly: json)
       let end = Date()
       let executionTime = end.timeIntervalSince(start)
 
@@ -51,5 +52,13 @@ struct Munin: AsyncParsableCommand {
     }
     let stats = gallery.statistics(ctx: ctx).toString()
     print(stats)
+
+    if report.hasFailures {
+      print("\n\(report.failures.count) photo(s) failed to write:")
+      for failure in report.failures {
+        print("  - \(failure)")
+      }
+      throw ExitCode.failure
+    }
   }
 }
