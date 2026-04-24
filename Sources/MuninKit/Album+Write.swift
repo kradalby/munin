@@ -45,7 +45,26 @@ extension Album {
       for photo in photos {
         await sem.wait()
         group.addTask {
-          photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
+          do {
+            try photo.write(ctx: ctx, writeJson: writeJson, writeImage: writeImage)
+          } catch let error as MuninError {
+            ctx.log.error("Photo \(photo.name) write failed: \(error)")
+            await ctx.state.recordFailure(
+              PhotoWriteFailure(photo: photo.name, path: photo.url, error: error))
+          } catch {
+            // Non-MuninError thrown out of `Photo.write` shouldn't exist
+            // given the typed throws surface, but if one slips through
+            // wrap it so the CLI summary still accounts for it.
+            ctx.log.error("Photo \(photo.name) write failed: \(error)")
+            await ctx.state.recordFailure(
+              PhotoWriteFailure(
+                photo: photo.name,
+                path: photo.url,
+                error: .imageOperationFailed(
+                  path: photo.url.string,
+                  operation: "write",
+                  underlying: String(describing: error))))
+          }
           await ctx.state.incrementPhotosWritten()
           await sem.signal()
         }

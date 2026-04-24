@@ -26,6 +26,7 @@ public actor State {
   var lastReadPhoto: String = ""
   var photosToWrite: Int = 0
   var photosWritten: Int = 0
+  var failures: [PhotoWriteFailure] = []
 
   init(progress: Bool) {
     writingProgress = progress ? WritingProgress(title: "Writing images") : nil
@@ -50,6 +51,14 @@ public actor State {
   func incrementPhotosWritten() {
     photosWritten += 1
     renderWriting()
+  }
+
+  func recordFailure(_ failure: PhotoWriteFailure) {
+    failures.append(failure)
+  }
+
+  func snapshotReport() -> BuildReport {
+    BuildReport(photosWritten: photosWritten, failures: failures)
   }
 
   private func renderReading() {
@@ -268,7 +277,16 @@ public struct Gallery: Sendable {
     return out
   }
 
-  public func build(ctx: Context, jsonOnly: Bool) async throws {
+  /// Build the gallery, writing scaled images, symlinks, and JSON to disk.
+  ///
+  /// Returns a `BuildReport` summarising how many photos committed their
+  /// full on-disk output successfully and which ones failed. Per-photo
+  /// failures are collected rather than thrown so a run against a large
+  /// tree can surface partial-failure without losing the work that did
+  /// succeed. Catastrophic failures (e.g. the input album could not be
+  /// loaded at all) still throw.
+  @discardableResult
+  public func build(ctx: Context, jsonOnly: Bool) async throws -> BuildReport {
     let sem = AsyncSemaphore(value: max(ctx.config.concurrency, 1))
 
     if let changed = changedContent {
@@ -305,6 +323,8 @@ public struct Gallery: Sendable {
     Locations(gallery: self).write(ctx: ctx)
     let locationEnd = Date()
     ctx.log.info("Locations built in \(locationEnd.timeIntervalSince(locationStart)) seconds")
+
+    return await ctx.state.snapshotReport()
   }
 
   public func clean(ctx: Context) {
