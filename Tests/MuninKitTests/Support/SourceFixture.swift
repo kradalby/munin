@@ -141,6 +141,18 @@ final class SourceFixture {
       atPath: absolutePath(for: oldRelative), toPath: absolutePath(for: newRelative))
   }
 
+  /// Plant a zero-byte file with a `.jpg` extension so the read pipeline
+  /// accepts it but VIPS fails to open it at write time. Used to exercise
+  /// the partial-failure / `BuildReport` path without depending on VIPS
+  /// error strings for any other format.
+  func plantCorruptPhoto(inAlbum albumRelativePath: String, named name: String) throws {
+    let dst = absolutePath(for: albumRelativePath) + "/" + name
+    if fm.fileExists(atPath: dst) {
+      try fm.removeItem(atPath: dst)
+    }
+    fm.createFile(atPath: dst, contents: Data())
+  }
+
   /// Bump the modification time on a photo to "now" without changing its
   /// bytes. Used to exercise the "mtime-only change" behaviour.
   func touchPhoto(inAlbum albumRelativePath: String, named name: String) throws {
