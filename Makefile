@@ -4,10 +4,6 @@ install: build-release
 publish: build
 	scp ./.build/release/munin root@storage.terra.fap.no:/storage/nfs/k8s/builds/munin/.
 
-generate:
-	sourcery
-	make fmt
-
 build:
 	swift build -c debug
 

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Album: Hashable, Comparable, Diffable, Sendable {
+struct Album: Hashable, Comparable, Sendable {
   var name: String
   var url: String
   var path: String
@@ -92,7 +92,7 @@ struct AlbumInAlbum: Codable, Sendable {
   var scaledPhotos: [ScaledPhoto]
 }
 
-struct Parent: Codable, AutoEquatable, Comparable, Sendable {
+struct Parent: Codable, Equatable, Comparable, Sendable {
   var name: String
   var url: String
 
@@ -139,7 +139,7 @@ extension Album: Decodable {
   }
 }
 
-extension Album: AutoEquatable {
+extension Album {
   static func < (lhs: Album, rhs: Album) -> Bool {
     return lhs.name < rhs.name
   }

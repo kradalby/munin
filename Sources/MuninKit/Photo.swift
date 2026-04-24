@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
+struct Photo: Codable, Comparable, Hashable, Sendable {
   var name: String
   var url: String
   var originalImageURL: String
@@ -117,7 +117,7 @@ struct Photo: Codable, Comparable, Hashable, Diffable, Sendable {
   }
 }
 
-struct ScaledPhoto: Codable, AutoEquatable, Comparable, Sendable {
+struct ScaledPhoto: Codable, Equatable, Comparable, Sendable {
   var url: String
   var maxResolution: Int
 
@@ -126,13 +126,13 @@ struct ScaledPhoto: Codable, AutoEquatable, Comparable, Sendable {
   }
 }
 
-struct GPS: Codable, AutoEquatable, Sendable {
+struct GPS: Codable, Sendable {
   var altitude: Double
   var latitude: Double
   var longitude: Double
 }
 
-struct LocationData: Codable, AutoEquatable, Sendable {
+struct LocationData: Codable, Equatable, Sendable {
   var city: String
   var state: String
   var locationCode: String
@@ -153,7 +153,7 @@ enum PhotoConstants {
   static let excludeKeyword = "NO_HUGIN"
 }
 
-extension Photo: AutoEquatable {
+extension Photo {
   static func < (lhs: Photo, rhs: Photo) -> Bool {
     // Sort by date (exif, taken date) if it is available
     if let lhsDateTime = lhs.dateTime, let rhsDateTime = rhs.dateTime {

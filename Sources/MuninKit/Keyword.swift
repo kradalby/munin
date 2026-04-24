@@ -63,7 +63,7 @@ extension Keyword: Decodable {
   }
 }
 
-extension Keyword: AutoEquatable {
+extension Keyword {
   static func < (lhs: Keyword, rhs: Keyword) -> Bool {
     return lhs.name < rhs.name
   }

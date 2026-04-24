@@ -71,8 +71,7 @@ let package = Package(
         .product(name: "SystemPackage", package: "swift-system"),
         .product(name: "Crypto", package: "swift-crypto"),
         "SwiftExif",
-      ],
-      exclude: ["Templates"]
+      ]
     ),
     .testTarget(
       name: "MuninTests",
