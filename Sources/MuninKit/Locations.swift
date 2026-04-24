@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import SystemPackage
 
 public struct Locations: Codable, Sendable {
   var locations: [Location]
@@ -22,31 +23,30 @@ public struct Locations: Codable, Sendable {
 
   public func write(ctx: Context) {
     ctx.log.info("Writing locations")
-    let fileURL = URL(
-      fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
+    let path = FilePath(joinPath(ctx.config.outputPath, ctx.config.name, "locations.json"))
 
     let encoder = MuninJSON.encoder()
 
     if let encodedData = try? encoder.encode(self) {
       do {
-        ctx.log.trace("Writing locations to json to \(fileURL.path)")
-        try encodedData.write(to: URL(fileURLWithPath: fileURL.path))
+        ctx.log.trace("Writing locations to json to \(path)")
+        try FileIO.writeAtomic(encodedData, to: path)
       } catch {
-        ctx.log.error("Could not write locations json to \(fileURL.path) with error: \n\(error)")
+        ctx.log.error("Could not write locations json to \(path) with error: \n\(error)")
       }
     }
   }
 }
 
 struct Location: Codable, Comparable, Sendable {
-  var url: String
+  var url: FilePath
   var gps: GPS
   var scaledPhotos: [ScaledPhoto]
 }
 
 extension Location {
   static func < (lhs: Location, rhs: Location) -> Bool {
-    return lhs.url < rhs.url
+    return lhs.url.string < rhs.url.string
   }
 }
 

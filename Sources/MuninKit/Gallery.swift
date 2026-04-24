@@ -263,7 +263,7 @@ public struct Gallery: Sendable {
     guard let album else { return [:] }
     var out: [String: Photo] = [:]
     for photo in album.flattenPhotos() {
-      out[photo.url] = photo
+      out[photo.url.string] = photo
     }
     return out
   }

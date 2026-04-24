@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import SystemPackage
 
 public struct Statistics: Codable, Sendable {
   var originalPhotos: Int
@@ -39,17 +40,16 @@ public struct Statistics: Codable, Sendable {
 
   public func write(ctx: Context) {
     ctx.log.info("Writing stats")
-    let fileURL = URL(
-      fileURLWithPath: joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
+    let path = FilePath(joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
 
     let encoder = MuninJSON.encoder()
 
     if let encodedData = try? encoder.encode(self) {
       do {
-        ctx.log.trace("Writing statistics to json to \(fileURL.path)")
-        try encodedData.write(to: URL(fileURLWithPath: fileURL.path))
+        ctx.log.trace("Writing statistics to json to \(path)")
+        try FileIO.writeAtomic(encodedData, to: path)
       } catch {
-        ctx.log.error("Could not write statistics json to \(fileURL.path) with error: \n\(error)")
+        ctx.log.error("Could not write statistics json to \(path) with error: \n\(error)")
       }
     }
   }

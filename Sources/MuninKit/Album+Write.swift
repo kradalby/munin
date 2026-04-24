@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 
 extension Album {
   /// Write this album (and recursively its sub-albums and photos) to disk.
@@ -14,10 +15,8 @@ extension Album {
     sem: AsyncSemaphore? = nil
   ) async throws {
     let sem = sem ?? AsyncSemaphore(value: max(ctx.config.concurrency, 1))
-    let fileManager = FileManager()
     do {
-      try fileManager.createDirectory(
-        at: URL(fileURLWithPath: path), withIntermediateDirectories: true)
+      try POSIX.createDirectory(path)
     } catch {
       ctx.log.error("Failed creating directory \(path) with error: \n\(error)")
       return
@@ -29,7 +28,7 @@ extension Album {
       if let encodedData = try? encoder.encode(self) {
         do {
           ctx.log.trace("Writing album metadata \(name) to \(url)")
-          try encodedData.write(to: URL(fileURLWithPath: url))
+          try FileIO.writeAtomic(encodedData, to: url)
         } catch {
           ctx.log.error("Could not write album \(name) to \(url) with error: \n\(error)")
         }
@@ -57,7 +56,6 @@ extension Album {
 
   /// Remove this album and every one of its photos and sub-albums from disk.
   public func destroy(ctx: Context) {
-    let fileManager = FileManager()
     ctx.log.info("Inside: \(name)")
     ctx.log.info("Destroying: \(photos)")
     for photo in photos {
@@ -69,13 +67,13 @@ extension Album {
     }
 
     do {
-      try fileManager.removeItem(atPath: url)
+      try POSIX.unlink(url)
     } catch {
       ctx.log.error("Could not remove album json \(name) at path \(url)")
     }
 
     do {
-      try fileManager.removeItem(atPath: path)
+      try POSIX.rmdir(path)
     } catch {
       ctx.log.error("Could not remove album \(name) at path \(path)")
     }

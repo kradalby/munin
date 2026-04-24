@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 
 /// JSON-shaped configuration values that back a Munin gallery build.
 ///
@@ -158,7 +159,7 @@ public final class ConfigurationManager {
     }
     let data: Data
     do {
-      data = try Data(contentsOf: URL(fileURLWithPath: resolvedPath))
+      data = try FileIO.read(FilePath(resolvedPath))
     } catch {
       throw MuninError.configurationFileUnreadable(
         path: resolvedPath, underlying: String(describing: error))

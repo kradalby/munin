@@ -1,11 +1,12 @@
 import Foundation
+import SystemPackage
 
 extension Album {
   // MARK: - Expected / missing / unreferenced files
 
   /// All sub-album folders expected to exist under this album on disk.
   var expectedFolders: [URL] {
-    albums.map { URL(fileURLWithPath: $0.path) }
+    albums.map { URL(fileURLWithPath: $0.path.string) }
   }
 
   /// All files expected to exist directly in this album's folder: the album
@@ -15,15 +16,15 @@ extension Album {
   /// Does **not** recurse into sub-albums — those are their own folders and
   /// own expected-files lists.
   var expectedFiles: [URL] {
-    let jsonURL = URL(fileURLWithPath: url)
+    let jsonURL = URL(fileURLWithPath: url.string)
 
     // TODO(FUTURES.md): replace with explicit expectedFiles on Keywords,
     // Locations, and Stats once those become first-class types.
     let rootFiles: [URL] =
       parents.isEmpty
       ? [
-        URL(fileURLWithPath: joinPath(path, "stats.json")),
-        URL(fileURLWithPath: joinPath(path, "locations.json")),
+        URL(fileURLWithPath: joinPath(path.string, "stats.json")),
+        URL(fileURLWithPath: joinPath(path.string, "locations.json")),
       ]
       : []
 
@@ -33,9 +34,8 @@ extension Album {
   /// Folders that exist on disk under `path` but are not represented by any
   /// sub-album.
   var unreferencedFolders: [URL] {
-    let fileManager = FileManager()
-    let actualFolders = fileManager.directoriesOfDirectory(atPath: path).map {
-      URL(fileURLWithPath: joinPath(path, $0))
+    let actualFolders = directoryNames(under: path).map {
+      URL(fileURLWithPath: joinPath(path.string, $0))
     }
     return actualFolders.filter { !expectedFolders.contains($0) }
   }
@@ -43,18 +43,16 @@ extension Album {
   /// Files that exist on disk under `path` but are not part of this album's
   /// expected output.
   var unreferencedFiles: [URL] {
-    let fileManager = FileManager()
-    let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
-      URL(fileURLWithPath: joinPath(path, $0))
+    let actualFiles = fileOrSymlinkNames(under: path).map {
+      URL(fileURLWithPath: joinPath(path.string, $0))
     }
     return actualFiles.filter { !expectedFiles.contains($0) }
   }
 
   /// Files this album declares as expected but that are missing from disk.
   var missingFiles: [URL] {
-    let fileManager = FileManager()
-    let actualFiles = fileManager.filesOfDirectory(atPath: path).map {
-      URL(fileURLWithPath: joinPath(path, $0))
+    let actualFiles = fileOrSymlinkNames(under: path).map {
+      URL(fileURLWithPath: joinPath(path.string, $0))
     }
     return expectedFiles.filter { !actualFiles.contains($0) }
   }

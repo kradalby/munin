@@ -6,12 +6,13 @@
 //
 
 import Foundation
+import SystemPackage
 
 struct Photo: Codable, Comparable, Hashable, Sendable {
   var name: String
-  var url: String
-  var originalImageURL: String
-  var originalImagePath: String
+  var url: FilePath
+  var originalImageURL: FilePath
+  var originalImagePath: FilePath
   var scaledPhotos: [ScaledPhoto]
   var parents: [Parent]
 
@@ -86,6 +87,25 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
     modifiedDate: Date,
     parents: [Parent]
   ) {
+    self.init(
+      name: name,
+      url: FilePath(url),
+      originalImageURL: FilePath(originalImageURL),
+      originalImagePath: FilePath(originalImagePath),
+      scaledPhotos: scaledPhotos,
+      modifiedDate: modifiedDate,
+      parents: parents)
+  }
+
+  init(
+    name: String,
+    url: FilePath,
+    originalImageURL: FilePath,
+    originalImagePath: FilePath,
+    scaledPhotos: [ScaledPhoto],
+    modifiedDate: Date,
+    parents: [Parent]
+  ) {
     self.name = name
     self.url = url
     self.originalImageURL = originalImageURL
@@ -104,9 +124,9 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
     dateTime: Date? = nil
   ) {
     self.name = name
-    self.url = ""
-    self.originalImageURL = ""
-    self.originalImagePath = ""
+    self.url = FilePath()
+    self.originalImageURL = FilePath()
+    self.originalImagePath = FilePath()
     self.scaledPhotos = []
     self.parents = []
     self.modifiedDate = Date()
@@ -118,8 +138,18 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
 }
 
 struct ScaledPhoto: Codable, Equatable, Comparable, Sendable {
-  var url: String
+  var url: FilePath
   var maxResolution: Int
+
+  init(url: String, maxResolution: Int) {
+    self.url = FilePath(url)
+    self.maxResolution = maxResolution
+  }
+
+  init(url: FilePath, maxResolution: Int) {
+    self.url = url
+    self.maxResolution = maxResolution
+  }
 
   static func < (lhs: ScaledPhoto, rhs: ScaledPhoto) -> Bool {
     return lhs.maxResolution < rhs.maxResolution
@@ -190,15 +220,16 @@ extension Photo {
   /// All files expected to exist on disk for this photo: JSON metadata, the
   /// symlinked original, and every scaled resolution.
   var expectedFiles: [URL] {
-    let jsonURL = URL(fileURLWithPath: url)
-    let symlinkedImageURL = URL(fileURLWithPath: originalImageURL)
-    return [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url) }
+    let jsonURL = URL(fileURLWithPath: url.string)
+    let symlinkedImageURL = URL(fileURLWithPath: originalImageURL.string)
+    return [jsonURL, symlinkedImageURL] + scaledPhotos.map { URL(fileURLWithPath: $0.url.string) }
   }
 
-  /// Depth of this photo's URL in the gallery hierarchy, measured by
-  /// `/` separators.
+  /// Depth of this photo's URL in the gallery hierarchy, measured in
+  /// path components minus one (so a top-level photo has depth 0).
   var depth: Int {
-    url.filter { $0 == "/" }.count
+    let n = url.components.count
+    return n > 0 ? n - 1 : 0
   }
 
   /// Whether this photo should be included in the gallery. Photos tagged

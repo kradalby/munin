@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import SystemPackage
 
 // ANSI escapes for the `--diff` pretty-print markers. `prettyPrintAlbum`
 // writes through `print(...)` which already bypasses any colour-aware
@@ -16,44 +17,49 @@ private let ansiGreen = "\u{001B}[32m"
 private let ansiRed = "\u{001B}[31m"
 private let ansiReset = "\u{001B}[0m"
 
-func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
+func readAndDecodeJsonFile<T>(_ type: T.Type, atPath path: FilePath) -> T?
 where T: Decodable {
-  let fileManager = FileManager()
-  var isDirectory: ObjCBool = ObjCBool(false)
-  let exists = fileManager.fileExists(atPath: atPath, isDirectory: &isDirectory)
-
-  if exists, !isDirectory.boolValue {
-    if let indexFile = try? Data(contentsOf: URL(fileURLWithPath: atPath)) {
-      let decoder = MuninJSON.decoder()
-
-      if let decodedData = try? decoder.decode(type, from: indexFile) {
-        return decodedData
-      } else {
-        // TODO: Use logger
-        print("Error: Could not decode \(atPath)")
-      }
-    } else {
-      // TODO: Use logger
-      print("Error: Could not read \(atPath)")
-    }
-  } else {
-    // TODO: Use logger
-    print("Error: File \(atPath) does not exist")
+  // Existence + not-a-directory check via lstat; mirrors the old
+  // fileExists(isDirectory:) call pattern without pulling in FileManager.
+  guard let info = try? POSIX.lstat(path) else {
+    print("Error: File \(path) does not exist")
+    return nil
   }
-  return nil
+  if info.isDirectory {
+    print("Error: File \(path) does not exist")
+    return nil
+  }
+
+  let data: Data
+  do {
+    data = try FileIO.read(path)
+  } catch {
+    print("Error: Could not read \(path): \(error)")
+    return nil
+  }
+
+  let decoder = MuninJSON.decoder()
+  do {
+    return try decoder.decode(type, from: data)
+  } catch {
+    print("Error: Could not decode \(path): \(error)")
+    return nil
+  }
 }
 
-func createOrReplaceSymlink(ctx: Context, source: String, destination: String) throws {
-  let fileManager = FileManager()
+/// String-path convenience overload so callers that still carry a plain
+/// `String` (e.g. configuration file paths) don't need to wrap at every
+/// call site.
+func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
+where T: Decodable {
+  readAndDecodeJsonFile(type, atPath: FilePath(atPath))
+}
 
-  var isDirectory: ObjCBool = ObjCBool(false)
-  let exists = fileManager.fileExists(atPath: destination, isDirectory: &isDirectory)
-  if exists || isDirectory.boolValue {
-    ctx.log.trace("Symlink exists, removing \(destination)")
-    try fileManager.removeItem(atPath: destination)
-  }
-
-  try fileManager.createSymbolicLink(atPath: destination, withDestinationPath: source)
+func createOrReplaceSymlink(ctx: Context, source: FilePath, destination: FilePath) throws {
+  // POSIX.unlink treats ENOENT as success, so no need to pre-check.
+  ctx.log.trace("Removing any existing symlink at \(destination)")
+  try POSIX.unlink(destination)
+  try POSIX.symlink(target: source, linkPath: destination)
 }
 
 func joinPath(_ paths: String...) -> String {
@@ -94,33 +100,18 @@ extension Date {
 // When the modified date is encoded to json, the millisecond accuracy is lost.
 // Therefore we remove it before so we can do a proper equal of the picture to
 // seconds accuracy.
-func fileModificationDate(url: URL) -> Date? {
-  do {
-    let attr = try FileManager.default.attributesOfItem(atPath: url.path)
-    if let date = attr[FileAttributeKey.modificationDate] as? Date {
-      let rounded = date.millisecondsSince1970 - (date.millisecondsSince1970 % 1000)
-      let roundedDate = Date(milliseconds: rounded)
-      return roundedDate
-    }
-    return nil
-  } catch {
-    return nil
-  }
+func fileModificationDate(path: FilePath) -> Date? {
+  guard let info = try? POSIX.stat(path) else { return nil }
+  let ms = info.modificationDate.millisecondsSince1970
+  return Date(milliseconds: ms - (ms % 1000))
 }
 
-/// Byte count of the file at `url`, or `nil` if the size cannot be read.
+/// Byte count of the file at `path`, or `nil` if the size cannot be read.
 /// Used (together with `fileModificationDate`) as a cache key on `Photo`
 /// so an unchanged source file can skip both hashing and EXIF/VIPS work.
-func fileSizeInBytes(url: URL) -> Int? {
-  do {
-    let attr = try FileManager.default.attributesOfItem(atPath: url.path)
-    if let size = attr[FileAttributeKey.size] as? NSNumber {
-      return size.intValue
-    }
-    return nil
-  } catch {
-    return nil
-  }
+func fileSizeInBytes(path: FilePath) -> Int? {
+  guard let info = try? POSIX.stat(path) else { return nil }
+  return Int(info.size)
 }
 
 func prettyPrintAlbum(_ album: Album, marker: String = "") {

@@ -1,9 +1,9 @@
 import Foundation
+import SystemPackage
 
 extension Album {
   /// Remove files and folders on disk that no longer belong to this album.
   public func clean(ctx: Context) {
-    let fileManager = FileManager()
     let unrefFiles = unreferencedFiles
     let unrefFolders = unreferencedFolders
 
@@ -16,7 +16,7 @@ extension Album {
 
     for file in unrefFiles + unrefFolders {
       do {
-        try fileManager.removeItem(at: file)
+        try POSIX.removeItemRecursively(FilePath(file.path))
       } catch {
         ctx.log.error("Could not remove album \(name) at path \(path): \(error)")
       }

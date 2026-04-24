@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 
 /// Errors produced by MuninKit.
 ///
@@ -21,6 +22,12 @@ public enum MuninError: Error, Sendable {
 
   /// An image read/decode/resize/write operation failed.
   case imageOperationFailed(path: String, operation: String, underlying: String)
+
+  /// A low-level POSIX syscall (open/read/write/stat/unlink/…) returned an
+  /// error. The path is captured so callers don't have to re-plumb it into
+  /// log lines; the `Errno` preserves the raw error code for decisions like
+  /// "ignore ENOENT here" at the call site.
+  case ioFailure(operation: String, path: FilePath, errno: Errno)
 }
 
 extension MuninError: CustomStringConvertible {
@@ -36,6 +43,8 @@ extension MuninError: CustomStringConvertible {
       return "Could not write metadata to '\(path)': \(underlying)"
     case .imageOperationFailed(let path, let operation, let underlying):
       return "Image \(operation) failed for '\(path)': \(underlying)"
+    case .ioFailure(let operation, let path, let errno):
+      return "\(operation) failed for '\(path)': \(errno)"
     }
   }
 }

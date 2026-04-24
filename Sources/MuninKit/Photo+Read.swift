@@ -1,5 +1,6 @@
 import Foundation
 import SwiftExif
+import SystemPackage
 import VIPS
 
 /// Read a photo from disk, extracting EXIF/IPTC metadata, orientation, GPS,
@@ -38,8 +39,9 @@ func readPhotoFromPath(
   prior: Photo? = nil
 ) -> Photo? {
   let fileURL = URL(fileURLWithPath: atPath)
-  let currentMtime = fileModificationDate(url: fileURL) ?? Date()
-  let currentSize = fileSizeInBytes(url: fileURL)
+  let filePath = FilePath(atPath)
+  let currentMtime = fileModificationDate(path: filePath) ?? Date()
+  let currentSize = fileSizeInBytes(path: filePath)
 
   // One-shot hash: compute on demand at most once per call. Used by
   // fast-path 2 (upgrade), fast-path 3 (mtime drift), and the slow-path

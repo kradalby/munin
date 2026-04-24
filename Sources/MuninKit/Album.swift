@@ -6,11 +6,12 @@
 //
 
 import Foundation
+import SystemPackage
 
 struct Album: Hashable, Comparable, Sendable {
   var name: String
-  var url: String
-  var path: String
+  var url: FilePath
+  var path: FilePath
   var photos: Set<Photo>
   var albums: Set<Album>
   var keywords: Set<KeywordPointer>
@@ -18,9 +19,13 @@ struct Album: Hashable, Comparable, Sendable {
   var parents: [Parent]
 
   init(name: String, path: String, parents: [Parent]) {
+    self.init(name: name, path: FilePath(path), parents: parents)
+  }
+
+  init(name: String, path: FilePath, parents: [Parent]) {
     self.name = name
     self.path = path
-    url = joinPath(path, "index.json")
+    url = path.appending("index.json")
     photos = []
     albums = []
     keywords = Set()
@@ -79,22 +84,32 @@ extension Album: Encodable {
 }
 
 struct PhotoInAlbum: Codable, Sendable {
-  var url: String
+  var url: FilePath
   var dateTime: Date
-  var originalImageURL: String
+  var originalImageURL: FilePath
   var scaledPhotos: [ScaledPhoto]
   var gps: GPS?
 }
 
 struct AlbumInAlbum: Codable, Sendable {
-  var url: String
+  var url: FilePath
   var name: String
   var scaledPhotos: [ScaledPhoto]
 }
 
 struct Parent: Codable, Equatable, Comparable, Sendable {
   var name: String
-  var url: String
+  var url: FilePath
+
+  init(name: String, url: String) {
+    self.name = name
+    self.url = FilePath(url)
+  }
+
+  init(name: String, url: FilePath) {
+    self.name = name
+    self.url = url
+  }
 
   static func < (lhs: Parent, rhs: Parent) -> Bool {
     return lhs.name < rhs.name
@@ -111,8 +126,8 @@ extension Album: Decodable {
   init(from decoder: Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
     name = try values.decode(String.self, forKey: .name)
-    url = try values.decode(String.self, forKey: .url)
-    path = try values.decode(String.self, forKey: .path)
+    url = try values.decode(FilePath.self, forKey: .url)
+    path = try values.decode(FilePath.self, forKey: .path)
     keywords = try values.decode(Set<KeywordPointer>.self, forKey: .keywords)
     people = try values.decode(Set<KeywordPointer>.self, forKey: .people)
     parents = try values.decode([Parent].self, forKey: .parents)

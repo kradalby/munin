@@ -1,4 +1,5 @@
 import Foundation
+import SystemPackage
 
 /// Recursively read an input directory into an `Album` tree.
 ///
@@ -31,7 +32,7 @@ func readStateFromInputDirectory(
   let capturedParents = newParents
 
   // Sub-albums (depth-first).
-  let directories = FileManager.default.directoriesOfDirectory(atPath: joinPath(atPath))
+  let directories = directoryNames(under: FilePath(joinPath(atPath)))
   for directory in directories {
     let childAlbum = try await readStateFromInputDirectory(
       ctx: ctx,
@@ -48,9 +49,10 @@ func readStateFromInputDirectory(
   }
 
   // Parallel photo reads with bounded concurrency.
-  let files = FileManager.default.filesOfDirectoryByExtensions(
-    atPath: joinPath(atPath), extensions: ctx.config.fileExtensions
-  )
+  let extensionSet = Set(ctx.config.fileExtensions)
+  let files = fileOrSymlinkNames(under: FilePath(joinPath(atPath))).filter {
+    extensionSet.contains(fileExtension(atPath: joinPath(atPath, $0)) ?? "")
+  }
   let albumOutPath = joinPath(outPath, urlifyName(name))
 
   let readPhotos: [Photo] = try await withThrowingTaskGroup(of: Photo?.self) { group in
@@ -110,8 +112,8 @@ func readStateFromInputDirectory(
   for index in photos.indices {
     let previousIndex = index == 0 ? photoCount - 1 : index - 1
     let nextIndex = index == photoCount - 1 ? 0 : index + 1
-    photos[index].previous = photos[previousIndex].url
-    photos[index].next = photos[nextIndex].url
+    photos[index].previous = photos[previousIndex].url.string
+    photos[index].next = photos[nextIndex].url.string
   }
 
   for photo in photos {
@@ -148,7 +150,7 @@ private func pruneIncompleteOutputPhotos(_ album: Album) -> Album {
   out.photos = Set(
     album.photos.filter { photo in
       photo.expectedFiles.allSatisfy { url in
-        FileManager.default.isFileOrSymlink(atPath: url.path)
+        isFileOrSymlink(at: FilePath(url.path))
       }
     })
   out.albums = Set(album.albums.map(pruneIncompleteOutputPhotos))

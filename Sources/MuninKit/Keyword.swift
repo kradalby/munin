@@ -1,12 +1,17 @@
 import Foundation
 import Logging
+import SystemPackage
 
 struct Keyword: Hashable, Comparable, Sendable {
   var name: String
-  var url: String
+  var url: FilePath
   var photos: Set<Photo>
 
   init(name: String, url: String) {
+    self.init(name: name, url: FilePath(url))
+  }
+
+  init(name: String, url: FilePath) {
     self.name = name
     self.url = url
     photos = []
@@ -48,7 +53,7 @@ extension Keyword: Decodable {
   init(from decoder: Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
     name = try values.decode(String.self, forKey: .name)
-    url = try values.decode(String.self, forKey: .url)
+    url = try values.decode(FilePath.self, forKey: .url)
 
     // Here we will end up with the same picture twice in memory, is that a problem?
     var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
@@ -71,25 +76,25 @@ extension Keyword {
 
 extension Keyword {
   func write(ctx: Context) {
-    let fileManager = FileManager()
-    let path = URL(fileURLWithPath: url).deletingLastPathComponent()
+    let parentDir = url.removingLastComponent()
     do {
-      try fileManager.createDirectory(at: path, withIntermediateDirectories: true)
-
-      ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
-      let encoder = MuninJSON.encoder()
-
-      if let encodedData = try? encoder.encode(self) {
-        do {
-          ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
-          try encodedData.write(to: URL(fileURLWithPath: url))
-        } catch {
-          ctx.log.error(
-            "Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
-        }
-      }
+      try POSIX.createDirectory(parentDir)
     } catch {
-      ctx.log.error("Failed creating directory \(path.absoluteString) with error: \n\(error)")
+      ctx.log.error("Failed creating directory \(parentDir) with error: \n\(error)")
+      return
+    }
+
+    ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
+    let encoder = MuninJSON.encoder()
+
+    if let encodedData = try? encoder.encode(self) {
+      do {
+        ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
+        try FileIO.writeAtomic(encodedData, to: url)
+      } catch {
+        ctx.log.error(
+          "Could not write \(type(of: self)) \(name) to \(url) with error: \n\(error)")
+      }
     }
   }
 }
@@ -136,7 +141,17 @@ func buildPeopleFromAlbum(album: Album) -> [Keyword] {
 
 struct KeywordPointer: Hashable, Comparable, Codable, Sendable {
   var name: String
-  var url: String
+  var url: FilePath
+
+  init(name: String, url: String) {
+    self.name = name
+    self.url = FilePath(url)
+  }
+
+  init(name: String, url: FilePath) {
+    self.name = name
+    self.url = url
+  }
 
   static func < (lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
     return lhs.name < rhs.name
