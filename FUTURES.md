@@ -136,17 +136,7 @@ return (previously dropped with `swiftpm2nix`).
 
 ---
 
-## 9. Progress UI refinement
-
-Writing progress uses `vapor/console-kit`'s `ProgressBar`. Reading
-progress is a minimal in-tree ANSI impl in `ProgressAnimation.swift`
-because ConsoleKit's `LoadingBar` doesn't naturally show a running count.
-A proper `ActivityBar` conformance would unify both under ConsoleKit and
-drop the small ANSI helper.
-
----
-
-## 10. Test-suite paper cuts
+## 9. Test-suite paper cuts
 
 - Several of the deep GalleryTests assertions (57 photos / 9 albums / 47
   changed) were hard-coded based on specific fixture counts that have

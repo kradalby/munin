@@ -41,47 +41,62 @@ public final class WritingProgress {
   }
 }
 
+/// `ActivityIndicatorType` that renders a running count + current item.
+/// Drives `ReadingProgress` through ConsoleKit's `ActivityIndicator<_>`
+/// so both read and write paths share the same rendering, ephemeral-line
+/// handling, and non-TTY graceful degradation.
+struct ReadingActivity: ActivityIndicatorType {
+  var title: String
+  var count: Int = 0
+  var text: String = ""
+
+  func outputActivityIndicator(to console: any Console, state: ActivityIndicatorState) {
+    switch state {
+    case .ready:
+      console.output(title.consoleText(.info))
+    case .active:
+      console.output("Found: [\(count)] \(text)".consoleText(.plain))
+    case .success:
+      console.output("Found: [\(count)]".consoleText(.success))
+    case .failure:
+      console.output("Read failed after \(count)".consoleText(.error))
+    }
+  }
+}
+
 /// Indeterminate progress display (running count + current item) used during
-/// input scanning.
-///
-/// Minimal in-tree implementation: prints a colored header on first use, then
-/// repeatedly clears the line and re-emits the current count and item text.
-/// Silent when stdout is not a TTY.
+/// input scanning. Wraps ``ReadingActivity`` in ConsoleKit's generic
+/// `ActivityIndicator` so the refresh loop, ANSI handling, and TTY fallback
+/// match ``WritingProgress``.
 public final class ReadingProgress {
-  private let out: FileHandle
-  private let header: String
-  private let isInteractive: Bool
-  private var hasDisplayedHeader = false
+  private let indicator: ActivityIndicator<ReadingActivity>
+  private var started = false
   private let lock = NSLock()
 
-  public init(fileHandle: FileHandle = .standardOutput, header: String) {
-    self.out = fileHandle
-    self.header = header
-    self.isInteractive = isatty(fileHandle.fileDescriptor) != 0
+  public init(terminal: Terminal = Terminal(), header: String) {
+    self.indicator = ReadingActivity(title: header).newActivity(for: terminal)
   }
 
   /// Update the display with the current count and current item name.
   public func update(count: Int, text: String) {
-    guard isInteractive else { return }
     lock.lock()
     defer { lock.unlock() }
-    if !hasDisplayedHeader {
-      write("\u{1B}[1;36m\(header)\u{1B}[0m\n")
-      hasDisplayedHeader = true
+    if !started {
+      indicator.start()
+      started = true
     }
-    // CR + clear line + re-emit
-    write("\r\u{1B}[2KFound: [\(count)] \(text)")
+    var snapshot = indicator.activity
+    snapshot.count = count
+    snapshot.text = text
+    indicator.activity = snapshot
   }
 
-  /// Finalize the display (terminates the in-progress line).
+  /// Finalize the display. Safe to call multiple times.
   public func complete() {
-    guard isInteractive else { return }
     lock.lock()
     defer { lock.unlock() }
-    write("\n")
-  }
-
-  private func write(_ s: String) {
-    out.write(Data(s.utf8))
+    guard started else { return }
+    indicator.succeed()
+    started = false
   }
 }
