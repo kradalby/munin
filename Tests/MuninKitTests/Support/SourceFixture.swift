@@ -194,6 +194,40 @@ final class SourceFixture {
     return out.sorted()
   }
 
+  /// Every staged sub-album path, relative to ``sourceRoot``. Mirrors how
+  /// Munin counts albums: every directory under the root that ends up as
+  /// a gallery album (empty or not). Sorted for determinism.
+  var allAlbums: [String] {
+    let rootURL = URL(fileURLWithPath: sourceRoot)
+    guard let enumerator = fm.enumerator(at: rootURL, includingPropertiesForKeys: [.isDirectoryKey])
+    else { return [] }
+
+    var out: [String] = []
+    let prefix = sourceRoot.hasSuffix("/") ? sourceRoot : sourceRoot + "/"
+    for case let url as URL in enumerator {
+      let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
+      guard values?.isDirectory == true else { continue }
+      let absolute = url.path
+      if absolute.hasPrefix(prefix) {
+        out.append(String(absolute.dropFirst(prefix.count)))
+      }
+    }
+    return out.sorted()
+  }
+
+  /// Every photo filename directly under the given album. Non-recursive —
+  /// direct children only, returned without any directory prefix.
+  func photosInAlbum(_ albumRelativePath: String) -> [String] {
+    let extensions: Set<String> = ["jpg", "jpeg", "JPG", "JPEG"]
+    let albumAbsolute = absolutePath(for: albumRelativePath)
+    guard let entries = try? fm.contentsOfDirectory(atPath: albumAbsolute) else {
+      return []
+    }
+    return entries
+      .filter { extensions.contains(URL(fileURLWithPath: $0).pathExtension) }
+      .sorted()
+  }
+
   /// Pick `count` photos deterministically from ``allPhotos`` using a
   /// SplitMix64-seeded PRNG. Same `seed` produces the same subset on
   /// every run / platform.

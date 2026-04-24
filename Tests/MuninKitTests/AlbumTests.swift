@@ -10,6 +10,11 @@ final class AlbumTests {
   let configPath = "example/munin.json"
   let config: GalleryConfiguration
   let ctx: Context
+  /// Photos counted on the tracked example tree. Derived at init so the
+  /// assertions stay honest when someone adds/removes a fixture photo.
+  let fullTreePhotoCount: Int
+  let fullTreeAlbumCount: Int
+  let miscPhotoCount: Int
 
   init() {
     VIPSSetup.ensure()
@@ -19,14 +24,38 @@ final class AlbumTests {
       .load(["progress": false])
     self.config = GalleryConfiguration(manager)
     self.ctx = Context(config: config)
+    let counts = Self.counts(under: albumPath)
+    self.fullTreePhotoCount = counts.photos
+    self.fullTreeAlbumCount = counts.albums
+    self.miscPhotoCount = Self.counts(under: albumPath + "/Misc").photos
+  }
+
+  private static func counts(under root: String) -> (photos: Int, albums: Int) {
+    let fm = FileManager.default
+    let extensions: Set<String> = ["jpg", "jpeg", "JPG", "JPEG"]
+    let rootURL = URL(fileURLWithPath: root)
+    guard let enumerator = fm.enumerator(
+      at: rootURL, includingPropertiesForKeys: [.isDirectoryKey])
+    else { return (0, 0) }
+    var photos = 0
+    var albums = 0
+    for case let url as URL in enumerator {
+      let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+      if isDir {
+        albums += 1
+      } else if extensions.contains(url.pathExtension) {
+        photos += 1
+      }
+    }
+    return (photos, albums)
   }
 
   @Test func readStateFromInputDirectoryReturnsExpectedCounts() async throws {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "test", parents: [])
 
-    #expect(album.numberOfPhotos(travers: true) == 104)
-    #expect(album.numberOfAlbums(travers: true) == 12)
+    #expect(album.numberOfPhotos(travers: true) == fullTreePhotoCount)
+    #expect(album.numberOfAlbums(travers: true) == fullTreeAlbumCount)
   }
 
   @Test func expectedFilesMatchAcrossAlbumTree() async throws {
@@ -34,7 +63,7 @@ final class AlbumTests {
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfPhotos(travers: true) == miscPhotoCount)
     #expect(album.numberOfAlbums(travers: true) == 0)
 
     let cwd = FileManager.default.currentDirectoryPath
@@ -71,7 +100,7 @@ final class AlbumTests {
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfPhotos(travers: true) == miscPhotoCount)
     #expect(album.numberOfAlbums(travers: true) == 0)
     #expect(album.unreferencedFiles == [])
   }
@@ -80,8 +109,8 @@ final class AlbumTests {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
-    #expect(album.numberOfPhotos(travers: true) == 104)
-    #expect(album.numberOfAlbums(travers: true) == 12)
+    #expect(album.numberOfPhotos(travers: true) == fullTreePhotoCount)
+    #expect(album.numberOfAlbums(travers: true) == fullTreeAlbumCount)
     #expect(album.unreferencedFiles == [])
   }
 
@@ -90,7 +119,7 @@ final class AlbumTests {
       ctx: ctx, atPath: albumPath + "/Misc", outPath: outPath, name: "test",
       parents: [Parent(name: "", url: "")])
 
-    #expect(album.numberOfPhotos(travers: true) == 3)
+    #expect(album.numberOfPhotos(travers: true) == miscPhotoCount)
     #expect(album.numberOfAlbums(travers: true) == 0)
 
     let cwd = FileManager.default.currentDirectoryPath
@@ -126,8 +155,8 @@ final class AlbumTests {
     let album = try await readStateFromInputDirectory(
       ctx: ctx, atPath: albumPath, outPath: outPath, name: "root", parents: [])
 
-    #expect(album.numberOfPhotos(travers: true) == 104)
-    #expect(album.numberOfAlbums(travers: true) == 12)
+    #expect(album.numberOfPhotos(travers: true) == fullTreePhotoCount)
+    #expect(album.numberOfAlbums(travers: true) == fullTreeAlbumCount)
     #expect(album.missingFiles.map { $0.path }.sorted() == [])
   }
 
