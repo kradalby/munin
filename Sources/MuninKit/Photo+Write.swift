@@ -1,6 +1,5 @@
 import Foundation
 import SystemPackage
-import VIPS
 
 extension Photo {
   /// Write this photo to disk: generate scaled thumbnails, symlink the
@@ -31,35 +30,21 @@ extension Photo {
   private func writeImageOutputs(ctx: Context) throws {
     ctx.log.trace("Writing image \(name)")
 
-    let image: VIPSImage
-    do {
-      image = try VIPSImage(fromFilePath: originalImagePath.string)
-    } catch {
-      throw MuninError.imageOperationFailed(
-        path: originalImagePath.string,
-        operation: "open",
-        underlying: String(describing: error))
+    let targets = scaledPhotos.map {
+      ScaleTarget(width: $0.maxResolution, path: $0.url)
     }
+    let result = try Imaging.scaleJPEG(
+      source: originalImagePath,
+      destinations: targets,
+      quality: Int(ctx.config.jpegCompression * 100))
 
-    for scaledPhoto in scaledPhotos {
-      do {
-        ctx.log.trace(
-          "Writing image \(name) at \(scaledPhoto.maxResolution)px to \(scaledPhoto.url)")
-        try image.thumbnailImage(
-          width: scaledPhoto.maxResolution,
-          crop: Optional<VipsInteresting>.none
-        )
-        .writeToFile(
-          scaledPhoto.url.string,
-          quality: Int(ctx.config.jpegCompression * 100))
-      } catch {
-        // Partial: other scaled sizes may still succeed. Keep the
-        // existing log-and-continue behaviour for a single corrupt
-        // resolution — surfacing every bad thumbnail as a top-level
-        // failure would drown the summary.
-        ctx.log.error(
-          "Could not write image \(name) to \(scaledPhoto.url): \(error)")
-      }
+    // Per-size write failures are partial (other sizes may still have
+    // succeeded). Surfacing every bad thumbnail as a top-level
+    // failure would drown the summary, so keep today's log-and-continue
+    // shape — just pulled out of the scaling loop.
+    for failure in result.failures {
+      ctx.log.error(
+        "Could not write image \(name) to \(failure.destination): \(failure.error)")
     }
 
     let relativeOriginialPath = Array(repeating: "..", count: depth) + [originalImagePath.string]
