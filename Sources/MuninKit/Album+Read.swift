@@ -104,10 +104,11 @@ func readStateFromInputDirectory(
     return collected
   }
 
-  // Sort by capture time, then wire up next/previous navigation.
-  var photos = readPhotos.sorted {
-    ($0.dateTime ?? .distantPast) < ($1.dateTime ?? .distantPast)
-  }
+  // Sort by capture time with name as tie-breaker, then wire up
+  // next/previous navigation. Using `Photo.<` (instead of a bare
+  // `dateTime` comparator) keeps the ordering deterministic across
+  // runs even when directory-listing order drifts.
+  var photos = readPhotos.sorted(by: <)
   let photoCount = photos.count
   for index in photos.indices {
     let previousIndex = index == 0 ? photoCount - 1 : index - 1
