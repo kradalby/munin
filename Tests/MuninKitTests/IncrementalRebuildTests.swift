@@ -1071,15 +1071,12 @@ struct IncrementalRebuildTests {
       "re-add should recreate the 340px scaled output")
   }
 
-  /// #10 — documented gap: Munin does not detect or heal missing
-  /// expected outputs. Deleting a scaled JPEG from the output tree while
-  /// leaving the source intact produces a rebuild that *does not*
-  /// regenerate the missing file. See FUTURES.md for the fix sketch.
-  ///
-  /// If this assertion ever starts failing (i.e. Munin has learned
-  /// self-healing), flip the expectation and note the improvement in
-  /// the release log.
-  @Test func documentedGap_missingScaledOutputIsNotAutoHealed() async throws {
+  /// #10 — a scaled JPEG deleted from the output tree while the source
+  /// is unchanged is regenerated on the next rebuild.
+  /// `readStateFromOutputDirectory` prunes photos whose expected outputs
+  /// are incomplete, so the diff treats them as added and Pass 1 of
+  /// `Gallery.build` re-encodes their images.
+  @Test func missingScaledOutputIsAutoHealed() async throws {
     let fixture = try SourceFixture.stageAll()
     defer { fixture.cleanup() }
 
@@ -1089,9 +1086,13 @@ struct IncrementalRebuildTests {
 
     // Sanity: the file we're about to delete actually exists first.
     let missingPath = harness.outputRoot + "/root/Misc/portrait_mm_180.jpeg"
+    let siblingJsonPath = harness.outputRoot + "/root/Misc/portrait_mm.json"
     #expect(
       FileManager.default.fileExists(atPath: missingPath),
       "precondition: baseline build should produce portrait_mm_180.jpeg")
+    #expect(
+      FileManager.default.fileExists(atPath: siblingJsonPath),
+      "precondition: baseline build should produce portrait_mm.json")
 
     try FileManager.default.removeItem(atPath: missingPath)
 
@@ -1099,12 +1100,10 @@ struct IncrementalRebuildTests {
     try await harness.buildAndClean()
 
     #expect(
-      !FileManager.default.fileExists(atPath: missingPath),
-      """
-      portrait_mm_180.jpeg reappeared — Munin has learned to self-heal \
-      missing outputs! Flip this assertion (and drop the matching \
-      FUTURES.md entry). Congrats :)
-      """
-    )
+      FileManager.default.fileExists(atPath: missingPath),
+      "self-heal should have regenerated portrait_mm_180.jpeg")
+    #expect(
+      FileManager.default.fileExists(atPath: siblingJsonPath),
+      "self-heal should leave portrait_mm.json in place")
   }
 }

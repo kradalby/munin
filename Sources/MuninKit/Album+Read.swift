@@ -126,6 +126,31 @@ func readStateFromInputDirectory(
 /// Read a previously-generated output album tree from the `index.json`
 /// written by `Album.write`. Returns `nil` if the file is missing — which
 /// the Gallery treats as "first run, no existing output".
+///
+/// Photos whose on-disk outputs (JSON, symlinked original, or any scaled
+/// JPEG) are no longer present are pruned from the returned tree so the
+/// incremental diff in `Gallery.load` sees them as "not present in output"
+/// and regenerates the missing files. Without this, `sourceHash` equality
+/// hides missing-output photos and the two-pass write in `Gallery.build`
+/// never restores them.
 func readStateFromOutputDirectory(indexFileAtPath: String) -> Album? {
-  return readAndDecodeJsonFile(Album.self, atPath: indexFileAtPath)
+  guard let album = readAndDecodeJsonFile(Album.self, atPath: indexFileAtPath) else {
+    return nil
+  }
+  return pruneIncompleteOutputPhotos(album)
+}
+
+/// Drop any `Photo` whose `expectedFiles` are not all present on disk.
+/// Dangling symlinks at `originalImageURL` still count as present — the
+/// symlink itself exists, and `Photo+Read` owns detection of source moves.
+private func pruneIncompleteOutputPhotos(_ album: Album) -> Album {
+  var out = album
+  out.photos = Set(
+    album.photos.filter { photo in
+      photo.expectedFiles.allSatisfy { url in
+        FileManager.default.isFileOrSymlink(atPath: url.path)
+      }
+    })
+  out.albums = Set(album.albums.map(pruneIncompleteOutputPhotos))
+  return out
 }
