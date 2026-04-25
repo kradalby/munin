@@ -35,11 +35,7 @@ let package = Package(
     .package(
       url: "https://github.com/t089/swift-vips.git",
       revision: "d01b393ef30b3a2ae6ed97a02f61edab3d44b4af"),
-    // SwiftExif: upstream tag 0.0.7 predates the Swift 6.3 fix; pin to master
-    // SHA until a new tag is released. Tracked in FUTURES.md.
-    .package(
-      url: "https://github.com/kradalby/SwiftExif.git",
-      revision: "eb7c5c4e034f0fc01c5a11b3c1d1ac3074f0acb1"),
+    .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.1.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
     // vapor/console-kit provides the progress/activity indicator UI that
     // replaced swift-tools-support-core's PercentProgressAnimation.
