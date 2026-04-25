@@ -1,5 +1,5 @@
 {
-  "originHash" : "1c20c554b87e332678bf9b197f49291f1c1856612c47bc7cdfa08eed3390d236",
+  "originHash" : "379c7b238c9b3cd48d6f19b6d69e9bdb2bd0d735759f7c21f2d13352157531c6",
   "pins" : [
     {
       "identity" : "console-kit",
@@ -104,7 +104,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kradalby/SwiftExif.git",
       "state" : {
-        "revision" : "eb7c5c4e034f0fc01c5a11b3c1d1ac3074f0acb1"
+        "revision" : "313786acd418032640b8f81b0287292c4c688e05",
+        "version" : "0.1.0"
       }
     }
   ],
