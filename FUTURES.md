@@ -16,23 +16,26 @@ peak memory during the first full build of a big tree.
 
 ## 4. `SwiftExif` replacement
 
-The project pins `kradalby/SwiftExif` at master (`eb7c5c4`) because
-upstream's 0.0.7 tag predates the Swift 6.3 nullability fix. Longer-term
-options:
+`kradalby/SwiftExif` 0.1.0 covers Munin's needs: a Sendable typed
+result from `Image.parse(at:)`, an `IptcFields` struct that retires
+the old `[String: Any]` IPTC dict, and a tagged release that lets us
+drop the SHA pin. Replacement is no longer urgent — this section
+tracks the cases where it might still be worth it:
 
-- Request a new `0.0.8` tag from upstream that includes the fix, then
-  update `Package.swift` to use the version pin again.
-- Investigate pure-Swift EXIF / IPTC libraries. At the time of this
-  modernization, no widely-used pure-Swift alternative existed. A fork
-  under `swiftlang` / `apple` would be preferable if one emerges.
-- Write a minimal in-tree IPTC reader for the specific fields Munin needs
-  (Keywords, City, Province/State, Country Code, Country Name). Most of
-  SwiftExif's surface is unused by Munin.
+- A pure-Swift EXIF / IPTC reader would let us drop the libexif C
+  dependency entirely. None widely-used existed at the time of this
+  modernization; a fork under `swiftlang` / `apple` would be
+  preferable if one emerges.
+- A minimal in-tree IPTC reader covering only the fields Munin
+  actually uses (Keywords, City, Province/State, Country Code,
+  Country Name) would shrink the dependency surface further. Most of
+  SwiftExif's API is unused by Munin.
 
-A replacement would also let us distinguish "no EXIF present" from
-"EXIF present but corrupt" — SwiftExif swallows both into empty
-dictionaries today, so `Imaging.readExif` can't log which one
-happened.
+The remaining functional gap, regardless of replacement: SwiftExif
+0.1.0 still can't distinguish "no EXIF present" from "EXIF present
+but corrupt" — both surface as an empty `ExifResult`. Distinguishing
+the two would let `Photo+Read` log "image X had unreadable EXIF"
+instead of silently degrading.
 
 ---
 
