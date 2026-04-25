@@ -93,9 +93,9 @@ func readPhotoFromPath(
   let dateFormatter = DateFormatter()
   dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
 
-  let exifSnapshot = Imaging.readExif(source: filePath)
-  let exifDict = exifSnapshot.exif
-  let exifRawDict = exifSnapshot.exifRaw
+  let exifResult = Imaging.readExif(source: filePath)
+  let exifDict = exifResult.exif
+  let exifRawDict = exifResult.exifRaw
 
   var photo = Photo(
     name: name,
@@ -220,10 +220,10 @@ func readPhotoFromPath(
   }
 
   // Add location data if available
-  if let city = exifSnapshot.iptcStrings["City"],
-    let state = exifSnapshot.iptcStrings["Province/State"],
-    let locationCode = exifSnapshot.iptcStrings["Country Code"],
-    let locationName = exifSnapshot.iptcStrings["Country Name"]
+  if let city = exifResult.iptc.city,
+    let state = exifResult.iptc.provinceState,
+    let locationCode = exifResult.iptc.countryCode,
+    let locationName = exifResult.iptc.countryName
   {
     photo.location = LocationData(
       city: city,
@@ -250,7 +250,7 @@ func readPhotoFromPath(
     photo.keywords.append(locationNameKeyword)
   }
 
-  for keyword in exifSnapshot.iptcKeywords {
+  for keyword in exifResult.iptc.keywords {
     let keywordPointer = KeywordPointer(
       name: keyword,
       url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
