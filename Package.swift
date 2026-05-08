@@ -47,7 +47,7 @@ let package = Package(
     // apple/swift-crypto provides SHA256 on Linux (mirroring CryptoKit's API
     // on Darwin). Used both in MuninKit proper (for source-file content
     // hashing) and in the test support layer (for filesystem snapshots).
-    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0"),
+    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"4.5.0"),
   ],
   targets: [
     .executableTarget(
