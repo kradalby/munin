@@ -40,7 +40,7 @@ let package = Package(
     // vapor/console-kit provides the progress/activity indicator UI that
     // replaced swift-tools-support-core's PercentProgressAnimation.
     .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.8.2"),
     // apple/swift-system provides FilePath for typed path handling. Used
     // internally in MuninKit's `Paths` helpers; public API is still String.
     .package(url: "https://github.com/apple/swift-system.git", from: "1.6.4"),
