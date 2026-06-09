@@ -36,7 +36,7 @@ let package = Package(
       url: "https://github.com/t089/swift-vips.git",
       revision: "d01b393ef30b3a2ae6ed97a02f61edab3d44b4af"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.1.0"),
-    .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.13.2"),
     // vapor/console-kit provides the progress/activity indicator UI that
     // replaced swift-tools-support-core's PercentProgressAnimation.
     .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
