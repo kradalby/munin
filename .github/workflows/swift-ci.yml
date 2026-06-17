@@ -91,8 +91,20 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
+          set -euo pipefail
           brew update
           brew install vips libexif libiptcdata pkg-config
+
+          # Pin glib to 2.80 (the version Ubuntu CI builds against). Newer glib
+          # annotates its flag enums (GConnectFlags, GLogLevelFlags) so the
+          # Swift importer treats them as OptionSets, which breaks swift-vips's
+          # Core (it relies on the plain-enum top-level constants). Build
+          # swift-vips against the 2.80 headers via PKG_CONFIG_PATH; vips keeps
+          # its current ABI-compatible glib at runtime.
+          brew tap-new local/glibpin --no-git
+          brew extract --version=2.80.0 glib local/glibpin
+          brew install local/glibpin/glib@2.80.0
+          echo "PKG_CONFIG_PATH=$(brew --prefix glib@2.80.0)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
 
       # --- Build + test ----------------------------------------------------
 
