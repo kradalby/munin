@@ -115,6 +115,7 @@
           (bdeps pkgs)
           ++ [
             pkgs.swift-format
+            pkgs.swiftlint
             pkgs.sourcekit-lsp
           ];
         shellHook = swiftCheckHook;
