@@ -82,4 +82,3 @@ system's C libraries (libvips, libexif, etc.). The truly-static
 (musl-based) build path was investigated on the old `swift-61-2` branch
 and abandoned — see that branch's history for the detailed notes. Revisit
 if the `sharp-libvips` approach becomes more broadly usable.
-
