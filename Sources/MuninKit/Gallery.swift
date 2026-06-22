@@ -261,7 +261,7 @@ public struct Gallery: Sendable {
     } else {
       ctx.log.info("Could not find any output album, assuming new is to be created")
     }
-    print("Times: ", time)
+    ctx.log.debug("Build times: \(time)")
 
     return Gallery(input: input, output: output, changedContent: changedContent)
   }
