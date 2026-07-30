@@ -39,7 +39,7 @@ final class DirectoryStream: Sequence, IteratorProtocol {
   typealias Element = DirectoryEntry
 
   private let path: FilePath
-  private var handle: OpaquePointer?
+  private var handle: DirHandle?
 
   init(_ path: FilePath) throws {
     self.path = path
@@ -141,6 +141,10 @@ func isFileOrSymlink(at path: FilePath) -> Bool {
 // MARK: - Platform shims
 
 #if canImport(Glibc)
+  /// glibc's `DIR` is fully opaque, so `opendir` imports as `OpaquePointer`;
+  /// Darwin exposes the struct and returns `UnsafeMutablePointer<DIR>`.
+  private typealias DirHandle = OpaquePointer
+
   private var currentErrno: Int32 { Glibc.errno }
   private func setErrno(_ v: Int32) { Glibc.errno = v }
 
@@ -162,6 +166,8 @@ func isFileOrSymlink(at path: FilePath) -> Bool {
   }
 
 #elseif canImport(Darwin)
+  private typealias DirHandle = UnsafeMutablePointer<DIR>
+
   private var currentErrno: Int32 { Darwin.errno }
   private func setErrno(_ v: Int32) { Darwin.errno = v }
 
@@ -170,14 +176,16 @@ func isFileOrSymlink(at path: FilePath) -> Bool {
     return withUnsafePointer(to: &ptr.pointee.d_name) { tuplePtr in
       tuplePtr.withMemoryRebound(to: CChar.self, capacity: nameLen) { cPtr in
         String(
-          decoding: UnsafeBufferPointer(start: UnsafePointer<UInt8>(OpaquePointer(cPtr)), count: nameLen),
+          decoding: UnsafeBufferPointer(
+            start: UnsafePointer<UInt8>(OpaquePointer(cPtr)), count: nameLen),
           as: UTF8.self)
       }
     }
   }
 
+  // Darwin's DT_* are Int32, glibc's are Int.
   private func kind(from ptr: UnsafeMutablePointer<dirent>) -> DirectoryEntry.Kind {
-    switch Int(ptr.pointee.d_type) {
+    switch Int32(ptr.pointee.d_type) {
     case DT_REG: return .file
     case DT_DIR: return .directory
     case DT_LNK: return .symlink
