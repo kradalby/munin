@@ -132,6 +132,14 @@
           swift --version 2>/dev/null | head -n 1 | sed 's/^/  /'
         fi
       '';
+      # On Darwin the stdenv exports SDKROOT/DEVELOPER_DIR pointing at nixpkgs'
+      # apple-sdk (built with Swift 5.10) and CC/CXX pointing at the nix
+      # cc-wrapper. The system Swift toolchain refuses that SDK ("this SDK is
+      # not supported by the compiler") and the wrapper mis-handles SwiftPM's
+      # --target. Hand those back to Xcode; pkg-config still points at nix.
+      systemToolchainHook = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+        unset SDKROOT DEVELOPER_DIR CC CXX
+      '';
     in {
       devShells.default = pkgs.mkShell {
         nativeBuildInputs = ndeps pkgs;
@@ -142,7 +150,7 @@
             pkgs.swiftlint
             pkgs.sourcekit-lsp
           ];
-        shellHook = swiftCheckHook;
+        shellHook = systemToolchainHook + swiftCheckHook;
       };
     });
 }
