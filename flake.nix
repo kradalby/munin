@@ -69,10 +69,34 @@
           libarchive.dev
           cgif
           libspng.dev
-          xorg.libXdmcp.dev
+          libxdmcp.dev
           libhwy
 
           openssl.dev
+
+          # vips.pc lists these under Requires.private. Real pkg-config only
+          # resolves those for --static, but SwiftPM's own .pc parser walks
+          # them unconditionally and drops *all* cflags when one is missing.
+          dav1d.dev
+          hdf5.dev
+          libraw.dev
+          libultrahdr.dev
+
+          # Same story for glib.pc -> sysprof-capture-4, except sysprof is
+          # Linux-only in nixpkgs. Nothing actually links it here, so an empty
+          # .pc is enough to keep SwiftPM's resolver happy.
+          # ponytail: stub, replace with pkgs.sysprof if a real link is ever needed.
+          (writeTextFile {
+            name = "sysprof-capture-4-stub";
+            destination = "/lib/pkgconfig/sysprof-capture-4.pc";
+            text = ''
+              Name: sysprof-capture-4
+              Description: stub for SwiftPM's Requires.private resolution
+              Version: 3.38.0
+              Cflags:
+              Libs:
+            '';
+          })
 
           # If compiling swift-vips fails with something like:
           #   fatal error: 'glib.h' file not found
