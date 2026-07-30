@@ -188,20 +188,20 @@ final class SourceFixture {
   /// Every staged photo path, relative to ``sourceRoot``. Sorted for
   /// determinism so `pickRandomPhotos(count:seed:)` returns the same
   /// subset on macOS and Linux.
+  ///
+  /// Uses the path-based enumerator, which already yields paths relative to
+  /// the root. The URL-based one reports macOS temp files under
+  /// `/private/var/...` while `sourceRoot` is `/var/...`, so stripping a
+  /// `sourceRoot` prefix from its output silently matches nothing.
   var allPhotos: [String] {
     let extensions: Set<String> = ["jpg", "jpeg", "JPG", "JPEG"]
-    let rootURL = URL(fileURLWithPath: sourceRoot)
-    guard let enumerator = fm.enumerator(at: rootURL, includingPropertiesForKeys: nil)
-    else { return [] }
+    guard let enumerator = fm.enumerator(atPath: sourceRoot) else { return [] }
 
     var out: [String] = []
-    let prefix = sourceRoot.hasSuffix("/") ? sourceRoot : sourceRoot + "/"
-    for case let url as URL in enumerator {
-      guard extensions.contains(url.pathExtension) else { continue }
-      let absolute = url.path
-      if absolute.hasPrefix(prefix) {
-        out.append(String(absolute.dropFirst(prefix.count)))
-      }
+    for case let relative as String in enumerator {
+      let ext = URL(fileURLWithPath: relative).pathExtension
+      guard extensions.contains(ext) else { continue }
+      out.append(relative)
     }
     return out.sorted()
   }
@@ -210,19 +210,14 @@ final class SourceFixture {
   /// Munin counts albums: every directory under the root that ends up as
   /// a gallery album (empty or not). Sorted for determinism.
   var allAlbums: [String] {
-    let rootURL = URL(fileURLWithPath: sourceRoot)
-    guard let enumerator = fm.enumerator(at: rootURL, includingPropertiesForKeys: [.isDirectoryKey])
-    else { return [] }
+    guard let enumerator = fm.enumerator(atPath: sourceRoot) else { return [] }
 
     var out: [String] = []
-    let prefix = sourceRoot.hasSuffix("/") ? sourceRoot : sourceRoot + "/"
-    for case let url as URL in enumerator {
-      let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
-      guard values?.isDirectory == true else { continue }
-      let absolute = url.path
-      if absolute.hasPrefix(prefix) {
-        out.append(String(absolute.dropFirst(prefix.count)))
-      }
+    for case let relative as String in enumerator {
+      var isDir: ObjCBool = false
+      guard fm.fileExists(atPath: sourceRoot + "/" + relative, isDirectory: &isDir), isDir.boolValue
+      else { continue }
+      out.append(relative)
     }
     return out.sorted()
   }
@@ -235,7 +230,8 @@ final class SourceFixture {
     guard let entries = try? fm.contentsOfDirectory(atPath: albumAbsolute) else {
       return []
     }
-    return entries
+    return
+      entries
       .filter { extensions.contains(URL(fileURLWithPath: $0).pathExtension) }
       .sorted()
   }
