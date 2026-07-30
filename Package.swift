@@ -31,10 +31,14 @@ let package = Package(
     ),
   ],
   dependencies: [
-    // swift-vips tracks `main`; SHA-pinned for reproducibility.
+    // Fork of t089/swift-vips at the same revision upstream was pinned to,
+    // plus one commit making it build against glib >= 2.86: the flag_enum
+    // change there stops Swift importing G_LOG_LEVEL_* / G_CONNECT_* as
+    // globals. The fix reads them through CvipsShim instead, so it still
+    // builds against older glib (Ubuntu 24.04 ships 2.80).
     .package(
-      url: "https://github.com/t089/swift-vips.git",
-      revision: "d01b393ef30b3a2ae6ed97a02f61edab3d44b4af"),
+      url: "https://github.com/kradalby/swift-vips.git",
+      revision: "bfebd9a0b758c813247f28212b2ec7d7a0f88bf0"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.1.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
     // vapor/console-kit provides the progress/activity indicator UI that
