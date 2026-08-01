@@ -143,7 +143,14 @@
         unset SDKROOT DEVELOPER_DIR CC CXX
       '';
     in {
-      devShells.default = pkgs.mkShell {
+      # mkShellNoCC, not mkShell: a C compiler in the shell puts nix's
+      # gcc-wrapper `ld` ahead of the Swift toolchain's own. SwiftPM then links
+      # the compiled Package.swift against nix's dynamic linker while the Swift
+      # runtime expects the system one, and the manifest binary dies on exec —
+      # surfacing only as "Missing or empty JSON output from manifest
+      # compilation". The C libraries below reach the build through
+      # PKG_CONFIG_PATH, which needs no compiler wrapper.
+      devShells.default = pkgs.mkShellNoCC {
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
           (bdeps pkgs)
