@@ -3,6 +3,8 @@ import SystemPackage
 
 #if canImport(Glibc)
   import Glibc
+#elseif canImport(Musl)
+  import Musl
 #elseif canImport(Darwin)
   import Darwin
 #endif
@@ -113,13 +115,9 @@ enum FileIO {
     return out
   }
 
-  private static var pidValue: Int32 {
-    #if canImport(Glibc)
-      return getpid()
-    #elseif canImport(Darwin)
-      return getpid()
-    #else
-      return 0
-    #endif
-  }
+  /// The file's platform imports bring `getpid` into scope on Glibc, Musl and
+  /// Darwin alike. The `Int32` annotation is load-bearing: it makes a platform
+  /// whose `pid_t` is not `Int32` a compile error rather than a silent `%d`
+  /// vararg mismatch above.
+  private static var pidValue: Int32 { getpid() }
 }
