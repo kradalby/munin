@@ -54,21 +54,25 @@ build-musl-sysroot: build-musl-image
 	$(MUSL_RUN) bash /recipe/build.sh aarch64
 	$(MUSL_RUN) bash /recipe/verify.sh aarch64
 
+# CONFIG=debug builds unstripped binaries with debug info, ~3x the size.
+# That is what CI attaches to every run; tags ship CONFIG=release.
+CONFIG ?= release
+
 build-static-amd64:
-	./scripts/build-static.sh amd64
+	./scripts/build-static.sh amd64 $(CONFIG)
 
 build-static-arm64:
-	./scripts/build-static.sh arm64
+	./scripts/build-static.sh arm64 $(CONFIG)
 
 build-static: build-static-amd64 build-static-arm64
 
 # End-to-end acceptance test for the static artifacts. Stands in for
 # `swift test`, which cannot run against the Static SDK at all.
 smoke-static-amd64:
-	./scripts/smoke-static.sh .build/x86_64-swift-linux-musl/release/munin --arch amd64
+	./scripts/smoke-static.sh .build/x86_64-swift-linux-musl/$(CONFIG)/munin --arch amd64
 
 smoke-static-arm64:
-	./scripts/smoke-static.sh .build/aarch64-swift-linux-musl/release/munin --arch arm64
+	./scripts/smoke-static.sh .build/aarch64-swift-linux-musl/$(CONFIG)/munin --arch arm64
 
 test:
 	swift test
