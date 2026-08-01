@@ -16,19 +16,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      # swiftlint is a standalone binary from the devShell — it parses sources
+      # without compiling them, so this job needs neither the Swift toolchain
+      # nor the C libraries.
+      - name: swiftlint
+        run: nix develop --command swiftlint lint
+
   build-and-test:
     # Run on both Linux and macOS so the cross-platform stability claims
     # in the README (macOS + Linux) are actually exercised.
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14]
+        os: [ubuntu-24.04, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      # --- C libraries -----------------------------------------------------
+
+      # Both platforms take their C dependencies from the flake's devShell, so
+      # CI links against the same libvips/libexif pile developers get locally.
+      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
       # --- Swift toolchain -------------------------------------------------
+
+      # Deliberately not from the flake — see the flake.nix header for why.
 
       - name: Cache Swift toolchain (Linux)
         if: runner.os == 'Linux'
@@ -36,7 +58,7 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: /opt/swift
-          key: swift-6.3.1-ubuntu-24.04
+          key: swift-6.3.1-${{ matrix.os }}
 
       - name: Install Swift 6.3.1 (Linux)
         if: runner.os == 'Linux' && steps.cache-swift-linux.outputs.cache-hit != 'true'
@@ -58,7 +80,7 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: /Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain
-          key: swift-6.3.1-macos-14
+          key: swift-6.3.1-${{ matrix.os }}
 
       - name: Install Swift 6.3.1 (macOS)
         if: runner.os == 'macOS' && steps.cache-swift-macos.outputs.cache-hit != 'true'
@@ -72,27 +94,10 @@ jobs:
         if: runner.os == 'macOS'
         run: echo "/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
 
+      # `nix develop` prepends the devShell's bins but keeps the ambient PATH,
+      # so the toolchain installed above is what actually runs.
       - name: Verify Swift toolchain
-        run: swift --version
-
-      # --- System C libraries ----------------------------------------------
-
-      - name: Install system dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgd-dev \
-            libiptcdata0-dev \
-            libexif-dev \
-            libvips-dev \
-            pkg-config
-
-      - name: Install system dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install vips libexif libiptcdata pkg-config
+        run: nix develop --command swift --version
 
       # --- Build + test ----------------------------------------------------
 
@@ -105,7 +110,7 @@ jobs:
             swift-build-${{ runner.os }}-
 
       - name: swift build
-        run: swift build
+        run: nix develop --command swift build
 
       - name: swift test
-        run: swift test
+        run: nix develop --command swift test
