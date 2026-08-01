@@ -217,6 +217,17 @@ public struct Gallery: Sendable {
   public static func load(ctx: Context) async throws -> Gallery {
     var time = Timings()
 
+    // Step 0: refuse to build a tree whose output paths are not injective.
+    // Two sources that resolve to one output path overwrite each other,
+    // so one of the user's photos is silently missing and which one
+    // survives varies between runs. This runs before anything is read or
+    // written, so a rejected build costs nothing and leaves the
+    // previously-generated gallery exactly as it was.
+    let collisions = findOutputPathCollisions(ctx: ctx)
+    if !collisions.isEmpty {
+      throw MuninError.outputPathCollision(collisions: collisions)
+    }
+
     // Step 1: read the previous output tree so we can feed each photo's
     // prior back into the input pipeline as a cache key.
     ctx.log.debug(
@@ -242,6 +253,15 @@ public struct Gallery: Sendable {
     )
     await ctx.state.completeRead()
     time.readInputDirectory = Date().timeIntervalSince(inputStart)
+
+    // Step 2b: the same injectivity requirement for the keyword namespace.
+    // It cannot be checked in step 0 because keyword names live in each
+    // photo's IPTC metadata, but this is still before anything is written,
+    // which is what the guarantee needs: `build` never starts.
+    let keywordCollisions = findKeywordOutputPathCollisions(album: input)
+    if !keywordCollisions.isEmpty {
+      throw MuninError.keywordPathCollision(collisions: keywordCollisions)
+    }
 
     var output: Album? = nil
     var changedContent: Album? = nil
