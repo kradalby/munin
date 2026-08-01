@@ -158,6 +158,27 @@ func urlifyName(_ name: String) -> String {
   return Paths.urlify(name)
 }
 
+/// Order two strings the way Swift does, then fall back to comparing
+/// their UTF-8 bytes when Swift considers them equal.
+///
+/// Swift's `String` comparison works on canonical equivalence: `"Håkon"`
+/// spelled NFC (`U+00E5`) and NFD (`a` + `U+030A`) compare *equal* even
+/// though they are different byte sequences and therefore different files
+/// on Linux — which is exactly what a macOS-synced tree hands you. A
+/// comparator that stops at `String` `<` is not a total order over such
+/// values, and `sorted()` is stable, so the tied elements keep whatever
+/// order the enclosing `Set` handed over. That order is derived from the
+/// per-process randomised hash seed, so the JSON array Munin writes
+/// differs between two runs of the same binary on the same input.
+///
+/// The canonical comparison stays first so existing galleries keep their
+/// current ordering: this only decides pairs that were previously
+/// undecided.
+func canonicalThenBytewiseLess(_ lhs: String, _ rhs: String) -> Bool {
+  if lhs != rhs { return lhs < rhs }
+  return lhs.utf8.lexicographicallyPrecedes(rhs.utf8)
+}
+
 extension Collection {
   /// Returns the element at the specified index iff it is within bounds, otherwise nil.
   subscript(safe index: Index) -> Element? {

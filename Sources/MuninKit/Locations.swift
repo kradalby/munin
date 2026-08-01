@@ -46,8 +46,11 @@ struct Location: Codable, Comparable, Sendable {
 }
 
 extension Location {
+  /// `locationsFromAlbum` walks `Set<Photo>` and `Set<Album>` and appends,
+  /// so the array handed to `sorted()` is already in hash-seed order; a
+  /// tie here goes straight into `locations.json`.
   static func < (lhs: Location, rhs: Location) -> Bool {
-    return lhs.url.string < rhs.url.string
+    return canonicalThenBytewiseLess(lhs.url.string, rhs.url.string)
   }
 }
 

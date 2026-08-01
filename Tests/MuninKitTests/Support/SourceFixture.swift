@@ -106,6 +106,13 @@ final class SourceFixture {
   ///   - sourceImagePath: absolute path of the file to copy in.
   ///   - as: override the destination file name; defaults to the source's
   ///     last path component.
+  ///
+  /// Throws ``FixtureError/destinationFolded(path:)`` if the copy replaced
+  /// a *different* directory entry instead of creating a new one. That is
+  /// what a case-insensitive or normalization-insensitive volume does
+  /// (APFS is both): `sample.JPG` lands on top of `sample.jpg`, the two
+  /// files a collision test asked for are one file, and the assertions
+  /// downstream would be made against a fixture that was never built.
   func addPhoto(
     toAlbum albumRelativePath: String,
     fromSourceFile sourceImagePath: String,
@@ -118,10 +125,112 @@ final class SourceFixture {
     }
     let dstName = name ?? URL(fileURLWithPath: sourceImagePath).lastPathComponent
     let dst = dstDir + "/" + dstName
-    if fm.fileExists(atPath: dst) {
-      try fm.removeItem(atPath: dst)
+
+    try materialising(dstName, in: dstDir) {
+      if fm.fileExists(atPath: dst) {
+        try fm.removeItem(atPath: dst)
+      }
+      try fm.copyItem(atPath: sourceImagePath, toPath: dst)
     }
-    try fm.copyItem(atPath: sourceImagePath, toPath: dst)
+  }
+
+  /// Copy a source image into an album with an IPTC keyword block spliced
+  /// in, so a test can exercise the metadata-derived half of Munin's
+  /// output namespace without an EXIF/IPTC writer on the host (neither
+  /// exiftool nor exiv2 is a dependency of this project).
+  ///
+  /// Writes a minimal Photoshop APP13 segment — the `8BIM` resource
+  /// `0x0404` holding IIM record 2 datasets — immediately after the JPEG's
+  /// SOI marker, which is where `libiptcdata` looks; that is the library
+  /// SwiftExif reads IPTC through. Everything else about the file is
+  /// unchanged, so it still decodes and still carries its original EXIF.
+  func addPhoto(
+    toAlbum albumRelativePath: String,
+    fromSourceFile sourceImagePath: String,
+    as name: String,
+    iptcKeywords: [String]
+  ) throws {
+    let dstDir = absolutePath(for: albumRelativePath)
+    var isDir: ObjCBool = false
+    if !fm.fileExists(atPath: dstDir, isDirectory: &isDir) {
+      try fm.createDirectory(atPath: dstDir, withIntermediateDirectories: true)
+    }
+    let dst = dstDir + "/" + name
+
+    let original = try Data(contentsOf: URL(fileURLWithPath: sourceImagePath))
+    guard original.count > 2, original[original.startIndex] == 0xFF,
+      original[original.startIndex + 1] == 0xD8
+    else {
+      throw FixtureError.notAJPEG(path: sourceImagePath)
+    }
+
+    var withKeywords = Data(original.prefix(2))
+    withKeywords.append(Self.iptcKeywordSegment(iptcKeywords))
+    withKeywords.append(original.dropFirst(2))
+
+    try materialising(name, in: dstDir) {
+      if fm.fileExists(atPath: dst) {
+        try fm.removeItem(atPath: dst)
+      }
+      try withKeywords.write(to: URL(fileURLWithPath: dst))
+    }
+  }
+
+  /// A JPEG APP13 segment carrying `keywords` as IIM 2:25 datasets.
+  private static func iptcKeywordSegment(_ keywords: [String]) -> Data {
+    var iim = Data()
+    // 2:00 record version. Optional in practice, cheap to be correct.
+    iim.append(contentsOf: [0x1C, 0x02, 0x00, 0x00, 0x02, 0x00, 0x04])
+    for keyword in keywords {
+      let bytes = Array(keyword.utf8)
+      iim.append(contentsOf: [
+        0x1C, 0x02, 0x19, UInt8(bytes.count >> 8), UInt8(bytes.count & 0xFF),
+      ])
+      iim.append(contentsOf: bytes)
+    }
+
+    var resource = Data("Photoshop 3.0\0".utf8)
+    resource.append(contentsOf: Array("8BIM".utf8))
+    resource.append(contentsOf: [0x04, 0x04])  // IPTC-NAA resource id
+    resource.append(contentsOf: [0x00, 0x00])  // empty, even-padded name
+    let size = UInt32(iim.count)
+    resource.append(contentsOf: [
+      UInt8(truncatingIfNeeded: size >> 24), UInt8(truncatingIfNeeded: size >> 16),
+      UInt8(truncatingIfNeeded: size >> 8), UInt8(truncatingIfNeeded: size),
+    ])
+    resource.append(iim)
+    if iim.count % 2 == 1 { resource.append(0x00) }
+
+    var segment = Data([0xFF, 0xED])
+    let length = resource.count + 2
+    segment.append(contentsOf: [UInt8(length >> 8), UInt8(length & 0xFF)])
+    segment.append(resource)
+    return segment
+  }
+
+  /// Run `write`, which is expected to create the entry `name` in
+  /// `directory`, and verify it created a *new* entry rather than folding
+  /// onto an existing one.
+  ///
+  /// Byte-wise, because Swift `String` equality is canonical: an NFD name
+  /// "already present" as its NFC spelling would look like a replacement
+  /// when on Linux it is a second, distinct directory entry.
+  private func materialising(
+    _ name: String, in directory: String, _ write: () throws -> Void
+  ) throws {
+    let before = entryNames(in: directory)
+    let replacingItself = before.contains(Array(name.utf8))
+    try write()
+    let after = entryNames(in: directory)
+    guard after.count == (replacingItself ? before.count : before.count + 1) else {
+      throw FixtureError.destinationFolded(path: directory + "/" + name)
+    }
+  }
+
+  /// Directory entry names as raw UTF-8, for comparisons the filesystem
+  /// would make on bytes.
+  private func entryNames(in directory: String) -> [[UInt8]] {
+    ((try? fm.contentsOfDirectory(atPath: directory)) ?? []).map { Array($0.utf8) }
   }
 
   /// Delete a single photo from an album.
@@ -317,6 +426,44 @@ final class SourceFixture {
     try fm.copyItem(atPath: src, toPath: dst)
   }
 
+  // MARK: - Filesystem capabilities
+
+  /// Whether the volume fixtures are staged on keeps two names that differ
+  /// only by case (`sample.jpg` / `sample.JPG`) as two files.
+  ///
+  /// Munin's output-path rules are about bytes, but a test can only
+  /// exercise them if the filesystem underneath preserves those bytes.
+  /// APFS is case-insensitive by default and normalization-insensitive
+  /// always, and `swift-ci.yml` runs the suite on `macos-latest`, so tests
+  /// that need either property gate on these and are reported as *skipped*
+  /// where it does not hold. Never silently passed: a fixture that folds
+  /// two files into one also trips
+  /// ``FixtureError/destinationFolded(path:)`` in ``addPhoto``.
+  static let filesystemDistinguishesCase: Bool = probeDistinctNames(
+    "munin-fsprobe.jpg", "munin-fsprobe.JPG")
+
+  /// Whether the volume keeps NFC and NFD spellings of one name as two
+  /// files — what a Linux filesystem does and APFS does not.
+  static let filesystemDistinguishesUnicodeNormalization: Bool = probeDistinctNames(
+    "munin-fsprobe-H\u{00e5}kon.jpg", "munin-fsprobe-Ha\u{030a}kon.jpg")
+
+  /// Create both names in a fresh temp directory and report whether two
+  /// entries resulted.
+  private static func probeDistinctNames(_ first: String, _ second: String) -> Bool {
+    let fm = FileManager.default
+    let dir = fm.temporaryDirectory
+      .appendingPathComponent("munin-fsprobe-\(UUID().uuidString)", isDirectory: true)
+    guard (try? fm.createDirectory(at: dir, withIntermediateDirectories: true)) != nil else {
+      return false
+    }
+    defer { try? fm.removeItem(at: dir) }
+    guard fm.createFile(atPath: dir.path + "/" + first, contents: Data()),
+      fm.createFile(atPath: dir.path + "/" + second, contents: Data()),
+      let entries = try? fm.contentsOfDirectory(atPath: dir.path)
+    else { return false }
+    return entries.count == 2
+  }
+
   // MARK: - Helpers
 
   private func absolutePath(for relative: String) -> String {
@@ -350,10 +497,31 @@ private struct SplitMix64 {
 enum FixtureError: Error, CustomStringConvertible {
   case fileMissing(path: String)
 
+  /// A staged file replaced an existing entry rather than creating a new
+  /// one, because the filesystem folds names that differ only by case or
+  /// by Unicode normalization. The fixture the test asked for does not
+  /// exist on this volume, so whatever the test asserts next would be an
+  /// assertion about something else.
+  case destinationFolded(path: String)
+
+  /// A helper that splices JPEG segments was handed something that is not
+  /// a JPEG.
+  case notAJPEG(path: String)
+
   var description: String {
     switch self {
     case .fileMissing(let path):
       return "Fixture file missing: \(path)"
+    case .notAJPEG(let path):
+      return "Fixture file is not a JPEG (no SOI marker): \(path)"
+    case .destinationFolded(let path):
+      return """
+        Staging '\(path)' replaced an existing file instead of adding one: \
+        this filesystem folds names that differ only by case or Unicode \
+        normalization (APFS does both), so the fixture cannot be built here. \
+        Gate the test on SourceFixture.filesystemDistinguishesCase / \
+        .filesystemDistinguishesUnicodeNormalization.
+        """
     }
   }
 }

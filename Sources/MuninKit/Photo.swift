@@ -184,29 +184,42 @@ enum PhotoConstants {
 }
 
 extension Photo {
+  /// Strict total order over any set of photos with distinct `url`s.
+  ///
+  /// Totality is not decoration: every photo array Munin writes comes from
+  /// `Array(someSet).sorted()`, and `sorted()` is stable, so any pair this
+  /// cannot order keeps whatever order the `Set` iterated in — which is
+  /// derived from the per-process randomised hash seed. A tie therefore
+  /// leaks straight into `index.json`, `keywords/*.json` and
+  /// `people/*.json`, and the same binary on the same input writes
+  /// different bytes on the next run.
+  ///
+  /// Date, then name, then url. The first two are the ordering users see;
+  /// url is the tie-break of last resort and is unique per photo (the
+  /// build refuses to start otherwise, see `findOutputPathCollisions`).
   static func < (lhs: Photo, rhs: Photo) -> Bool {
     // Sort by date (exif, taken date) if it is available
     if let lhsDateTime = lhs.dateTime, let rhsDateTime = rhs.dateTime {
-
-      // If taken at _exactly_ the same time, use name
-      if lhsDateTime == rhsDateTime {
-        return lhs.name < rhs.name
+      // Taken at _exactly_ the same time: fall through to name.
+      if lhsDateTime != rhsDateTime {
+        return lhsDateTime < rhsDateTime
       }
-
-      return lhsDateTime < rhsDateTime
-    }
-
-    // If only one has a date, consider that the winner
-    if lhs.dateTime != nil {
+    } else if lhs.dateTime != nil {
+      // If only one has a date, consider that the winner
       return true
-    }
-
-    if rhs.dateTime != nil {
+    } else if rhs.dateTime != nil {
       return false
     }
 
-    // Fallback to name
-    return lhs.name < rhs.name
+    if lhs.name != rhs.name {
+      return lhs.name < rhs.name
+    }
+
+    // Equal names: either the same basename in two albums (legal, and
+    // what `Keyword` aggregation collects across the gallery), or two
+    // canonically-equivalent spellings of one name in one album, which
+    // Swift's `String` comparison also considers equal.
+    return canonicalThenBytewiseLess(lhs.url.string, rhs.url.string)
   }
 
   func hash(into hasher: inout Hasher) {

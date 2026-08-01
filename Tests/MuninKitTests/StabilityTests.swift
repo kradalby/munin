@@ -57,6 +57,84 @@ struct StabilityTests {
     }
   }
 
+  /// The same assertion over a source tree built to trip every ordering
+  /// tie Munin can hit: one photo name repeated across three albums with
+  /// an identical capture time (which is what `Keyword.photos` aggregates
+  /// for a shoot filed under several events), and two byte-distinct but
+  /// canonically-equivalent spellings of one name side by side in a
+  /// fourth (what a macOS-synced tree hands a Linux host).
+  ///
+  /// Honest about what this does and does not catch: both builds run in
+  /// one process, so the hash seed is fixed for both and this cannot by
+  /// itself observe a `Set`-iteration-order change — that is what
+  /// `OrderingTotalityTests` is for, by testing the comparators directly.
+  /// What this adds is coverage that the tie-inducing tree reaches
+  /// `keywords/*.json`, `locations.json` and the album listings at all,
+  /// and that nothing downstream of the sort re-introduces a dependency
+  /// on arrival order.
+  ///
+  /// Needs a filesystem that keeps NFC and NFD apart, or half the fixture
+  /// does not exist. Skipped rather than silently weakened where it does
+  /// not (APFS, hence the `macos-latest` CI leg).
+  @Test(.enabled(if: SourceFixture.filesystemDistinguishesUnicodeNormalization))
+  func rebuildIsByteDeterministicWithTiedPhotoNames() async throws {
+    let fixture = try SourceFixture.stage(albums: ["Misc"])
+    defer { fixture.cleanup() }
+
+    // One source, one capture time, three albums, one name.
+    let donor = fixture.originPhoto("Misc/20180510-171752-IMG_7165.jpg")
+    for album in ["AlbumOne", "AlbumTwo", "AlbumThree"] {
+      try fixture.addPhoto(toAlbum: album, fromSourceFile: donor, as: "shared.jpg")
+    }
+    // "Håkon" precomposed and decomposed: two files, one Swift String.
+    try fixture.addPhoto(toAlbum: "Uni", fromSourceFile: donor, as: "H\u{00e5}kon.jpg")
+    try fixture.addPhoto(
+      toAlbum: "Uni",
+      fromSourceFile: fixture.originPhoto("Misc/portrait_mm.jpeg"),
+      as: "Ha\u{030a}kon.jpg")
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot, name: "root")
+    defer { harness.cleanup() }
+
+    try await harness.build()
+    let first = try harness.snapshotOutput()
+
+    try FileManager.default.removeItem(atPath: harness.outputRoot)
+    try FileManager.default.createDirectory(
+      atPath: harness.outputRoot, withIntermediateDirectories: true)
+
+    try await harness.build()
+    let second = try harness.snapshotOutput()
+
+    let pathsA = Set(first.leafPaths)
+    let pathsB = Set(second.leafPaths)
+    #expect(
+      pathsA == pathsB,
+      "output structure differs: onlyA=\(pathsA.subtracting(pathsB)) onlyB=\(pathsB.subtracting(pathsA))"
+    )
+    // The tie triggers have to actually be present, or this passes
+    // vacuously.
+    #expect(
+      pathsA.contains("keywords/Israel.json"),
+      "expected an aggregated keyword file: \(pathsA.sorted())")
+    #expect(
+      pathsA.filter { $0.hasSuffix("shared.json") }.count == 3,
+      "expected the repeated name in three albums: \(pathsA.sorted())")
+    // `FilesystemSnapshot` keys entries by Swift `String`, whose equality
+    // is canonical, so the NFC and NFD spellings collapse into one entry
+    // above and their presence has to be asserted against raw bytes.
+    let uniNames = try FileManager.default.contentsOfDirectory(
+      atPath: harness.outputGalleryRoot + "/Uni")
+    #expect(
+      Set(uniNames.filter { $0.hasSuffix("kon.json") }.map { Array($0.utf8) }).count == 2,
+      "expected both spellings side by side: \(uniNames.sorted())")
+
+    for path in pathsA where path.hasSuffix(".json") {
+      guard let a = first.entries[path], let b = second.entries[path] else { continue }
+      #expect(a.sha256 == b.sha256, "JSON content differs between runs at \(path)")
+    }
+  }
+
   // MARK: - JSON surface invariants
 
   @Test func jsonFilesUseSortedKeys() async throws {
