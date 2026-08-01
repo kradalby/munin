@@ -90,9 +90,6 @@ func readPhotoFromPath(
 
   // Slow path: genuine change (or no prior). Read EXIF, probe with
   // VIPS, compute a fresh hash.
-  let dateFormatter = DateFormatter()
-  dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-
   let exifResult = Imaging.readExif(source: filePath)
   let exifDict = exifResult.exif
   let exifRawDict = exifResult.exifRaw
@@ -200,7 +197,7 @@ func readPhotoFromPath(
       }
     }
     if let dateTime = exif["Date and Time (Original)"] {
-      photo.dateTime = dateFormatter.date(from: dateTime)
+      photo.dateTime = parseExifDateTime(dateTime)
     }
 
     photo.lensModel = exif["Lens Model"]
@@ -331,6 +328,32 @@ private func applyConfigDerivedFields(
   photo.people = Array(Set(newPeople)).sorted()
 
   photo.encodingFingerprint = encodingFingerprint(for: ctx.config)
+}
+
+/// Parse an EXIF `Date and Time (Original)` value (`"yyyy:MM:dd HH:mm:ss"`).
+///
+/// EXIF stores a bare wall-clock string carrying no UTC offset. Foundation
+/// resolves such a string against `TimeZone.current` unless told
+/// otherwise, which would make the instant — and therefore the `dateTime`
+/// in every photo JSON, `Photo.==`, and the whole incremental cache — a
+/// function of the `TZ` of whichever host ran the build. Two hosts in
+/// different zones would produce different galleries from identical
+/// bytes, and moving a gallery between them would re-encode everything.
+///
+/// So the host's timezone is pinned out, exactly as
+/// `scripts/normalise-mtimes.sh` pins out the host's mtimes: `TimeZone`
+/// fixed to UTC, and `Locale` to `en_US_POSIX` so a host whose default
+/// calendar is not Gregorian cannot reinterpret the fixed `dateFormat`.
+///
+/// This is a normalisation, not a claim about where the photo was taken —
+/// EXIF simply does not record that. What it buys is that the same source
+/// bytes always mean the same instant.
+func parseExifDateTime(_ value: String) -> Date? {
+  let formatter = DateFormatter()
+  formatter.locale = Locale(identifier: "en_US_POSIX")
+  formatter.timeZone = TimeZone(secondsFromGMT: 0)
+  formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+  return formatter.date(from: value)
 }
 
 /// Human-readable fingerprint over the config values that determine the
