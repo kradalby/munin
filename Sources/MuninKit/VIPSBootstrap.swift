@@ -1,6 +1,5 @@
-import Cvips
 import Foundation
-import VIPS
+import MuninVips
 
 /// Centralised, idempotent one-shot VIPS initialisation.
 ///
@@ -54,9 +53,7 @@ public enum VIPSBootstrap {
     // Env var alone isn't enough on every libvips release; belt-and-braces
     // the cache cap via the C API so repeated in-process builds of the
     // same source path don't return stale cached pixel data.
-    vips_cache_set_max(0)
-    vips_cache_set_max_mem(0)
-    vips_cache_set_max_files(0)
+    VIPS.disableOperationCache()
   }
 
   /// Drop libvips' operation cache. Tests that re-run a build against
@@ -123,15 +120,9 @@ private final class Bootstrap: @unchecked Sendable {
     guard pipelineRan else { return }
     // `vips_cache_drop_all` dereferences a potentially-null hash table on
     // some libvips builds when the operation cache has been disabled via
-    // `VIPS_CACHE_MAX=0` but never used. `vips_error_clear` is the
+    // `VIPS_CACHE_MAX=0` but never used. Re-applying the zero cap is the
     // safer-but-equivalent hammer for the symptom we care about: stale
     // per-filename pixel data surviving across builds.
-    //
-    // `vips_cache_set_max(0)` re-applies the cap; it also flushes the
-    // cache as a side-effect of trimming to zero entries (when the cache
-    // has entries to trim).
-    vips_cache_set_max(0)
-    vips_cache_set_max_mem(0)
-    vips_cache_set_max_files(0)
+    VIPS.disableOperationCache()
   }
 }

@@ -1,7 +1,5 @@
-# Golden/fixture/asset data is excluded from the whitespace/EOF fixers, and so
-# is vendor/ — rewriting vendored files would make them diverge from upstream
-# for no reason (see vendor/swift-vips/VENDORED.md).
-exclude: '^(example/|Tests/.*/Fixtures/|assets/|vendor/)'
+# Golden/fixture/asset data is excluded from the whitespace/EOF fixers.
+exclude: '^(example/|Tests/.*/Fixtures/|assets/)'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks

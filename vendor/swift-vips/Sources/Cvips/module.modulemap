@@ -1,6 +1,0 @@
-module Cvips [system] {
-    umbrella header "Cvips.h"
-    link "vips"
-    export *
-    module * { export * }
-}

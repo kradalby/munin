@@ -1,11 +1,13 @@
 import Foundation
+import MuninVips
 import SystemPackage
-import VIPS
 
-/// Munin's boundary against swift-vips. Every VIPS call in MuninKit goes
-/// through `Imaging`; direct `VIPSImage` use lives only in this file so
-/// libvips thread-safety assumptions (non-`Sendable` class, shared
-/// process-wide worker pool, shared pipeline cache) stay in one place.
+/// Munin's boundary against libvips. Every VIPS call in MuninKit goes
+/// through `Imaging`; the binding itself is the separate `MuninVips` module,
+/// so touching libvips costs an `import` that only this file and
+/// `VIPSBootstrap` are allowed. That keeps libvips thread-safety assumptions
+/// (non-`Sendable` class, shared process-wide worker pool, shared pipeline
+/// cache) in one place.
 ///
 /// The wider codebase only ever sees Sendable value types (`ImageProbe`,
 /// `ScaleResult`) coming back out of these functions; no `VIPSImage`
@@ -26,8 +28,8 @@ enum Imaging {
     }
     VIPSBootstrap.didRunPipeline()
     return ImageProbe(
-      width: image.size.width,
-      height: image.size.height,
+      width: image.width,
+      height: image.height,
       orientationSwap: image.orientationSwap)
   }
 
@@ -64,11 +66,8 @@ enum Imaging {
     var result = ScaleResult()
     for target in destinations {
       do {
-        try image.thumbnailImage(
-          width: target.width,
-          crop: Optional<VipsInteresting>.none
-        )
-        .writeToFile(target.path.string, quality: quality)
+        try image.thumbnailImage(width: target.width)
+          .writeToFile(target.path.string, quality: quality)
         result.successes.append(target.width)
       } catch {
         result.failures.append(

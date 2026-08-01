@@ -19,13 +19,6 @@ let package = Package(
     ),
   ],
   dependencies: [
-    // Vendored snapshot of kradalby/swift-vips (a fork of t089/swift-vips)
-    // at revision bfebd9a, with its build-tool plugin unhooked and the
-    // generated wrappers checked in. The plugin builds a *host* tool that
-    // links libvips, which cannot coexist with a musl cross build — see
-    // vendor/swift-vips/VENDORED.md for the full story and for how to push
-    // the changes back upstream.
-    .package(path: "vendor/swift-vips"),
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.1.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
     // vapor/console-kit provides the progress/activity indicator UI that
@@ -41,6 +34,29 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0"),
   ],
   targets: [
+    // libvips itself. `pkgConfig` is read by SwiftPM's own .pc parser, not by
+    // pkg-config(1) — that is why the musl sysroot ships a flattened vips.pc
+    // with no `Requires:` (see build/musl-sysroot/build.sh).
+    .systemLibrary(
+      name: "Cvips",
+      pkgConfig: "vips",
+      providers: [.apt(["libvips-dev"]), .brew(["vips"])]
+    ),
+    // Fixed-arity wrappers for the libvips operations Munin performs. They
+    // exist only because those entry points are NULL-terminated C variadics,
+    // which Swift cannot call. See Sources/MuninVipsShim/include.
+    .target(
+      name: "MuninVipsShim",
+      dependencies: ["Cvips"]
+    ),
+    // The Swift binding. A target of its own rather than a file in MuninKit
+    // so that touching libvips requires `import MuninVips`: MuninKit depends
+    // on this and not on Cvips/MuninVipsShim, and ImagingFacadeTests fails
+    // any import outside the Imaging facade.
+    .target(
+      name: "MuninVips",
+      dependencies: ["Cvips", "MuninVipsShim"]
+    ),
     .executableTarget(
       name: "Munin",
       dependencies: [
@@ -53,7 +69,7 @@ let package = Package(
       name: "MuninKit",
       dependencies: [
         .product(name: "Logging", package: "swift-log"),
-        .product(name: "VIPS", package: "swift-vips"),
+        "MuninVips",
         .product(name: "ConsoleKitTerminal", package: "console-kit"),
         .product(name: "SystemPackage", package: "swift-system"),
         .product(name: "Crypto", package: "swift-crypto"),
