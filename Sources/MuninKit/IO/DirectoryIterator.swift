@@ -3,6 +3,8 @@ import SystemPackage
 
 #if canImport(Glibc)
   import Glibc
+#elseif canImport(Musl)
+  import Musl
 #elseif canImport(Darwin)
   import Darwin
 #endif
@@ -140,13 +142,14 @@ func isFileOrSymlink(at path: FilePath) -> Bool {
 
 // MARK: - Platform shims
 
-#if canImport(Glibc)
-  /// glibc's `DIR` is fully opaque, so `opendir` imports as `OpaquePointer`;
-  /// Darwin exposes the struct and returns `UnsafeMutablePointer<DIR>`.
+#if canImport(Glibc) || canImport(Musl)
+  /// glibc's and musl's `DIR` is fully opaque, so `opendir` imports as
+  /// `OpaquePointer`; Darwin exposes the struct and returns
+  /// `UnsafeMutablePointer<DIR>`.
   private typealias DirHandle = OpaquePointer
 
-  private var currentErrno: Int32 { Glibc.errno }
-  private func setErrno(_ v: Int32) { Glibc.errno = v }
+  private var currentErrno: Int32 { errno }
+  private func setErrno(_ v: Int32) { errno = v }
 
   private func nameString(from ptr: UnsafeMutablePointer<dirent>) -> String {
     withUnsafePointer(to: &ptr.pointee.d_name) { tuplePtr in
@@ -157,10 +160,12 @@ func isFileOrSymlink(at path: FilePath) -> Bool {
   }
 
   private func kind(from ptr: UnsafeMutablePointer<dirent>) -> DirectoryEntry.Kind {
+    // glibc types the `DT_*` constants as `Int`, musl as `Int32`. Wrapping
+    // both sides in `Int(...)` matches either without a third `#if`.
     switch Int(ptr.pointee.d_type) {
-    case DT_REG: return .file
-    case DT_DIR: return .directory
-    case DT_LNK: return .symlink
+    case Int(DT_REG): return .file
+    case Int(DT_DIR): return .directory
+    case Int(DT_LNK): return .symlink
     default: return .unknown
     }
   }
