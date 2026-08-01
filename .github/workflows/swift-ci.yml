@@ -1,5 +1,11 @@
 name: Swift CI
 
+# The Linux job here stays DYNAMIC and keeps running `swift test`. It is not
+# replaced by the static build in static-release.yml: the Swift Static Linux
+# SDK ships neither XCTest nor swift-testing, so `swift test --swift-sdk
+# x86_64-swift-linux-musl` fails with "no such module". Dropping this job
+# would drop all Linux unit-test coverage.
+
 on:
   push:
     branches:
@@ -15,16 +21,22 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-# Every run step happens inside the devShell, so CI links the same libvips and
-# libexif developers do. Consequence: nothing may `run:` before the nix
-# installer, which is why the setup steps below are all `uses:`.
-defaults:
-  run:
-    shell: nix develop --fallback --command bash -e {0}
-
 jobs:
   lint:
     runs-on: ubuntu-24.04
+
+    # Every run step happens inside the devShell, so CI links the same
+    # libvips and libexif developers do. Consequence: nothing may `run:`
+    # before the nix installer, which is why the setup steps below are all
+    # `uses:`.
+    #
+    # Deliberately per-job rather than workflow-wide: the devShell's
+    # PKG_CONFIG_PATH is glibc-flavoured, and SwiftPM reads host .pc
+    # directories even when cross-compiling, so nothing that targets musl
+    # may inherit this.
+    defaults:
+      run:
+        shell: nix develop --fallback --command bash -e {0}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -41,11 +53,18 @@ jobs:
   build-and-test:
     # Run on both Linux and macOS so the cross-platform stability claims
     # in the README (macOS + Linux) are actually exercised.
+    #
+    # Linux here is the *dynamic* glibc build. The statically linked musl
+    # binaries that ship to users are built by static-release.yml.
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-latest]
     runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: nix develop --fallback --command bash -e {0}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
