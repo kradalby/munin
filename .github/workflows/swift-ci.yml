@@ -15,6 +15,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+# Every run step happens inside the devShell, so CI links the same libvips and
+# libexif developers do. Consequence: nothing may `run:` before the nix
+# installer, which is why the setup steps below are all `uses:`.
+defaults:
+  run:
+    shell: nix develop --fallback --command bash -e {0}
+
 jobs:
   lint:
     runs-on: ubuntu-24.04
@@ -22,13 +29,14 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
 
-      # swiftlint is a standalone binary from the devShell — it parses sources
-      # without compiling them, so this job needs neither the Swift toolchain
-      # nor the C libraries.
+      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
+
+      # swiftlint parses sources rather than compiling them, so this job needs
+      # no Swift toolchain and no build.
       - name: swiftlint
-        run: nix develop --command swiftlint lint
+        run: swiftlint lint
 
   build-and-test:
     # Run on both Linux and macOS so the cross-platform stability claims
@@ -42,15 +50,14 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      # --- C libraries -----------------------------------------------------
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
 
-      # Both platforms take their C dependencies from the flake's devShell, so
-      # CI links against the same libvips/libexif pile developers get locally.
-      - uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
 
       # --- Swift toolchain -------------------------------------------------
 
       # Deliberately not from the flake — see the flake.nix header for why.
+      # It lands on the ambient PATH, which `nix develop` preserves.
 
       - name: Cache Swift toolchain (Linux)
         if: runner.os == 'Linux'
@@ -94,10 +101,8 @@ jobs:
         if: runner.os == 'macOS'
         run: echo "/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
 
-      # `nix develop` prepends the devShell's bins but keeps the ambient PATH,
-      # so the toolchain installed above is what actually runs.
       - name: Verify Swift toolchain
-        run: nix develop --command swift --version
+        run: swift --version
 
       # --- Build + test ----------------------------------------------------
 
@@ -110,7 +115,7 @@ jobs:
             swift-build-${{ runner.os }}-
 
       - name: swift build
-        run: nix develop --command swift build
+        run: swift build
 
       - name: swift test
-        run: nix develop --command swift test
+        run: swift test
