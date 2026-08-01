@@ -1,6 +1,10 @@
 name: Swift CI
 
-# The unit tests live here, on both platforms.
+# The unit tests live here, on both platforms, and stay on the DYNAMIC build.
+# static-release.yml does not replace this: the Swift Static Linux SDK ships
+# neither XCTest nor swift-testing, so `swift test --swift-sdk
+# x86_64-swift-linux-musl` fails with "no such module". Dropping these jobs
+# would drop all unit-test coverage.
 
 on:
   push:
@@ -57,6 +61,9 @@ jobs:
   # and `swift --version` segfaults. Distro packages sit on the default loader
   # path and need none of this -- and they are what README.md tells a Linux
   # user to install, so this job now exercises the documented setup.
+  #
+  # This is the *dynamic* glibc build; the static musl binaries that ship to
+  # users are built by static-release.yml.
   test-linux:
     runs-on: ubuntu-24.04
     # The official Swift image, rather than downloading a tarball onto the
