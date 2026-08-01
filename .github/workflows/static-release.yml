@@ -59,10 +59,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # Only PR runs are cancellable. A push to master publishes the rolling
-  # `latest` release, and cancelling that between `gh release delete` and
-  # `gh release create` would leave no release at all; a tag push is a real
-  # release and must never be interrupted.
+  # Only PR runs are cancellable: a tag push publishes a release and must
+  # never be interrupted part way through uploading its assets.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
@@ -238,7 +236,19 @@ jobs:
       MUSL_IMAGE: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.tag }}
       ARCH: ${{ matrix.arch }}
       TRIPLE: ${{ matrix.triple }}
-      ASSET: ${{ matrix.asset }}
+      # Tags ship optimised, stripped binaries. Every other run builds debug
+      # and attaches it, so a branch or PR can be downloaded and tried
+      # without waiting for a release -- unstripped and with debug info,
+      # which is the point, at roughly three times the size.
+      CONFIG: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'debug' }}
+      # Written inverted -- `!tag && '-debug' || ''` rather than the more
+      # natural `tag && '' || '-debug'` -- because '' is FALSY in a GitHub
+      # Actions expression, so the natural spelling falls through to the
+      # right-hand side and suffixes `-debug` on tags too. That would have
+      # surfaced only on the first real release, as the publish job failing
+      # to find munin-linux-amd64.
+      ASSET: >-
+        ${{ matrix.asset }}${{ !startsWith(github.ref, 'refs/tags/v') && '-debug' || '' }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
@@ -295,7 +305,7 @@ jobs:
       # That last assertion is what catches the bundle-id trap, so do not
       # replace this with a bare `swift build`.
       - name: Build ${{ matrix.triple }}
-        run: ./scripts/build-static.sh "$ARCH"
+        run: ./scripts/build-static.sh "$ARCH" "$CONFIG"
 
       # Munin has no build-tool plugins, and cannot acquire one while it
       # cross-compiles: a plugin's tool is built for the HOST, so if it links
@@ -311,7 +321,7 @@ jobs:
             find .build/plugins/outputs -maxdepth 3
             exit 1
           fi
-          ls -l ".build/$TRIPLE/release/munin"
+          ls -l ".build/$TRIPLE/$CONFIG/munin"
 
       # Runs the binary on its own architecture inside busybox with an empty
       # environment, builds the whole example/ gallery, diffs the result
@@ -327,48 +337,30 @@ jobs:
       # the only reason the diff can be reproduced from a fresh checkout at
       # all.
       - name: Smoke test on ${{ matrix.arch }}
-        run: ./scripts/smoke-static.sh ".build/$TRIPLE/release/munin" --arch "$ARCH"
+        run: ./scripts/smoke-static.sh ".build/$TRIPLE/$CONFIG/munin" --arch "$ARCH"
 
       - name: Stage artefact
-        run: install -Dm755 ".build/$TRIPLE/release/munin" "$RUNNER_TEMP/out/$ASSET"
+        run: install -Dm755 ".build/$TRIPLE/$CONFIG/munin" "$RUNNER_TEMP/out/$ASSET"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ matrix.asset }}
-          path: ${{ runner.temp }}/out/${{ matrix.asset }}
+          name: ${{ env.ASSET }}
+          path: ${{ runner.temp }}/out/${{ env.ASSET }}
           if-no-files-found: error
           retention-days: 7
 
   # ---------------------------------------------------------------------
-  # release: `v*` tags cut a real release; master pushes move a rolling
-  # `latest` prerelease.
+  # release: `v*` tags only.
   #
-  # `latest` is deleted and recreated rather than updated in place. Updating
-  # in place keeps the release id stable but leaves every asset that was
-  # ever uploaded under it, so the day an asset is renamed or dropped, the
-  # old one sits there forever looking current -- and the git tag still has
-  # to be force-moved separately, which is the same destructive operation
-  # with more steps. Delete-and-recreate makes the tag, the assets and the
-  # notes all describe one commit by construction.
-  #
-  # What that costs, stated honestly: between the delete and the create there
-  # is a window where `latest` does not exist and
-  # /releases/download/latest/... 404s. Usually it is a few seconds. If the
-  # create fails outright it lasts until someone fixes it, so the create is
-  # retried, the retry is written to tolerate a create that half-succeeded,
-  # and a job that exhausts the retries goes red saying exactly that. Two
-  # other things guard the window: `cancel-in-progress` is false for pushes,
-  # so nothing cancels the job mid-swap, and the tag ref is deleted
-  # explicitly, because `gh release create` on an existing tag ignores
-  # --target and would otherwise cut `latest` from a stale commit.
+  # Every other run attaches debug binaries as workflow artefacts instead --
+  # downloadable from the run page for 7 days, which is what you want to try
+  # a branch. A rolling `latest` release would duplicate that while forcing a
+  # second build configuration per master push, and delete-and-recreate on a
+  # published release is a destructive operation to run on every commit.
   # ---------------------------------------------------------------------
   release:
     needs: build
-    if: >-
-      github.event_name == 'push'
-      && (startsWith(github.ref, 'refs/tags/v')
-          || github.ref == 'refs/heads/master'
-          || github.ref == 'refs/heads/main')
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -401,12 +393,12 @@ jobs:
           cd "$RUNNER_TEMP/dist"
           assets=(munin-linux-amd64 munin-linux-arm64 SHA256SUMS)
 
-          # Idempotent by construction, which is what makes both re-running a
-          # failed release job and the retry loop below safe: a release that
-          # already exists gets its assets replaced rather than a hard failure
-          # on "already exists". `gh release create` uploads assets after
-          # creating the release, so a create that died half way leaves a
-          # release at the right commit and this replays only the upload.
+          # Idempotent by construction, so re-running a failed release job is
+          # safe: a release that already exists gets its assets replaced
+          # rather than a hard failure on "already exists". `gh release
+          # create` uploads assets after creating the release, so a create
+          # that died half way leaves a release at the right commit and this
+          # replays only the upload.
           publish() {
             local tag="$1"; shift
             if gh release view "$tag" >/dev/null 2>&1; then
@@ -416,44 +408,4 @@ jobs:
             fi
           }
 
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            publish "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
-            exit 0
-          fi
-
-          # Rolling prerelease for master. --cleanup-tag drops the tag too,
-          # so the recreate below repoints it at this commit -- but it is best
-          # effort, and a surviving `latest` tag is not cosmetic: `gh release
-          # create` on an existing tag silently ignores --target and would cut
-          # the release from whatever commit the old tag names. So delete the
-          # ref outright as well. Both deletes tolerate "not there".
-          gh release delete latest --cleanup-tag --yes || true
-          gh api -X DELETE "repos/$GH_REPO/git/refs/tags/latest" >/dev/null 2>&1 || true
-
-          notes="$(printf '%s\n' \
-            "Rolling build of \`$GITHUB_REF_NAME\` at [\`${GITHUB_SHA:0:7}\`]($GITHUB_SERVER_URL/$GH_REPO/commit/$GITHUB_SHA)." \
-            "" \
-            "This release is deleted and recreated on every push, so the tag moves and the assets change under you. Use a \`v*\` release for anything you intend to keep." \
-            "" \
-            '```' \
-            "$(cat SHA256SUMS)" \
-            '```')"
-          # From here until this succeeds there is no `latest` release at all,
-          # so a transient failure is worth three tries rather than one.
-          for attempt in 1 2 3; do
-            if [ "$attempt" -gt 1 ]; then
-              sleep $(( (attempt - 1) * 15 ))
-            fi
-            if publish latest \
-                 --title "Latest build" \
-                 --notes "$notes" \
-                 --prerelease \
-                 --target "$GITHUB_SHA"; then
-              exit 0
-            fi
-            echo "::warning::attempt $attempt of 3 to publish the rolling \`latest\` release failed"
-          done
-          echo "::error::the rolling \`latest\` release was deleted and could not be recreated."
-          echo "::error::There is no \`latest\` release right now. Re-run this job (the assets"
-          echo "::error::are still attached to this run) or push to master again to restore it."
-          exit 1
+          publish "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
