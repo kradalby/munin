@@ -297,11 +297,12 @@ jobs:
       - name: Build ${{ matrix.triple }}
         run: ./scripts/build-static.sh "$ARCH"
 
-      # swift-vips is vendored with its wrappers pregenerated precisely so
-      # no build-tool plugin runs: the plugin builds a HOST vips-generator
-      # and links Cvips, which cannot work when SwiftPM's single pkg-config
-      # search path is pointed at a musl prefix. If a plugin output tree
-      # appears, the vendoring has come undone.
+      # Munin has no build-tool plugins, and cannot acquire one while it
+      # cross-compiles: a plugin's tool is built for the HOST, so if it links
+      # a C library it needs a host .pc file -- and SwiftPM has a single
+      # pkg-config search path, pointed here at the musl prefix. Dropping
+      # swift-vips (whose vips-generator plugin did exactly that) is what
+      # made this hold. If a plugin output tree appears, it stopped holding.
       - name: Assert no build-tool plugin ran
         run: |
           set -euo pipefail
