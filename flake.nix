@@ -2,8 +2,8 @@
   # Development-environment-only flake.
   #
   # This flake provides the C library dependencies Munin needs (libvips,
-  # libexif, libiptcdata, glib, pkg-config, plus the transitive
-  # swift-vips pile) and swiftlint (a prebuilt binary in nixpkgs).
+  # libexif, libiptcdata, glib, pkg-config, plus libvips' transitive pile)
+  # and swiftlint (a prebuilt binary in nixpkgs).
   #
   # The Swift toolchain is **deliberately not provided** by this flake. The
   # Swift packages in nixpkgs lag the official Swift.org releases and mix
@@ -37,9 +37,9 @@
         pkg-config
       ];
 
-    # C library dependencies linked against by SwiftExif, swift-vips, and
-    # Munin itself. Everything here must be present at compile *and* run
-    # time (they're shared libraries, not headers-only).
+    # C library dependencies linked against by SwiftExif and by Munin's own
+    # Cvips / MuninVipsShim targets. Everything here must be present at
+    # compile *and* run time (they're shared libraries, not headers-only).
     bdeps = pkgs:
       with pkgs;
         [
@@ -47,7 +47,7 @@
           libexif
           libiptcdata
 
-          # swift-vips: image processing + transitive pile
+          # libvips: image processing + transitive pile
           cfitsio
           expat.dev
           fftw.dev
@@ -100,14 +100,14 @@
             '';
           })
 
-          # If compiling swift-vips fails with something like:
+          # If compiling against libvips fails with something like:
           #   fatal error: 'glib.h' file not found
           # look for a warning just before it:
           #   warning: couldn't find pc file for spng
           # and add the corresponding nixpkgs package here.
         ]
         ++ lib.optionals stdenv.isLinux [
-          # swift-vips Linux-only C deps
+          # libvips Linux-only C deps
           glibc.dev
           libselinux.dev
           libsepol.dev

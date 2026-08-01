@@ -73,17 +73,6 @@ return (previously dropped with `swiftpm2nix`).
 
 ---
 
-## 11. `VIPSImage.write` API migration
-
-`swift-vips` main has evolved; the project is SHA-pinned. When a tag is
-cut upstream:
-- Move the dependency back to a `from:` version pin.
-- Re-examine `Sources/MuninKit/IO/Imaging/VIPS.swift` for the
-  `Optional<VipsInteresting>.none` workaround — it's a pre-existing
-  type-inference nit in swift-vips' API.
-
----
-
 ## 12. Static binary distribution
 
 Done: `make build-static` cross-builds fully static musl binaries for amd64

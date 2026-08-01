@@ -6,7 +6,7 @@ Munin is a static "api" image gallery generator. Munin will take a folder struct
 
 Munin does not come with a frontend, and encourages you to "build your own" or pair it with [Hugin](https://github.com/kradalby/hugin).
 
-Munin uses [libvips](https://www.libvips.org/) (via [swift-vips](https://github.com/t089/swift-vips), vendored under `vendor/swift-vips` — see `vendor/swift-vips/VENDORED.md` for why), [libexif](https://libexif.github.io) and [libiptcdata](http://libiptcdata.sourceforge.net) to read, resize, write images and their metadata. Munin runs on both macOS and Linux.
+Munin uses [libvips](https://www.libvips.org/) (bound directly: Munin performs exactly three libvips operations — open, thumbnail, save — so the whole binding is `Sources/Cvips` and `Sources/MuninVipsShim`, ~45 lines of C, plus `Sources/MuninVips`, one Swift file that owns the GObject refcounts), [libexif](https://libexif.github.io) and [libiptcdata](http://libiptcdata.sourceforge.net) to read, resize, write images and their metadata. Munin runs on both macOS and Linux.
 
 ## Features
 
