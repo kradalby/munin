@@ -1,0 +1,8 @@
+{
+  "name": "formats",
+  "sourceFolder": "album",
+  "targetFolder": "content",
+  "fileExtensions": ["png", "webp", "tif", "tiff"],
+  "resolutions": [100],
+  "progress": false
+}
