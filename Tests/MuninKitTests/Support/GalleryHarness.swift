@@ -43,6 +43,8 @@ final class GalleryHarness {
   ///   - resolutions: thumbnail sizes to render. Defaults to a two-size set
   ///     (`180`, `340`) because larger sets slow down VIPS without
   ///     improving test coverage.
+  ///   - people: names to treat as people rather than keywords, as the
+  ///     `people` key of a gallery config would.
   ///   - peopleFiles: optional list of JSON files providing people names.
   ///   - jpegCompression: VIPS encoder quality, 0.0–1.0. Tests that need to
   ///     exercise a config change across two harnesses can pass different
@@ -59,6 +61,7 @@ final class GalleryHarness {
     sourceRoot: String,
     name: String = "root",
     resolutions: [Int] = [180, 340],
+    people: [String] = [],
     peopleFiles: [String] = [],
     jpegCompression: Double = 0.1,
     concurrency: Int = 1,
@@ -84,7 +87,7 @@ final class GalleryHarness {
     let manager = ConfigurationManager()
     manager.load([
       "name": name,
-      "people": [],
+      "people": people,
       "peopleFiles": peopleFiles,
       "resolutions": resolutions,
       "jpegCompression": jpegCompression,

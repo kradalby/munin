@@ -28,6 +28,17 @@ public enum MuninError: Error, Sendable {
   /// log lines; the `Errno` preserves the raw error code for decisions like
   /// "ignore ENOENT here" at the call site.
   case ioFailure(operation: String, path: FilePath, errno: Errno)
+
+  /// Two or more sources in the gallery map to the same output path, so
+  /// building would overwrite one with the other. Raised before anything
+  /// is written; see ``OutputPathCollision``.
+  case outputPathCollision(collisions: [OutputPathCollision])
+
+  /// Two or more keywords map to the same keyword page, so building would
+  /// overwrite one with the other. Raised after the read — keyword names
+  /// come from IPTC metadata — but still before anything is written; see
+  /// ``findKeywordOutputPathCollisions(album:)``.
+  case keywordPathCollision(collisions: [OutputPathCollision])
 }
 
 extension MuninError: CustomStringConvertible {
@@ -45,6 +56,35 @@ extension MuninError: CustomStringConvertible {
       return "Image \(operation) failed for '\(path)': \(underlying)"
     case .ioFailure(let operation, let path, let errno):
       return "\(operation) failed for '\(path)': \(errno)"
+    case .outputPathCollision(let collisions):
+      return """
+        \(collisions.count) output path\(collisions.count == 1 ? "" : "s") \
+        would be written by more than one source. Munin names every output \
+        after its source — dropping the extension for photo metadata, and \
+        replacing spaces with underscores for album folders — so these \
+        would overwrite each other and which one survived would differ \
+        between runs. Rename one source in each group and build again.
+          \(listCollisions(collisions))
+        """
+    case .keywordPathCollision(let collisions):
+      return """
+        \(collisions.count) keyword page\(collisions.count == 1 ? "" : "s") \
+        would be written by more than one keyword. Munin names each page \
+        after the keyword with spaces replaced by underscores, and keywords \
+        and people share one directory, so these would overwrite each other \
+        and the photos of whichever lost would be missing from the page \
+        their own metadata links to. Retag the photos so one spelling \
+        remains — or, for a person whose name is also a place, rename one — \
+        and build again.
+          \(listCollisions(collisions))
+        """
     }
+  }
+
+  private func listCollisions(_ collisions: [OutputPathCollision]) -> String {
+    collisions.map { collision in
+      ([collision.outputPath] + collision.sources.map { "    <- \($0)" })
+        .joined(separator: "\n  ")
+    }.joined(separator: "\n  ")
   }
 }
