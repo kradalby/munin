@@ -25,19 +25,26 @@ func readStateFromInputDirectory(
   let sem = sem ?? AsyncSemaphore(value: max(ctx.config.concurrency, 1))
   ctx.log.trace("Creating album from path: \(joinPath(atPath))")
 
-  var album = Album(name: name, path: joinPath(outPath, urlifyName(name)), parents: parents)
+  let albumOutPath = joinPath(outPath, urlifyName(name))
+  var album = Album(name: name, path: albumOutPath, parents: parents)
   let parent = Parent(name: album.name, url: album.url)
   var newParents = parents
   newParents.append(parent)
   let capturedParents = newParents
 
-  // Sub-albums (depth-first).
+  // Sub-albums (depth-first). They nest under this album's *own* output
+  // directory — the urlified one. Handing them the raw `name` instead put
+  // every sub-album of an album whose name contains a space into a
+  // parallel directory the parent never claimed, so the parent's `albums`
+  // entry pointed at a path outside its own tree and `clean` deleted the
+  // lot as unreferenced: every photo below such an album was written and
+  // then erased in the same run.
   let directories = directoryNames(under: FilePath(joinPath(atPath)))
   for directory in directories {
     let childAlbum = try await readStateFromInputDirectory(
       ctx: ctx,
       atPath: joinPath(atPath, directory),
-      outPath: joinPath(outPath, name),
+      outPath: albumOutPath,
       name: directory,
       parents: capturedParents,
       sem: sem,
@@ -53,7 +60,6 @@ func readStateFromInputDirectory(
   let files = fileOrSymlinkNames(under: FilePath(joinPath(atPath))).filter {
     extensionSet.contains(fileExtension(atPath: joinPath(atPath, $0)) ?? "")
   }
-  let albumOutPath = joinPath(outPath, urlifyName(name))
 
   let readPhotos: [Photo] = try await withThrowingTaskGroup(of: Photo?.self) { group in
     for file in files {
