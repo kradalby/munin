@@ -3,15 +3,17 @@
   #
   # This flake provides the C library dependencies Munin needs (libvips,
   # libexif, libiptcdata, libgd, glib, pkg-config, plus the transitive
-  # swift-vips pile) and related development tooling (swift-format,
-  # sourcekit-lsp).
+  # swift-vips pile) and swiftlint (a prebuilt binary in nixpkgs).
   #
   # The Swift toolchain is **deliberately not provided** by this flake. The
   # Swift packages in nixpkgs lag the official Swift.org releases and mix
   # oddly with the C-library stdenv, so we keep Swift out of scope here and
   # rely on the developer to install a matching toolchain themselves. See
   # README.md for installation instructions (swiftly or the Swift.org
-  # tarball; the CI workflow pins Swift 6.3.1).
+  # tarball; the CI workflow pins Swift 6.3.1). That toolchain already
+  # bundles sourcekit-lsp and swift-format, so they are not provided here
+  # either — the nixpkgs copies are 5.10-era and drag in the (broken on
+  # Linux) nixpkgs Swift bootstrap.
   #
   # The `nix build` target has been dropped along with Swift — it depended
   # on `swiftpm2nix` and the in-nix Swift packages. Releases come from
@@ -146,9 +148,7 @@
         buildInputs =
           (bdeps pkgs)
           ++ [
-            pkgs.swift-format
             pkgs.swiftlint
-            pkgs.sourcekit-lsp
           ];
         shellHook = systemToolchainHook + swiftCheckHook;
       };
