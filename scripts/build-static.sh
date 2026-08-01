@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Build a fully static Linux `munin` (musl, no PT_INTERP, no DT_NEEDED).
 #
-#   scripts/build-static.sh <amd64|arm64>
+#   scripts/build-static.sh <amd64|arm64> [debug|release]
+#
+# Defaults to release. Debug is what CI attaches to every run so a change can
+# be downloaded and tried; it keeps its symbols (no -Xlinker -s) and is roughly
+# three times the size.
 #
 # Requires the C closure from build/musl-sysroot to have been built first
 # (`make build-musl-sysroot`). Both architectures cross-compile from the same
@@ -24,7 +28,13 @@ MUSL_WORK="${MUSL_WORK:-$REPO/.build/musl-sysroot}"
 case "${1:-}" in
   amd64|x86_64)  ARCH=x86_64;  MACHINE='x86-64'  ;;
   arm64|aarch64) ARCH=aarch64; MACHINE='aarch64' ;;
-  *) echo "usage: $(basename "$0") <amd64|arm64>" >&2; exit 2 ;;
+  *) echo "usage: $(basename "$0") <amd64|arm64> [debug|release]" >&2; exit 2 ;;
+esac
+
+case "${2:-release}" in
+  release) CONFIG=release; STRIP=1 ;;
+  debug)   CONFIG=debug;   STRIP=  ;;
+  *) echo "usage: $(basename "$0") <amd64|arm64> [debug|release]" >&2; exit 2 ;;
 esac
 
 TRIPLE="${ARCH}-swift-linux-musl"
@@ -45,7 +55,7 @@ if [ ! -f "$MUSL_WORK/out/$ARCH/lib/libvips.a" ]; then
   exit 1
 fi
 
-echo "== building munin for $TRIPLE"
+echo "== building munin for $TRIPLE ($CONFIG)"
 
 # Three flags below are each a reproduced requirement, not a preference:
 #
@@ -59,7 +69,8 @@ echo "== building munin for $TRIPLE"
 #                          "'libexif/exif-entry.h' file not found".
 #   -Xlinker -s            Strips at link time (~180 MB -> ~70 MB). Safe only
 #                          because no build-tool plugin exists any more to leak
-#                          the flag into a host tool link.
+#                          the flag into a host tool link. Release only —
+#                          stripping a debug binary defeats its purpose.
 #
 # PKG_CONFIG_PATH is likewise the only knob that works: `swift sdk configure
 # --include-search-path/--library-search-path` are recorded by SwiftPM 6.3.1
@@ -70,12 +81,13 @@ $DOCKER run --rm -i \
   -w /src \
   -e "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" \
   -e "TRIPLE=$TRIPLE" -e "PREFIX=$PREFIX" -e "MACHINE=$MACHINE" -e "UIDGID=$UIDGID" \
+  -e "CONFIG=$CONFIG" -e "STRIP=${STRIP:-}" \
   "$MUSL_IMAGE" bash -euo pipefail -s <<'INNER'
-swift build -c release --swift-sdk "$TRIPLE" \
+swift build -c "$CONFIG" --swift-sdk "$TRIPLE" \
   -Xcc -I"$PREFIX/include" \
-  -Xlinker -s
+  ${STRIP:+-Xlinker -s}
 
-BIN=".build/$TRIPLE/release/munin"
+BIN=".build/$TRIPLE/$CONFIG/munin"
 file "$BIN"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -92,4 +104,4 @@ find /src/.build -mindepth 1 -maxdepth 1 ! -name musl-sysroot \
   -exec chown -R "$UIDGID" {} + 2>/dev/null || true
 INNER
 
-echo "== $REPO/.build/$TRIPLE/release/munin"
+echo "== $REPO/.build/$TRIPLE/$CONFIG/munin"

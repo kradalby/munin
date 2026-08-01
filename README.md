@@ -73,28 +73,23 @@ the right architecture, including `FROM scratch` containers. Both properties
 are gates, not observations: the build fails if the binary has either, and
 nothing is published unless the build passes.
 
-Every push to `master` republishes a rolling prerelease under the tag
-`latest`:
+Releases are cut from `v*` tags, and the newest is always at:
 
 ```bash
-curl -L -o munin https://github.com/kradalby/munin/releases/download/latest/munin-linux-amd64
+curl -L -o munin https://github.com/kradalby/munin/releases/latest/download/munin-linux-amd64
 # or munin-linux-arm64
 chmod +x munin
 ./munin --help
 ```
 
-Tagged releases (`v*`) are permanent, and the newest one is served from a
-different URL shape — note the swapped path segments:
+`SHA256SUMS` is published alongside. That URL 404s until the first `v*` tag
+exists.
 
-```bash
-curl -L -o munin https://github.com/kradalby/munin/releases/latest/download/munin-linux-amd64
-```
-
-`/releases/latest/download/…` resolves GitHub's "latest release" pointer,
-which excludes prereleases: it never serves the rolling build, and it 404s
-until the first `v*` tag exists. `/releases/download/latest/…` is keyed on
-the tag name `latest` and always serves the rolling build. Both use the same
-asset names, and `SHA256SUMS` is published alongside the binaries in both.
+To try an unreleased change, take the binary from its CI run instead: every
+push and pull request attaches `munin-linux-amd64-debug` and
+`munin-linux-arm64-debug` to the **Static Linux** workflow run, downloadable
+from the run page for 7 days. They are just as static, built from the same
+scripts — unstripped, with debug info, and roughly three times the size.
 
 The binaries are ~72 MB (~29 MB gzipped). Roughly half of that is ICU data
 compiled into Foundation, which cannot be dropped without dropping
