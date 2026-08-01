@@ -2,7 +2,7 @@
   # Development-environment-only flake.
   #
   # This flake provides the C library dependencies Munin needs (libvips,
-  # libexif, libiptcdata, libgd, glib, pkg-config, plus the transitive
+  # libexif, libiptcdata, glib, pkg-config, plus the transitive
   # swift-vips pile) and swiftlint (a prebuilt binary in nixpkgs).
   #
   # The Swift toolchain is **deliberately not provided** by this flake. The

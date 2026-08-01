@@ -3,18 +3,6 @@
 
 import PackageDescription
 
-var linkerSettings: [LinkerSetting]? {
-  #if os(Linux)
-    return [
-      .linkedLibrary("gd"),
-      .linkedLibrary("iptcdata"),
-      .linkedLibrary("exif"),
-    ]
-  #else
-    return nil
-  #endif
-}
-
 let package = Package(
   name: "Munin",
   platforms: [
