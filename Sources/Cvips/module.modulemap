@@ -1,0 +1,11 @@
+// libvips (and, through its headers, glib/gobject) as a Swift module.
+//
+// `link "vips"` is what puts -lvips on the link line; the header search path
+// and everything else comes from `pkgConfig: "vips"` in Package.swift -- see
+// the note above that target for why the musl sysroot flattens vips.pc.
+module Cvips [system] {
+    umbrella header "Cvips.h"
+    link "vips"
+    export *
+    module * { export * }
+}
