@@ -1,0 +1,7 @@
+# Collapse machine-produced files in GitHub's diff view and keep them out of
+# the language statistics. They are still reviewable — click to expand — but
+# they do not bury the hand-written changes in a pull request.
+
+# The parity baseline: whatever `munin` writes for example/album. Regenerated
+# with scripts/regen-example-content.sh, never edited by hand.
+example/content/** linguist-generated=true
