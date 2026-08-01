@@ -155,8 +155,16 @@ extension Album: Decodable {
 }
 
 extension Album {
+  /// Name, then url. Sibling directory names are unique as byte strings on
+  /// disk, but Swift's `String` comparison is canonical, so `Håkon` spelled
+  /// NFC and NFD tie — and a tie in this comparator reaches both the
+  /// `albums` array of every `index.json` and `landscapeCoverPhoto()`,
+  /// which walks `albums.sorted()` to choose an album's cover image.
   static func < (lhs: Album, rhs: Album) -> Bool {
-    return lhs.name < rhs.name
+    if lhs.name != rhs.name {
+      return lhs.name < rhs.name
+    }
+    return canonicalThenBytewiseLess(lhs.url.string, rhs.url.string)
   }
 
   func hash(into hasher: inout Hasher) {

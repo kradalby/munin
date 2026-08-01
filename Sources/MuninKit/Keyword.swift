@@ -69,8 +69,21 @@ extension Keyword: Decodable {
 }
 
 extension Keyword {
+  /// Name, then url — the same total order as ``KeywordPointer/<(_:_:)``.
+  ///
+  /// `buildKeywordsFromAlbum` keys its accumulator by name, so the array
+  /// this orders happens to hold canonically-distinct names today and the
+  /// tie-break never decides anything there. It is here so the comparator
+  /// is a strict total order over any `Keyword` values, not only over the
+  /// ones one current caller happens to build: a name-only comparison ties
+  /// on `Håkon` spelled NFC and NFD, and `sorted()` is stable, so a tie
+  /// silently inherits `Set`/`Dictionary` iteration order — which comes
+  /// from the per-process randomised hash seed. See `OrderingTotalityTests`.
   static func < (lhs: Keyword, rhs: Keyword) -> Bool {
-    return lhs.name < rhs.name
+    if lhs.name != rhs.name {
+      return lhs.name < rhs.name
+    }
+    return canonicalThenBytewiseLess(lhs.url.string, rhs.url.string)
   }
 }
 
@@ -154,8 +167,15 @@ struct KeywordPointer: Hashable, Comparable, Codable, Sendable {
     self.url = url
   }
 
+  /// Name, then url. `KeywordPointer` equality covers both fields, so two
+  /// canonically-equivalent spellings of one keyword survive side by side
+  /// in a `Set` (their urls differ byte-wise, and `FilePath` compares
+  /// bytes) while `name` alone cannot order them.
   static func < (lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
-    return lhs.name < rhs.name
+    if lhs.name != rhs.name {
+      return lhs.name < rhs.name
+    }
+    return canonicalThenBytewiseLess(lhs.url.string, rhs.url.string)
   }
 
   static func == (lhs: KeywordPointer, rhs: KeywordPointer) -> Bool {
