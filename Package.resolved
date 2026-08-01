@@ -1,5 +1,5 @@
 {
-  "originHash" : "2b8dfeb42d2d15d8e45563abed0a45b17b7d3d19d68e874d1f5efe4cca4a84eb",
+  "originHash" : "9ad461fbaaf69b6fc18ca9dffa8b1cd352ce7ab54eb1776279fc6b50869461eb",
   "pins" : [
     {
       "identity" : "console-kit",
@@ -89,14 +89,6 @@
       "state" : {
         "revision" : "7c6ad0fc39d0763e0b699210e4124afd5041c5df",
         "version" : "1.6.4"
-      }
-    },
-    {
-      "identity" : "swift-vips",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/kradalby/swift-vips.git",
-      "state" : {
-        "revision" : "bfebd9a0b758c813247f28212b2ec7d7a0f88bf0"
       }
     },
     {
