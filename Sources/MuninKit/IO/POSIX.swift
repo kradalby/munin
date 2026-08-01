@@ -3,6 +3,8 @@ import SystemPackage
 
 #if canImport(Glibc)
   import Glibc
+#elseif canImport(Musl)
+  import Musl
 #elseif canImport(Darwin)
   import Darwin
 #endif
@@ -188,8 +190,14 @@ enum POSIX {
 // under slightly different names; these shims pick the right one per OS
 // and give the rest of `POSIX` a single name to call.
 
-#if canImport(Glibc)
-  private typealias StatBuffer = Glibc.stat
+#if canImport(Glibc) || canImport(Musl)
+  // Only the `StatBuffer` typealias needs to name its libc module; everything
+  // below resolves the same way under glibc and musl unqualified.
+  #if canImport(Glibc)
+    private typealias StatBuffer = Glibc.stat
+  #else
+    private typealias StatBuffer = Musl.stat
+  #endif
   // `stat` is both a type and a function in libc, so `Glibc.stat(p, s)` is
   // ambiguous to Swift. Explicit `@Sendable` wrappers disambiguate and
   // satisfy strict-concurrency's ban on non-Sendable global state.
@@ -204,21 +212,21 @@ enum POSIX {
     lstat(p, s)
   }
   @Sendable private func system_mkdir(_ p: UnsafePointer<CChar>, _ m: mode_t) -> Int32 {
-    Glibc.mkdir(p, m)
+    mkdir(p, m)
   }
-  @Sendable private func system_unlink(_ p: UnsafePointer<CChar>) -> Int32 { Glibc.unlink(p) }
-  @Sendable private func system_rmdir(_ p: UnsafePointer<CChar>) -> Int32 { Glibc.rmdir(p) }
+  @Sendable private func system_unlink(_ p: UnsafePointer<CChar>) -> Int32 { unlink(p) }
+  @Sendable private func system_rmdir(_ p: UnsafePointer<CChar>) -> Int32 { rmdir(p) }
   @Sendable private func system_symlink(
     _ t: UnsafePointer<CChar>, _ l: UnsafePointer<CChar>
   ) -> Int32 {
-    Glibc.symlink(t, l)
+    symlink(t, l)
   }
   @Sendable private func system_rename(
     _ s: UnsafePointer<CChar>, _ d: UnsafePointer<CChar>
   ) -> Int32 {
-    Glibc.rename(s, d)
+    rename(s, d)
   }
-  private var system_errno: Int32 { Glibc.errno }
+  private var system_errno: Int32 { errno }
 
   private func modificationDate(from buf: StatBuffer) -> Date {
     let sec = TimeInterval(buf.st_mtim.tv_sec)
