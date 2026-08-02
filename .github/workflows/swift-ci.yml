@@ -12,10 +12,10 @@ on:
       - master
       - main
       - "modernize-*"
+  # No branch filter: a pull request should be tested wherever it is headed.
+  # Filtering on master/main means a stacked PR -- one based on another
+  # open PR's branch -- matches nothing and silently gets no CI at all.
   pull_request:
-    branches:
-      - master
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
