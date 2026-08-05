@@ -77,6 +77,32 @@ smoke-static-arm64:
 test:
 	swift test
 
+# Build and test inside the official Swift image, for hosts without a usable
+# system toolchain (NixOS in particular — see README, Development). The image
+# tag tracks the Swift version CI pins.
+#
+# The scratch path is a named volume rather than ./.build so the container
+# never leaves root-owned artefacts in the working tree, and so a host-side
+# `swift build` and a container build do not fight over the same directory.
+DOCKER_SWIFT_IMAGE ?= swift:6.3.1
+DOCKER_SWIFT_DEPS = libvips-dev libexif-dev libiptcdata0-dev pkg-config
+
+define docker-swift
+	$(DOCKER) run --rm -v "$(CURDIR):/src" -v munin-swift-build:/build -w /src \
+		$(DOCKER_SWIFT_IMAGE) bash -eo pipefail -c '\
+			if ! command -v vips >/dev/null 2>&1; then \
+				apt-get update -qq && \
+				apt-get install -y -qq --no-install-recommends $(DOCKER_SWIFT_DEPS) >/dev/null; \
+			fi; \
+			$(1) --scratch-path /build'
+endef
+
+docker-build:
+	$(call docker-swift,swift build)
+
+docker-test:
+	$(call docker-swift,swift test)
+
 upgrade:
 	echo "Not implemented"
 

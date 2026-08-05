@@ -203,6 +203,34 @@ make lint          # swiftlint
 make fmt           # swiftlint --fix + swift-format
 ```
 
+### Building without a system toolchain (NixOS and friends)
+
+```bash
+make docker-build  # debug build in the official Swift image
+make docker-test   # run the full test suite there
+```
+
+These run inside `swift:6.3.1` — the same Swift version CI pins — and install
+the C libraries from the Requirements section on first use. Use them on any
+host where a Swift.org toolchain will not run natively.
+
+NixOS is the motivating case, and it is worth spelling out because the failure
+is confusing. A swiftly or Swift.org toolchain is a generic Linux binary, and
+unless `programs.nix-ld` is enabled NixOS points
+`/lib64/ld-linux-x86-64.so.2` at a stub that only prints an error, so the
+toolchain cannot exec at all. Wrapping it in an FHS environment
+(`buildFHSEnv`, `steam-run`) gets `swift --version` working but not much
+further: SwiftPM then links the compiled `Package.swift` with nixpkgs'
+`ld.gold`, which cannot find `crtbeginS.o` or `libgcc`, and the build fails
+with a bare `Invalid manifest`. Two smaller traps sit behind that one —
+nixpkgs' current `libxml2` is `.so.16` while the toolchain wants `.so.2`
+(`libxml2_13` still provides it), and `swift-frontend` needs `libuuid`.
+The container sidesteps all of it.
+
+The scratch path is a named Docker volume, not `./.build`, so container builds
+leave no root-owned files in the working tree and do not collide with a
+host-side `swift build`.
+
 ### Code style
 
 Follow [SwiftLint](https://github.com/realm/SwiftLint) and
