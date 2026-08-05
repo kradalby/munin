@@ -67,9 +67,8 @@ struct NestedAlbumPathTests {
     #expect(urls.count == 1, "expected one sub-album entry, got \(urls)")
 
     for url in urls {
-      // The harness configures an absolute `targetFolder`, so the urls
-      // Munin writes are absolute here; a relative `targetFolder` (what
-      // the CLI normally gets) resolves against the working directory.
+      // Published urls are relative to the gallery root, which the
+      // harness puts at `outputRoot`.
       let path = url.hasPrefix("/") ? url : harness.outputRoot + "/" + url
       #expect(
         FileManager.default.fileExists(atPath: path),

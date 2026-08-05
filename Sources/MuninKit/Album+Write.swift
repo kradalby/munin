@@ -28,7 +28,7 @@ extension Album {
 
     ctx.log.trace("Writing metadata for album \(name)")
     if writeJson {
-      let encoder = MuninJSON.encoder()
+      let encoder = MuninJSON.encoder(galleryRoot: ctx.config.outputPath)
       let encodedData: Data
       do {
         encodedData = try encoder.encode(self)
@@ -37,7 +37,7 @@ extension Album {
           path: url.string, underlying: String(describing: error))
       }
       ctx.log.trace("Writing album metadata \(name) to \(url)")
-      try FileIO.writeAtomic(encodedData, to: url)
+      try FileIO.writeAtomic(encodedData, to: url.path)
     }
 
     for album in albums {
@@ -55,7 +55,7 @@ extension Album {
           } catch let error as MuninError {
             ctx.log.error("Photo \(photo.name) write failed: \(error)")
             await ctx.state.recordFailure(
-              PhotoWriteFailure(photo: photo.name, path: photo.url, error: error))
+              PhotoWriteFailure(photo: photo.name, path: photo.url.path, error: error))
           } catch {
             // Non-MuninError thrown out of `Photo.write` shouldn't exist
             // given the typed throws surface, but if one slips through
@@ -64,7 +64,7 @@ extension Album {
             await ctx.state.recordFailure(
               PhotoWriteFailure(
                 photo: photo.name,
-                path: photo.url,
+                path: photo.url.path,
                 error: .imageOperationFailed(
                   path: photo.url.string,
                   operation: "write",
@@ -91,7 +91,7 @@ extension Album {
     }
 
     do {
-      try POSIX.unlink(url)
+      try POSIX.unlink(url.path)
     } catch {
       ctx.log.error("Could not remove album json \(name) at path \(url)")
     }

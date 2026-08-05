@@ -17,7 +17,8 @@ private let ansiGreen = "\u{001B}[32m"
 private let ansiRed = "\u{001B}[31m"
 private let ansiReset = "\u{001B}[0m"
 
-func readAndDecodeJsonFile<T>(_ type: T.Type, atPath path: FilePath) -> T?
+func readAndDecodeJsonFile<T>(_ type: T.Type, atPath path: FilePath, galleryRoot: String = "")
+  -> T?
 where T: Decodable {
   // Existence + not-a-directory check via lstat; mirrors the old
   // fileExists(isDirectory:) call pattern without pulling in FileManager.
@@ -38,7 +39,7 @@ where T: Decodable {
     return nil
   }
 
-  let decoder = MuninJSON.decoder()
+  let decoder = MuninJSON.decoder(galleryRoot: galleryRoot)
   do {
     return try decoder.decode(type, from: data)
   } catch {
@@ -50,9 +51,9 @@ where T: Decodable {
 /// String-path convenience overload so callers that still carry a plain
 /// `String` (e.g. configuration file paths) don't need to wrap at every
 /// call site.
-func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String) -> T?
+func readAndDecodeJsonFile<T>(_ type: T.Type, atPath: String, galleryRoot: String = "") -> T?
 where T: Decodable {
-  readAndDecodeJsonFile(type, atPath: FilePath(atPath))
+  readAndDecodeJsonFile(type, atPath: FilePath(atPath), galleryRoot: galleryRoot)
 }
 
 func createOrReplaceSymlink(ctx: Context, source: FilePath, destination: FilePath) throws {

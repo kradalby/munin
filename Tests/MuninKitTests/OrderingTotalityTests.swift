@@ -51,6 +51,10 @@ struct OrderingTotalityTests {
     Array(path.string.utf8)
   }
 
+  private func key(_ url: GalleryURL) -> [UInt8] {
+    key(url.path)
+  }
+
   private func show(_ bytes: [UInt8]) -> String {
     // Escape non-ASCII so an NFC/NFD pair is visibly different in a
     // failure message rather than rendering as the same glyphs.

@@ -4,14 +4,14 @@ import SystemPackage
 
 struct Keyword: Hashable, Comparable, Sendable {
   var name: String
-  var url: FilePath
+  var url: GalleryURL
   var photos: Set<Photo>
 
   init(name: String, url: String) {
-    self.init(name: name, url: FilePath(url))
+    self.init(name: name, url: GalleryURL(url))
   }
 
-  init(name: String, url: FilePath) {
+  init(name: String, url: GalleryURL) {
     self.name = name
     self.url = url
     photos = []
@@ -52,15 +52,16 @@ extension Keyword: Encodable {
 extension Keyword: Decodable {
   init(from decoder: Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
+    let galleryRoot = decoder.userInfo[.galleryRoot] as? String ?? ""
     name = try values.decode(String.self, forKey: .name)
-    url = try values.decode(FilePath.self, forKey: .url)
+    url = try values.decode(GalleryURL.self, forKey: .url)
 
     // Here we will end up with the same picture twice in memory, is that a problem?
     var photosArray = try values.nestedUnkeyedContainer(forKey: .photos)
     var photos: Set<Photo> = Set<Photo>()
     while !photosArray.isAtEnd {
       let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
-      if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
+      if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url.path, galleryRoot: galleryRoot) {
         photos.insert(photo)
       }
     }
@@ -89,7 +90,7 @@ extension Keyword {
 
 extension Keyword {
   func write(ctx: Context) throws {
-    let parentDir = url.removingLastComponent()
+    let parentDir = url.path.removingLastComponent()
     do {
       try POSIX.createDirectory(parentDir)
     } catch {
@@ -98,7 +99,7 @@ extension Keyword {
     }
 
     ctx.log.trace("Writing metadata for \(type(of: self)) \(name)")
-    let encoder = MuninJSON.encoder()
+    let encoder = MuninJSON.encoder(galleryRoot: ctx.config.outputPath)
 
     let encodedData: Data
     do {
@@ -109,7 +110,7 @@ extension Keyword {
     }
 
     ctx.log.trace("Writing \(type(of: self)) metadata \(name) to \(url)")
-    try FileIO.writeAtomic(encodedData, to: url)
+    try FileIO.writeAtomic(encodedData, to: url.path)
   }
 }
 
@@ -155,14 +156,14 @@ func buildPeopleFromAlbum(album: Album) -> [Keyword] {
 
 struct KeywordPointer: Hashable, Comparable, Codable, Sendable {
   var name: String
-  var url: FilePath
+  var url: GalleryURL
 
   init(name: String, url: String) {
     self.name = name
-    self.url = FilePath(url)
+    self.url = GalleryURL(url)
   }
 
-  init(name: String, url: FilePath) {
+  init(name: String, url: GalleryURL) {
     self.name = name
     self.url = url
   }

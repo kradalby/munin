@@ -42,7 +42,7 @@ public struct Statistics: Codable, Sendable {
     ctx.log.info("Writing stats")
     let path = FilePath(joinPath(ctx.config.outputPath, ctx.config.name, "stats.json"))
 
-    let encoder = MuninJSON.encoder()
+    let encoder = MuninJSON.encoder(galleryRoot: ctx.config.outputPath)
     let encodedData: Data
     do {
       encodedData = try encoder.encode(self)

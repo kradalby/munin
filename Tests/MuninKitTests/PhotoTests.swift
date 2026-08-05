@@ -50,7 +50,7 @@ final class PhotoTests {
     )
 
     #expect(photo.name == "test")
-    #expect(photo.url == "example/content/test.json")
+    #expect(photo.url.string == "example/content/test.json")
     #expect(photo.scaledPhotos.count == 7)
     #expect(photo.aperture == 2.64386)
     #expect(photo.orientation == .landscape)
@@ -61,7 +61,7 @@ final class PhotoTests {
           .sorted())
 
     #expect(photo2.name == "test2")
-    #expect(photo2.url == "example/content/test2.json")
+    #expect(photo2.url.string == "example/content/test2.json")
     #expect(photo2.scaledPhotos.count == 7)
     #expect(photo2.aperture == 2.97085)
     #expect(photo2.orientation == .landscape)
@@ -72,7 +72,7 @@ final class PhotoTests {
           .sorted())
 
     #expect(photo3.name == "test3")
-    #expect(photo3.url == "example/content/test3.json")
+    #expect(photo3.url.string == "example/content/test3.json")
     #expect(photo3.scaledPhotos.count == 7)
     #expect(photo3.aperture == 4.64386)
     #expect(photo3.orientation == .portrait)
@@ -82,7 +82,7 @@ final class PhotoTests {
         == ["Denmark", "2017", "Århus", "Central Denmark Region", "DK", "Street art"].sorted())
 
     #expect(photo4.name == "test4")
-    #expect(photo4.url == "example/content/test4.json")
+    #expect(photo4.url.string == "example/content/test4.json")
     #expect(photo4.scaledPhotos.count == 8)
     #expect(photo4.aperture == 1.696)
     #expect(photo4.orientation == .portrait)
