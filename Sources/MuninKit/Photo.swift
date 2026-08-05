@@ -10,8 +10,8 @@ import SystemPackage
 
 struct Photo: Codable, Comparable, Hashable, Sendable {
   var name: String
-  var url: FilePath
-  var originalImageURL: FilePath
+  var url: GalleryURL
+  var originalImageURL: GalleryURL
   var originalImagePath: FilePath
   var scaledPhotos: [ScaledPhoto]
   var parents: [Parent]
@@ -75,8 +75,10 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
 
   var keywords: [KeywordPointer]
   var people: [KeywordPointer]
-  var next: String?
-  var previous: String?
+  /// Sibling navigation. Published like every other url, so it is relative
+  /// to the gallery root rather than to wherever Munin wrote.
+  var next: GalleryURL?
+  var previous: GalleryURL?
 
   init(
     name: String,
@@ -89,8 +91,8 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
   ) {
     self.init(
       name: name,
-      url: FilePath(url),
-      originalImageURL: FilePath(originalImageURL),
+      url: GalleryURL(url),
+      originalImageURL: GalleryURL(originalImageURL),
       originalImagePath: FilePath(originalImagePath),
       scaledPhotos: scaledPhotos,
       modifiedDate: modifiedDate,
@@ -99,8 +101,8 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
 
   init(
     name: String,
-    url: FilePath,
-    originalImageURL: FilePath,
+    url: GalleryURL,
+    originalImageURL: GalleryURL,
     originalImagePath: FilePath,
     scaledPhotos: [ScaledPhoto],
     modifiedDate: Date,
@@ -124,8 +126,8 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
     dateTime: Date? = nil
   ) {
     self.name = name
-    self.url = FilePath()
-    self.originalImageURL = FilePath()
+    self.url = GalleryURL(FilePath())
+    self.originalImageURL = GalleryURL(FilePath())
     self.originalImagePath = FilePath()
     self.scaledPhotos = []
     self.parents = []
@@ -138,15 +140,15 @@ struct Photo: Codable, Comparable, Hashable, Sendable {
 }
 
 struct ScaledPhoto: Codable, Equatable, Comparable, Sendable {
-  var url: FilePath
+  var url: GalleryURL
   var maxResolution: Int
 
   init(url: String, maxResolution: Int) {
-    self.url = FilePath(url)
+    self.url = GalleryURL(url)
     self.maxResolution = maxResolution
   }
 
-  init(url: FilePath, maxResolution: Int) {
+  init(url: GalleryURL, maxResolution: Int) {
     self.url = url
     self.maxResolution = maxResolution
   }
@@ -241,7 +243,7 @@ extension Photo {
   /// Depth of this photo's URL in the gallery hierarchy, measured in
   /// path components minus one (so a top-level photo has depth 0).
   var depth: Int {
-    let n = url.components.count
+    let n = url.path.components.count
     return n > 0 ? n - 1 : 0
   }
 

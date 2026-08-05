@@ -119,8 +119,8 @@ func readStateFromInputDirectory(
   for index in photos.indices {
     let previousIndex = index == 0 ? photoCount - 1 : index - 1
     let nextIndex = index == photoCount - 1 ? 0 : index + 1
-    photos[index].previous = photos[previousIndex].url.string
-    photos[index].next = photos[nextIndex].url.string
+    photos[index].previous = photos[previousIndex].url
+    photos[index].next = photos[nextIndex].url
   }
 
   for photo in photos {
@@ -142,8 +142,11 @@ func readStateFromInputDirectory(
 /// and regenerates the missing files. Without this, `sourceHash` equality
 /// hides missing-output photos and the two-pass write in `Gallery.build`
 /// never restores them.
-func readStateFromOutputDirectory(indexFileAtPath: String) -> Album? {
-  guard let album = readAndDecodeJsonFile(Album.self, atPath: indexFileAtPath) else {
+func readStateFromOutputDirectory(indexFileAtPath: String, galleryRoot: String) -> Album? {
+  guard
+    let album = readAndDecodeJsonFile(
+      Album.self, atPath: indexFileAtPath, galleryRoot: galleryRoot)
+  else {
     return nil
   }
   return pruneIncompleteOutputPhotos(album)

@@ -10,7 +10,7 @@ import SystemPackage
 
 struct Album: Hashable, Comparable, Sendable {
   var name: String
-  var url: FilePath
+  var url: GalleryURL
   var path: FilePath
   var photos: Set<Photo>
   var albums: Set<Album>
@@ -25,7 +25,7 @@ struct Album: Hashable, Comparable, Sendable {
   init(name: String, path: FilePath, parents: [Parent]) {
     self.name = name
     self.path = path
-    url = path.appending("index.json")
+    url = GalleryURL(path.appending("index.json"))
     photos = []
     albums = []
     keywords = Set()
@@ -84,29 +84,29 @@ extension Album: Encodable {
 }
 
 struct PhotoInAlbum: Codable, Sendable {
-  var url: FilePath
+  var url: GalleryURL
   var dateTime: Date
-  var originalImageURL: FilePath
+  var originalImageURL: GalleryURL
   var scaledPhotos: [ScaledPhoto]
   var gps: GPS?
 }
 
 struct AlbumInAlbum: Codable, Sendable {
-  var url: FilePath
+  var url: GalleryURL
   var name: String
   var scaledPhotos: [ScaledPhoto]
 }
 
 struct Parent: Codable, Equatable, Comparable, Sendable {
   var name: String
-  var url: FilePath
+  var url: GalleryURL
 
   init(name: String, url: String) {
     self.name = name
-    self.url = FilePath(url)
+    self.url = GalleryURL(url)
   }
 
-  init(name: String, url: FilePath) {
+  init(name: String, url: GalleryURL) {
     self.name = name
     self.url = url
   }
@@ -125,8 +125,9 @@ extension Parent: CustomStringConvertible {
 extension Album: Decodable {
   init(from decoder: Decoder) throws {
     let values = try decoder.container(keyedBy: CodingKeys.self)
+    let galleryRoot = decoder.userInfo[.galleryRoot] as? String ?? ""
     name = try values.decode(String.self, forKey: .name)
-    url = try values.decode(FilePath.self, forKey: .url)
+    url = try values.decode(GalleryURL.self, forKey: .url)
     path = try values.decode(FilePath.self, forKey: .path)
     keywords = try values.decode(Set<KeywordPointer>.self, forKey: .keywords)
     people = try values.decode(Set<KeywordPointer>.self, forKey: .people)
@@ -136,7 +137,7 @@ extension Album: Decodable {
     var photos: Set<Photo> = Set<Photo>()
     while !photosArray.isAtEnd {
       let photoInAlbum = try photosArray.decode(PhotoInAlbum.self)
-      if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url) {
+      if let photo = readAndDecodeJsonFile(Photo.self, atPath: photoInAlbum.url.path, galleryRoot: galleryRoot) {
         photos.insert(photo)
       }
     }
@@ -146,7 +147,7 @@ extension Album: Decodable {
     var albums: Set<Album> = Set<Album>()
     while !albumsArray.isAtEnd {
       let albumInAlbum = try albumsArray.decode(AlbumInAlbum.self)
-      if let album = readAndDecodeJsonFile(Album.self, atPath: albumInAlbum.url) {
+      if let album = readAndDecodeJsonFile(Album.self, atPath: albumInAlbum.url.path, galleryRoot: galleryRoot) {
         albums.insert(album)
       }
     }

@@ -234,7 +234,8 @@ public struct Gallery: Sendable {
       "Looking for output directory at \(ctx.config.outputPath)/\(ctx.config.name)/index.json")
     let outputStart = Date()
     let outputAlbum = readStateFromOutputDirectory(
-      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json")
+      indexFileAtPath: "\(ctx.config.outputPath)/\(ctx.config.name)/index.json",
+      galleryRoot: ctx.config.outputPath)
     if outputAlbum != nil {
       time.readOutputDirectory = Date().timeIntervalSince(outputStart)
       ctx.log.debug("Output directory read from disk")

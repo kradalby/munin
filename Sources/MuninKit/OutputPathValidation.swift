@@ -95,10 +95,10 @@ func findOutputPathCollisions(ctx: Context) -> [OutputPathCollision] {
 func findKeywordOutputPathCollisions(album: Album) -> [OutputPathCollision] {
   var claims: [FilePath: [String]] = [:]
   for pointer in album.keywords {
-    claims[pointer.url, default: []].append("keyword \"\(pointer.name)\"")
+    claims[pointer.url.path, default: []].append("keyword \"\(pointer.name)\"")
   }
   for pointer in album.people {
-    claims[pointer.url, default: []].append("person \"\(pointer.name)\"")
+    claims[pointer.url.path, default: []].append("person \"\(pointer.name)\"")
   }
 
   return

@@ -40,6 +40,14 @@ struct GalleryURL: Hashable, Sendable {
   }
 }
 
+/// Lets model construction keep reading as plain paths, both in MuninKit and
+/// in tests, rather than wrapping at every literal.
+extension GalleryURL: ExpressibleByStringLiteral {
+  init(stringLiteral value: String) {
+    self.init(value)
+  }
+}
+
 extension GalleryURL: Comparable {
   static func < (lhs: GalleryURL, rhs: GalleryURL) -> Bool {
     lhs.path.string < rhs.path.string

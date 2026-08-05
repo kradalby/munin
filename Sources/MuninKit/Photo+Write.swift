@@ -31,7 +31,7 @@ extension Photo {
     ctx.log.trace("Writing image \(name)")
 
     let targets = scaledPhotos.map {
-      ScaleTarget(width: $0.maxResolution, path: $0.url)
+      ScaleTarget(width: $0.maxResolution, path: $0.url.path)
     }
     let result = try Imaging.scaleJPEG(
       source: originalImagePath,
@@ -52,13 +52,13 @@ extension Photo {
     try createOrReplaceSymlink(
       ctx: ctx,
       source: FilePath(joinPath(relativeOriginialPath)),
-      destination: originalImageURL
+      destination: originalImageURL.path
     )
   }
 
   private func writeMetadata(ctx: Context) throws {
     ctx.log.trace("Writing metadata for image \(name)")
-    let encoder = MuninJSON.encoder()
+    let encoder = MuninJSON.encoder(galleryRoot: ctx.config.outputPath)
 
     let encodedData: Data
     do {
@@ -69,7 +69,7 @@ extension Photo {
     }
 
     ctx.log.trace("Writing image metadata \(name) to \(url)")
-    try FileIO.writeAtomic(encodedData, to: url)
+    try FileIO.writeAtomic(encodedData, to: url.path)
   }
 
   /// Remove this photo's files from disk: JSON, symlinked original, and every
@@ -77,20 +77,20 @@ extension Photo {
   func destroy(ctx: Context) {
     ctx.log.trace("Removing image \(name)")
     do {
-      try POSIX.unlink(url)
+      try POSIX.unlink(url.path)
     } catch {
       ctx.log.error("Could not remove image json \(name) at path \(url)")
     }
 
     do {
-      try POSIX.unlink(originalImageURL)
+      try POSIX.unlink(originalImageURL.path)
     } catch {
       ctx.log.error("Could not remove image json \(name) at path \(originalImageURL)")
     }
 
     for scaledPhoto in scaledPhotos {
       do {
-        try POSIX.unlink(scaledPhoto.url)
+        try POSIX.unlink(scaledPhoto.url.path)
       } catch {
         ctx.log.error("Could not remove image \(name) at path \(scaledPhoto.url)")
       }
