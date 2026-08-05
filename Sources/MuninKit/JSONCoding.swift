@@ -16,18 +16,28 @@ import Foundation
 enum MuninJSON {
 
   /// Encoder used for every `*.json` file Munin writes to disk.
-  static func encoder() -> JSONEncoder {
+  ///
+  /// `galleryRoot` is the directory Munin writes into
+  /// (`Configuration.targetFolder`). ``GalleryURL`` strips it so published
+  /// URLs are relative to the gallery rather than to Munin's working
+  /// directory. Omit it and paths encode verbatim.
+  static func encoder(galleryRoot: String = "") -> JSONEncoder {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
     encoder.dateEncodingStrategy = .iso8601
+    encoder.userInfo[.galleryRoot] = galleryRoot
     return encoder
   }
 
   /// Decoder used for every `*.json` file Munin reads back. Paired with
   /// `encoder()` so a round-trip of Munin-written JSON is lossless.
-  static func decoder() -> JSONDecoder {
+  ///
+  /// `galleryRoot` is re-applied to ``GalleryURL`` values, so what Munin
+  /// holds in memory is always a usable on-disk path.
+  static func decoder(galleryRoot: String = "") -> JSONDecoder {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
+    decoder.userInfo[.galleryRoot] = galleryRoot
     return decoder
   }
 }
