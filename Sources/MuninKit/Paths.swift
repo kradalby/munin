@@ -31,6 +31,35 @@ enum Paths {
     return filePath.string
   }
 
+  /// Re-express `path` relative to `base`, or return it unchanged when it
+  /// does not sit under `base`.
+  ///
+  /// Munin builds a published URL and the on-disk path it writes to from
+  /// the same string, so every emitted URL carries the name of the output
+  /// directory (`Configuration.targetFolder`). Relativizing at the
+  /// serialization boundary lets disk writes keep the full path while the
+  /// published gallery stays portable: a consumer can then serve it from
+  /// any prefix without agreeing on that directory's name.
+  ///
+  /// Matching is component-wise, so `hugin2/a` is not considered to sit
+  /// under `hugin`. A relative path never matches an absolute base, or
+  /// vice versa.
+  static func relative(_ path: String, to base: String) -> String {
+    let basePath = FilePath(base)
+    let baseComponents = basePath.components.map(\.string)
+    guard !baseComponents.isEmpty else { return path }
+
+    let filePath = FilePath(path)
+    guard filePath.root == basePath.root else { return path }
+
+    let components = filePath.components.map(\.string)
+    guard components.count >= baseComponents.count,
+      Array(components.prefix(baseComponents.count)) == baseComponents
+    else { return path }
+
+    return join(Array(components.dropFirst(baseComponents.count)))
+  }
+
   /// Last path component with its extension stripped.
   static func stem(_ path: String) -> String {
     FilePath(path).stem ?? ""

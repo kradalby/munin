@@ -34,6 +34,58 @@ struct PathsTests {
     #expect(Paths.join(["example", "content"]) == "example/content")
   }
 
+  // MARK: - relative
+
+  @Test func relativeStripsBasePrefix() {
+    #expect(Paths.relative("hugin/root/2001/index.json", to: "hugin") == "root/2001/index.json")
+    #expect(Paths.relative("content/root/index.json", to: "content") == "root/index.json")
+  }
+
+  @Test func relativeAcceptsMultiComponentBase() {
+    #expect(Paths.relative("a/b/c/d.json", to: "a/b") == "c/d.json")
+  }
+
+  @Test func relativeIgnoresTrailingAndLeadingSlashesOnBase() {
+    #expect(Paths.relative("hugin/root/a.json", to: "hugin/") == "root/a.json")
+    #expect(Paths.relative("/out/hugin/root/a.json", to: "/out/hugin/") == "root/a.json")
+  }
+
+  @Test func relativeReturnsEmptyWhenPathEqualsBase() {
+    #expect(Paths.relative("hugin", to: "hugin") == "")
+  }
+
+  /// The whole point of matching component-wise: a sibling directory whose
+  /// name merely starts with the base must not be treated as being under it.
+  @Test func relativeDoesNotMatchPartialComponent() {
+    #expect(Paths.relative("hugin2/root/a.json", to: "hugin") == "hugin2/root/a.json")
+    #expect(Paths.relative("huginx", to: "hugin") == "huginx")
+  }
+
+  @Test func relativeLeavesPathsOutsideBaseUnchanged() {
+    #expect(Paths.relative("other/root/a.json", to: "hugin") == "other/root/a.json")
+    #expect(Paths.relative("root/a.json", to: "hugin") == "root/a.json")
+  }
+
+  @Test func relativeWithEmptyBaseIsIdentity() {
+    #expect(Paths.relative("hugin/root/a.json", to: "") == "hugin/root/a.json")
+    #expect(Paths.relative("hugin/root/a.json", to: "/") == "hugin/root/a.json")
+  }
+
+  @Test func relativeDoesNotMixAbsoluteAndRelative() {
+    #expect(Paths.relative("/hugin/root/a.json", to: "hugin") == "/hugin/root/a.json")
+    #expect(Paths.relative("hugin/root/a.json", to: "/hugin") == "hugin/root/a.json")
+  }
+
+  @Test func relativeHandlesAbsolutePaths() {
+    #expect(Paths.relative("/srv/gallery/root/a.json", to: "/srv/gallery") == "root/a.json")
+  }
+
+  @Test func relativePreservesNonASCIIComponents() {
+    #expect(
+      Paths.relative("hugin/root/2024/Håkon_har_nytt_/a.json", to: "hugin")
+        == "root/2024/Håkon_har_nytt_/a.json")
+  }
+
   // MARK: - stem / extension
 
   @Test func stemStripsExtension() {
