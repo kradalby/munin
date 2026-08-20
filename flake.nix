@@ -150,6 +150,18 @@
       # surfacing only as "Missing or empty JSON output from manifest
       # compilation". The C libraries below reach the build through
       # PKG_CONFIG_PATH, which needs no compiler wrapper.
+      #
+      # Consequence, and do not try to "fix" it with LD_LIBRARY_PATH: nothing
+      # here bakes an -rpath either, so a Linux binary SwiftPM links in this
+      # shell cannot find libvips.so.42 at run time. `swift build` succeeds and
+      # the binary dies on exec. Putting the nix lib dirs on LD_LIBRARY_PATH
+      # makes it worse, because that applies to *every* process in the shell:
+      # the Swift.org toolchain is built against the system glibc, picks up
+      # nix's libcurl and libxml2 instead, and `swift --version` segfaults.
+      # This shell is for compiling, linting and cross-building; running Linux
+      # binaries needs distro libraries (see the apt line in README.md), which
+      # is what swift-ci.yml's Linux job uses. macOS is unaffected — nix dylibs
+      # carry absolute install names, so dyld needs no search path.
       devShells.default = pkgs.mkShellNoCC {
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
