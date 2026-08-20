@@ -1,30 +1,38 @@
 name: Swift CI
 
+# The unit tests live here, on both platforms.
+
 on:
   push:
     branches:
       - master
       - main
       - "modernize-*"
+  # No branch filter: a pull request should be tested wherever it is headed.
+  # Filtering on master/main means a stacked PR -- one based on another
+  # open PR's branch -- matches nothing and silently gets no CI at all.
   pull_request:
-    branches:
-      - master
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-# Every run step happens inside the devShell, so CI links the same libvips and
-# libexif developers do. Consequence: nothing may `run:` before the nix
-# installer, which is why the setup steps below are all `uses:`.
-defaults:
-  run:
-    shell: nix develop --fallback --command bash -e {0}
-
 jobs:
   lint:
     runs-on: ubuntu-24.04
+
+    # Every run step happens inside the devShell, so CI links the same
+    # libvips and libexif developers do. Consequence: nothing may `run:`
+    # before the nix installer, which is why the setup steps below are all
+    # `uses:`.
+    #
+    # Deliberately per-job rather than workflow-wide: the devShell's
+    # PKG_CONFIG_PATH is glibc-flavoured, and SwiftPM reads host .pc
+    # directories even when cross-compiling, so nothing that targets musl
+    # may inherit this.
+    defaults:
+      run:
+        shell: nix develop --fallback --command bash -e {0}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -38,14 +46,66 @@ jobs:
       - name: swiftlint
         run: swiftlint lint
 
-  build-and-test:
-    # Run on both Linux and macOS so the cross-platform stability claims
-    # in the README (macOS + Linux) are actually exercised.
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-latest]
-    runs-on: ${{ matrix.os }}
+  # Linux is a separate job from macOS because the two need different C
+  # libraries, and only one of them can use nix.
+  #
+  # nix is deliberately absent here. The devShell has no cc-wrapper, so it
+  # bakes no -rpath, so a binary linked in it cannot find libvips.so.42 at run
+  # time -- `swift build` passes and `swift test` dies on exec. LD_LIBRARY_PATH
+  # does not rescue it: that applies to every process in the shell, so the
+  # Swift.org toolchain loads nix's libcurl/libxml2 against the system glibc
+  # and `swift --version` segfaults. Distro packages sit on the default loader
+  # path and need none of this -- and they are what README.md tells a Linux
+  # user to install, so this job now exercises the documented setup.
+  test-linux:
+    runs-on: ubuntu-24.04
+    # The official Swift image, rather than downloading a tarball onto the
+    # runner: it is the same 6.3.1 toolchain, already unpacked and cached by
+    # the registry.
+    container: swift:6.3.1
+
+    # A `container:` job defaults to `sh -e`, which is dash in this image and
+    # has no `pipefail`. The image ships bash; ask for it explicitly.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install C dependencies
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libvips-dev libexif-dev libiptcdata0-dev pkg-config
+
+      - name: Verify Swift toolchain
+        run: swift --version
+
+      - name: Cache Swift build artefacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .build
+          key: swift-build-linux-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swift-build-linux-
+
+      - name: swift build
+        run: swift build
+
+      - name: swift test
+        run: swift test
+
+  # The C libraries come from nix here, which works because nix dylibs carry
+  # absolute install names -- dyld needs no search path, so the run-time
+  # problem that rules nix out on Linux does not arise.
+  test-macos:
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        shell: nix develop --fallback --command bash -e {0}
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -59,46 +119,22 @@ jobs:
       # Deliberately not from the flake — see the flake.nix header for why.
       # It lands on the ambient PATH, which `nix develop` preserves.
 
-      - name: Cache Swift toolchain (Linux)
-        if: runner.os == 'Linux'
-        id: cache-swift-linux
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /opt/swift
-          key: swift-6.3.1-${{ matrix.os }}
-
-      - name: Install Swift 6.3.1 (Linux)
-        if: runner.os == 'Linux' && steps.cache-swift-linux.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          cd /tmp
-          wget -q https://download.swift.org/swift-6.3.1-release/ubuntu2404/swift-6.3.1-RELEASE/swift-6.3.1-RELEASE-ubuntu24.04.tar.gz
-          sudo mkdir -p /opt/swift
-          sudo tar -xzf swift-6.3.1-RELEASE-ubuntu24.04.tar.gz \
-            -C /opt/swift --strip-components=1
-
-      - name: Put Swift on PATH (Linux)
-        if: runner.os == 'Linux'
-        run: echo "/opt/swift/usr/bin" >> "$GITHUB_PATH"
-
-      - name: Cache Swift toolchain (macOS)
-        if: runner.os == 'macOS'
+      - name: Cache Swift toolchain
         id: cache-swift-macos
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: /Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain
-          key: swift-6.3.1-${{ matrix.os }}
+          key: swift-6.3.1-macos-latest
 
-      - name: Install Swift 6.3.1 (macOS)
-        if: runner.os == 'macOS' && steps.cache-swift-macos.outputs.cache-hit != 'true'
+      - name: Install Swift 6.3.1
+        if: steps.cache-swift-macos.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cd /tmp
           curl -sSLO https://download.swift.org/swift-6.3.1-release/xcode/swift-6.3.1-RELEASE/swift-6.3.1-RELEASE-osx.pkg
           sudo installer -pkg swift-6.3.1-RELEASE-osx.pkg -target /
 
-      - name: Put Swift on PATH (macOS)
-        if: runner.os == 'macOS'
+      - name: Put Swift on PATH
         run: echo "/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
 
       - name: Verify Swift toolchain
@@ -110,9 +146,9 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: .build
-          key: swift-build-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          key: swift-build-macos-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            swift-build-${{ runner.os }}-
+            swift-build-macos-
 
       - name: swift build
         run: swift build
