@@ -1,45 +1,45 @@
 {
-  # Development-environment-only flake.
+  # The static Linux binary only. See nix/README.md.
   #
-  # This flake provides the C library dependencies Munin needs (libvips,
-  # libexif, libiptcdata, glib, pkg-config, plus libvips' transitive pile)
-  # and swiftlint (a prebuilt binary in nixpkgs).
+  # The dynamic Linux and Darwin builds are not nix packages: nixpkgs' swift is
+  # too old to parse this package's manifest, and on Darwin the toolchain lives
+  # in Xcode, outside the store.
   #
-  # The Swift toolchain is **deliberately not provided** by this flake. The
-  # Swift packages in nixpkgs lag the official Swift.org releases and mix
-  # oddly with the C-library stdenv, so we keep Swift out of scope here and
-  # rely on the developer to install a matching toolchain themselves. See
-  # README.md for installation instructions (swiftly or the Swift.org
-  # tarball; the CI workflow pins Swift 6.3.1). That toolchain already
-  # bundles sourcekit-lsp and swift-format, so they are not provided here
-  # either — the nixpkgs copies are 5.10-era and drag in the (broken on
-  # Linux) nixpkgs Swift bootstrap.
-  #
-  # The `nix build` target has been dropped along with Swift — it depended
-  # on `swiftpm2nix` and the in-nix Swift packages. Releases come from
-  # `swift build -c release` run against this devShell.
+  # No `swift test` check either — the Static SDK ships no test framework, so
+  # the suite runs on the dynamic builds (.github/workflows/swift-ci.yml).
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
   outputs = {
     self,
     nixpkgs,
-    flake-utils,
     ...
   }: let
-    # Native build-tool dependencies: just pkg-config, for discovering the C
+    inherit (nixpkgs) lib;
+
+    # Not flake-utils' defaultSystems: those include x86_64-darwin, which
+    # current nixpkgs throws on at `import`, so `--all-systems` exited 1.
+    #
+    # Branch on this string, never on pkgs.stdenv.isLinux -- the latter forces
+    # pkgs, which is what throws.
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
+
+    forAllSystems = f: lib.genAttrs systems (system: f system);
+
+    # Native build-tool dependencies: pkg-config, for discovering the C
     # libraries below. Swift is intentionally not in this list.
     ndeps = pkgs:
       with pkgs; [
         pkg-config
       ];
 
-    # C library dependencies linked against by SwiftExif and by Munin's own
-    # Cvips / MuninVipsShim targets. Everything here must be present at
-    # compile *and* run time (they're shared libraries, not headers-only).
+    # Shared libraries, so needed at run time as well as compile time.
     bdeps = pkgs:
       with pkgs;
         [
@@ -76,18 +76,16 @@
 
           openssl.dev
 
-          # vips.pc lists these under Requires.private. Real pkg-config only
-          # resolves those for --static, but SwiftPM's own .pc parser walks
-          # them unconditionally and drops *all* cflags when one is missing.
+          # Requires.private in vips.pc. pkg-config resolves those only for
+          # --static; SwiftPM's own parser walks them always, and drops *all*
+          # cflags when one is missing.
           dav1d.dev
           hdf5.dev
           libraw.dev
           libultrahdr.dev
 
-          # Same story for glib.pc -> sysprof-capture-4, except sysprof is
-          # Linux-only in nixpkgs. Nothing actually links it here, so an empty
-          # .pc is enough to keep SwiftPM's resolver happy.
-          # ponytail: stub, replace with pkgs.sysprof if a real link is ever needed.
+          # Same, for glib.pc -> sysprof-capture-4, but sysprof is Linux-only
+          # in nixpkgs. Nothing links it, so an empty .pc suffices.
           (writeTextFile {
             name = "sysprof-capture-4-stub";
             destination = "/lib/pkgconfig/sysprof-capture-4.pc";
@@ -114,13 +112,12 @@
           pcre.dev
           util-linux.dev
         ];
-  in
-    flake-utils.lib.eachDefaultSystem (system: let
+  in {
+    devShells = forAllSystems (system: let
       pkgs = import nixpkgs {inherit system;};
 
-      # Shell hook that nudges the user towards installing Swift if it is
-      # missing. We don't provide it from nixpkgs (see the file header for
-      # why), but without Swift on PATH the devShell is not much use.
+      # This shell does not provide Swift (see header); say so rather than
+      # letting `swift build` fail with command-not-found.
       swiftCheckHook = ''
         if ! command -v swift >/dev/null 2>&1; then
           echo
@@ -134,35 +131,25 @@
           swift --version 2>/dev/null | head -n 1 | sed 's/^/  /'
         fi
       '';
-      # On Darwin the stdenv exports SDKROOT/DEVELOPER_DIR pointing at nixpkgs'
-      # apple-sdk (built with Swift 5.10) and CC/CXX pointing at the nix
-      # cc-wrapper. The system Swift toolchain refuses that SDK ("this SDK is
-      # not supported by the compiler") and the wrapper mis-handles SwiftPM's
-      # --target. Hand those back to Xcode; pkg-config still points at nix.
+      # Darwin's stdenv points SDKROOT/DEVELOPER_DIR at nixpkgs' apple-sdk,
+      # which the system Swift refuses ("this SDK is not supported by the
+      # compiler"). Hand them back to Xcode; pkg-config still points at nix.
       systemToolchainHook = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
         unset SDKROOT DEVELOPER_DIR CC CXX
       '';
     in {
-      # mkShellNoCC, not mkShell: a C compiler in the shell puts nix's
-      # gcc-wrapper `ld` ahead of the Swift toolchain's own. SwiftPM then links
-      # the compiled Package.swift against nix's dynamic linker while the Swift
-      # runtime expects the system one, and the manifest binary dies on exec —
-      # surfacing only as "Missing or empty JSON output from manifest
-      # compilation". The C libraries below reach the build through
-      # PKG_CONFIG_PATH, which needs no compiler wrapper.
+      # mkShellNoCC, not mkShell: a C compiler puts nix's gcc-wrapper `ld`
+      # ahead of the Swift toolchain's own, and the compiled Package.swift then
+      # dies on exec as "Missing or empty JSON output from manifest
+      # compilation". pkg-config needs no wrapper.
       #
-      # Consequence, and do not try to "fix" it with LD_LIBRARY_PATH: nothing
-      # here bakes an -rpath either, so a Linux binary SwiftPM links in this
-      # shell cannot find libvips.so.42 at run time. `swift build` succeeds and
-      # the binary dies on exec. Putting the nix lib dirs on LD_LIBRARY_PATH
-      # makes it worse, because that applies to *every* process in the shell:
-      # the Swift.org toolchain is built against the system glibc, picks up
-      # nix's libcurl and libxml2 instead, and `swift --version` segfaults.
-      # This shell is for compiling, linting and cross-building; running Linux
-      # binaries needs distro libraries (see the apt line in README.md), which
-      # is what swift-ci.yml's Linux job uses. macOS is unaffected — nix dylibs
-      # carry absolute install names, so dyld needs no search path.
-      devShells.default = pkgs.mkShellNoCC {
+      # Consequence: nothing bakes an -rpath, so a Linux binary linked here
+      # cannot find its C libraries at run time. LD_LIBRARY_PATH makes it worse —
+      # it applies to every process in the shell, so the Swift toolchain picks
+      # up nix's libcurl and `swift --version` segfaults. Compile and lint
+      # here; run via `make docker-*`. macOS is unaffected (absolute install
+      # names).
+      default = pkgs.mkShellNoCC {
         nativeBuildInputs = ndeps pkgs;
         buildInputs =
           (bdeps pkgs)
@@ -172,4 +159,5 @@
         shellHook = systemToolchainHook + swiftCheckHook;
       };
     });
+  };
 }
