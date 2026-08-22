@@ -32,7 +32,19 @@
 
     forAllSystems = f: lib.genAttrs systems (system: f system);
 
-    # Native build-tool dependencies: pkg-config, for discovering the C
+    # Both triples cross from here, and toolchain.nix is x86_64-only (its
+    # clang.cfg names the x86_64 loader). Other systems get a devShell only.
+    buildSystem = "x86_64-linux";
+    buildPkgs = import nixpkgs {system = buildSystem;};
+
+    staticFor = arch:
+      import ./nix/munin-static.nix {
+        pkgs = buildPkgs;
+        repo = self;
+        inherit arch;
+      };
+
+    # Native build-tool dependencies: just pkg-config, for discovering the C
     # libraries below. Swift is intentionally not in this list.
     ndeps = pkgs:
       with pkgs; [
@@ -113,6 +125,31 @@
           util-linux.dev
         ];
   in {
+    packages.${buildSystem} = {
+      munin = staticFor "x86_64";
+      default = staticFor "x86_64";
+
+      munin-static-amd64 = staticFor "x86_64";
+      munin-static-arm64 = staticFor "aarch64";
+
+      # Separate attrs so a bad download.swift.org fetch fails in seconds
+      # rather than 40 minutes into a munin build.
+      swift-toolchain = import ./nix/toolchain.nix {pkgs = buildPkgs;};
+      swift-static-sdk = import ./nix/sdk.nix {pkgs = buildPkgs;};
+    };
+
+    # munin-gallery, not munin: nixpkgs' `munin` is the resource monitoring
+    # tool, and shadowing it would swap a monitoring host's daemon.
+    #
+    # Ignores final/prev and uses this flake's pinned nixpkgs on purpose:
+    # thumbnails are a function of the libvips version, and example/content is
+    # the baseline for that one. See nix/README.md for the x86_64-linux-only
+    # restriction and why there is no module.
+    overlays.default = _final: prev:
+      lib.optionalAttrs (prev.stdenv.hostPlatform.system == buildSystem) {
+        munin-gallery = staticFor "x86_64";
+      };
+
     devShells = forAllSystems (system: let
       pkgs = import nixpkgs {inherit system;};
 
@@ -157,6 +194,17 @@
             pkgs.swiftlint
           ];
         shellHook = systemToolchainHook + swiftCheckHook;
+      };
+    }
+    # Adds the Swift toolchain, for hosts that cannot exec a Swift.org
+    # tarball. Compiles and lints; the binary still will not run, for the
+    # -rpath reason above. x86_64-linux only.
+    // lib.optionalAttrs (system == buildSystem) {
+      swift = pkgs.mkShellNoCC {
+        nativeBuildInputs =
+          (ndeps pkgs)
+          ++ [(import ./nix/toolchain.nix {inherit pkgs;})];
+        buildInputs = (bdeps pkgs) ++ [pkgs.swiftlint];
       };
     });
   };
