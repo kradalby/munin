@@ -4,44 +4,35 @@ import Testing
 @testable import MuninKit
 
 /// EXIF `Date and Time (Original)` is a bare wall-clock string with no UTC
-/// offset. Foundation resolves such a string against the process's default
-/// timezone unless the formatter is told otherwise, so an unpinned
-/// formatter makes every `dateTime` Munin writes — and therefore
-/// `Photo.==`, the whole incremental cache, and the output bytes — a
-/// function of the `TZ` of whichever host happened to run the build.
+/// offset, so an unpinned formatter resolves it against the process timezone
+/// — making every `dateTime` Munin writes, and therefore the incremental
+/// cache and the output bytes, a function of the build host's `TZ`.
 ///
-/// That is the same class of unpinned input as source mtimes, which
-/// `scripts/normalise-mtimes.sh` exists to eliminate: the committed
-/// `example/content` baseline is only reproducible because
-/// `scripts/smoke-static.sh` runs `env -i` inside a busybox image that has
-/// no timezone database at all, and Foundation falls back to UTC. Anyone
-/// regenerating that baseline outside UTC would commit a tree CI could
-/// never reproduce.
+/// These tests establish the zone they run under rather than inheriting it.
+/// Inheriting is worthless as a guard: every CI leg runs in UTC, so deleting
+/// the pin from `parseExifDateTime` would keep them green. `Asia/Tokyo` is
+/// nine hours the other way from a typical developer host, so neither a UTC
+/// nor a western one passes by accident. Setting `NSTimeZone.default` is what
+/// moves an unpinned `DateFormatter`; `setenv("TZ")` does not.
 ///
-/// These tests therefore *establish* the timezone they run under instead
-/// of inheriting it. Inheriting it is worthless as a guard: every CI leg
-/// runs in UTC, so with the host's zone left alone, deleting both pinning
-/// lines from `parseExifDateTime` keeps all of this green. Setting
-/// `NSTimeZone.default` is what moves an unpinned `DateFormatter`
-/// (`setenv("TZ")` + `tzset()` does not — it moves `TimeZone.current`
-/// while a freshly created formatter keeps resolving against the old
-/// default), so with the override in place the reverted parser fails here
-/// in any environment, UTC hosts included.
+/// The override is process-global, hence `.serialized`.
 ///
-/// The override is process-global, hence `.serialized` and a window one
-/// call wide. Nothing else in Munin reads it: `parseExifDateTime` is the
-/// only `DateFormatter` in the package, and `MuninJSON`'s `.iso8601`
-/// strategy formats in GMT regardless.
+/// Only the `timeZone` half is guarded. `Locale.current` cannot be tested on
+/// Linux — swift-corelibs-foundation reports `en_001` whatever `LANG` says —
+/// but the locale pin is still load-bearing on Darwin, where
+/// `Locale(identifier: "th_TH")` is buddhist and reads the same string as
+/// 1474-12-28.
 ///
-/// Only the `timeZone` half is guarded here. The `locale` pin cannot be
-/// tested on Linux at all: swift-corelibs-foundation does not derive
-/// `Locale.current` from the environment — it reports `en_001`/gregorian
-/// whatever `LANG` and `LC_ALL` say — so deleting that line changes
-/// nothing here, and no CI leg with a locale set would catch it either.
-/// It is still load-bearing, just for Darwin: `Locale(identifier:
-/// "th_TH")` is buddhist and reads `2017:12:19 13:21:34` as 1474-12-28,
-/// so a Mac whose default calendar is not Gregorian needs the pin.
-@Suite(.serialized)
+/// The suite is skipped without `/usr/share/zoneinfo`, and that has to be
+/// decided here: `TimeZone(identifier:)` is answered by ICU from embedded
+/// data, so the `#require` below passes on a host with no tzdata and the next
+/// line takes SIGILL. `TZDIR` does not help — the path is hardcoded in
+/// libFoundationEssentials.so. Any distroless container hits this.
+@Suite(
+  .serialized,
+  .enabled(
+    if: FileManager.default.fileExists(atPath: "/usr/share/zoneinfo"),
+    "no timezone database on this host"))
 struct ExifDateTests {
 
   /// 2017-12-19T13:21:34Z — the capture time of
@@ -49,19 +40,14 @@ struct ExifDateTests {
   /// the committed baseline records.
   private let referenceInstant = Date(timeIntervalSince1970: 1_513_689_694)
 
-  /// Run `body` with the process default timezone set to `identifier`,
-  /// restoring the previous default afterwards.
-  ///
-  /// `Asia/Tokyo` (UTC+9, no DST) is used throughout: nine hours off UTC
-  /// in the opposite direction from the western zones a developer host is
-  /// likely to be in, so neither a UTC host nor a US/European one can
-  /// pass by accident.
+  /// Run `body` with the process default timezone set to `identifier`.
   private func withDefaultTimeZone<R>(
     _ identifier: String, _ body: () -> R
   ) throws -> R {
+    // Only catches an identifier ICU does not know; see the suite's
+    // `.enabled(if:)` for the tzdata case.
     let zone = try #require(
-      TimeZone(identifier: identifier),
-      "no timezone database on this host, so this test cannot establish a zone")
+      TimeZone(identifier: identifier), "unknown timezone identifier")
     let previous = NSTimeZone.default
     NSTimeZone.default = zone
     defer { NSTimeZone.default = previous }
@@ -81,10 +67,8 @@ struct ExifDateTests {
       """)
   }
 
-  /// The pin has to survive a zone whose *date* differs from UTC's, not
-  /// only its clock: at 00:30 Tokyo time it is still the previous day in
-  /// UTC, so a formatter that resolves against Tokyo reports an instant a
-  /// calendar day away from the one the baseline records.
+  /// The pin has to survive a zone whose *date* differs, not only its clock:
+  /// at 00:30 in Tokyo it is still the previous day in UTC.
   @Test func exifDateTimeIsParsedAsUTCAcrossADateBoundary() throws {
     let parsed = try withDefaultTimeZone("Asia/Tokyo") {
       parseExifDateTime("2018:05:11 00:30:00")
