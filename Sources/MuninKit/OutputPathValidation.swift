@@ -41,7 +41,6 @@ public struct OutputPathCollision: Sendable, Equatable {
 /// One interaction neither check covers: a gallery whose name urlifies to
 /// `keywords` puts its album tree in the same directory as the keyword
 /// pages, so a root-level photo `x.jpg` and a keyword `x` would contend.
-/// Filed with the other gallery-name pathologies in FUTURES.md item 14.
 ///
 /// This walks names only: no EXIF, no VIPS, no hashing. It is cheap
 /// enough to run before the read so a rejected build costs nothing and,
@@ -90,8 +89,8 @@ func findOutputPathCollisions(ctx: Context) -> [OutputPathCollision] {
 /// `Håkon` spelled NFC and NFD urlify to two byte-distinct pages and are
 /// not a collision. (They are a *different* defect — the aggregation in
 /// `buildKeywordsFromAlbum` merges the two names into one entry and drops
-/// one of the two urls, leaving the dropped one dangling. FUTURES.md item
-/// 14; fixing it means deciding whether two spellings are one keyword.)
+/// one of the two urls, leaving the dropped one dangling; fixing it means
+/// deciding whether two spellings are one keyword.)
 func findKeywordOutputPathCollisions(album: Album) -> [OutputPathCollision] {
   var claims: [FilePath: [String]] = [:]
   for pointer in album.keywords {
@@ -132,8 +131,8 @@ private func collectOutputPathCollisions(
   // files `Album.expectedFiles` puts beside it. (`Statistics.write` and
   // `Locations.write` currently derive their directory from the raw
   // gallery `name` rather than the urlified one, which is a separate
-  // pre-existing bug — see FUTURES.md item 14. Claiming them here at the
-  // urlified root matches where they belong.)
+  // pre-existing bug. Claiming them here at the urlified root matches where
+  // they belong.)
   claims["index.json", default: []].append(sourcePath)
   if isRoot {
     claims["stats.json", default: []].append(sourcePath)

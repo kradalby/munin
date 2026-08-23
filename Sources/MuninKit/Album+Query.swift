@@ -18,7 +18,7 @@ extension Album {
   var expectedFiles: [URL] {
     let jsonURL = URL(fileURLWithPath: url.string)
 
-    // TODO(FUTURES.md): replace with explicit expectedFiles on Keywords,
+    // TODO: replace with explicit expectedFiles on Keywords,
     // Locations, and Stats once those become first-class types.
     let rootFiles: [URL] =
       parents.isEmpty

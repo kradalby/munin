@@ -245,7 +245,7 @@ struct OutputPathCollisionTests {
   /// Negative control, matching the filename namespace: NFC and NFD
   /// spellings urlify to two byte-distinct pages, so they are not a
   /// collision here. (They are a different defect — the aggregation merges
-  /// them and drops one url. FUTURES.md item 14.)
+  /// them and drops one url.)
   @Test func canonicallyEquivalentKeywordsAreNotACollision() {
     let found = findKeywordOutputPathCollisions(
       album: album(keywords: [pointer("H\u{00e5}kon"), pointer("Ha\u{030a}kon")]))
