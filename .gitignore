@@ -3,8 +3,6 @@ config.json
 gal.json
 .DS_Store
 /.build
-/Packages
-/*.xcodeproj
 dump.txt
 *.playground/
 tester/

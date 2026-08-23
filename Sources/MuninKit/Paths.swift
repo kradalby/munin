@@ -7,8 +7,7 @@ import SystemPackage
 /// Public-facing API remains `String`-based so that on-disk JSON (which
 /// contains path strings) does not change format. The goal here is to get
 /// the benefits of `FilePath`'s typed path arithmetic inside the helpers
-/// without rippling into every caller. FUTURES.md tracks extending
-/// `FilePath` adoption further (Scope B/C).
+/// without rippling into every caller.
 enum Paths {
   /// Join path components, trimming redundant separators on each component
   /// but preserving a leading `/` on the first component when present.

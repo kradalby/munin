@@ -18,7 +18,7 @@ JPEG is not here on purpose: the `example/` run right above it is 104 JPEGs.
 The basenames deliberately differ (`png_sample`, `tiff_sample`, `webp_sample`).
 Two sources in one album that share a basename and differ only in extension both
 map to the same `<basename>.json`; Munin now refuses to build such a gallery
-(`MuninError.outputPathCollision`, see FUTURES.md item 13). Sharing a basename
+(`MuninError.outputPathCollision`). Sharing a basename
 here would therefore make this fixture fail rather than flake -- and this
 fixture is about decoding PNG/WebP/TIFF, not about collisions.
 

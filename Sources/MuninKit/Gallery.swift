@@ -90,7 +90,7 @@ public struct Context: Sendable {
     self.config = config
 
     if config.logPath != nil {
-      // TODO(FUTURES.md): implement file logging. For now the log path hint
+      // TODO: implement file logging. For now the log path hint
       // upgrades the logger to MultiplexLogHandler so a future file handler
       // can be added without touching call sites.
       LoggingBootstrap.ensure {
