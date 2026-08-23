@@ -44,6 +44,59 @@
         inherit arch;
       };
 
+    # Separate from the package's filter so a .swift edit does not re-run the
+    # gallery build, and a fixture edit does not rebuild the package.
+    smokeSrc = lib.cleanSourceWith {
+      name = "munin-smoke-fixtures";
+      src = self;
+      filter = path: _type: let
+        rel = lib.removePrefix "${toString self}/" (toString path);
+        top = lib.head (lib.splitString "/" rel);
+      in
+        builtins.elem top ["example" "scripts"];
+    };
+
+    # swiftlint parses rather than compiles, so no toolchain -- but linting a
+    # handful of files must not drag example/ into the store.
+    lintSrc = lib.cleanSourceWith {
+      name = "munin-lint-source";
+      src = self;
+      filter = path: _type: let
+        rel = lib.removePrefix "${toString self}/" (toString path);
+        top = lib.head (lib.splitString "/" rel);
+      in
+        builtins.elem top ["Sources" "Tests" "Package.swift" ".swiftlint.yml"];
+    };
+
+    # The same script CI and a developer run, not a reimplementation. The
+    # sandbox is a stricter empty environment than its busybox container.
+    #
+    # Its format-decode step is the only thing that catches a
+    # narrower-than-intended C closure: example/ is all JPEG, so everything
+    # else passes on a JPEG-only libvips.
+    smokeCheck = {
+      arch,
+      dockerArch,
+      emulated ? false,
+    }:
+      buildPkgs.runCommand "munin-smoke-${dockerArch}" {
+        nativeBuildInputs =
+          [buildPkgs.bash buildPkgs.diffutils]
+          ++ lib.optional emulated buildPkgs.qemu-user;
+      } ''
+        cp -r ${smokeSrc}/. work
+        chmod -R u+w work
+        # No /usr/bin in the sandbox, and smoke-static.sh execs
+        # normalise-mtimes.sh directly, so `bash script` alone is not enough.
+        patchShebangs work/scripts
+        cd work
+        ${lib.optionalString emulated
+          "export SMOKE_RUNNER=${buildPkgs.qemu-user}/bin/qemu-${arch}"}
+        bash scripts/smoke-static.sh \
+          ${staticFor arch}/bin/munin --arch ${dockerArch} --native
+        touch $out
+      '';
+
     # Native build-tool dependencies: just pkg-config, for discovering the C
     # libraries below. Swift is intentionally not in this list.
     ndeps = pkgs:
@@ -149,6 +202,30 @@
       lib.optionalAttrs (prev.stdenv.hostPlatform.system == buildSystem) {
         munin-gallery = staticFor "x86_64";
       };
+
+    checks.${buildSystem} = {
+      smoke-amd64 = smokeCheck {
+        arch = "x86_64";
+        dockerArch = "amd64";
+      };
+      # qemu-user, not binfmt: registering a handler is the one thing a
+      # sandbox cannot do. Invoking the interpreter needs no registration.
+      smoke-arm64 = smokeCheck {
+        arch = "aarch64";
+        dockerArch = "arm64";
+        emulated = true;
+      };
+
+      # Not --strict: that promotes the current warnings to errors.
+      lint =
+        buildPkgs.runCommand "munin-swiftlint" {
+          nativeBuildInputs = [buildPkgs.swiftlint];
+        } ''
+          cd ${lintSrc}
+          swiftlint lint --no-cache
+          touch $out
+        '';
+    };
 
     devShells = forAllSystems (system: let
       pkgs = import nixpkgs {inherit system;};
