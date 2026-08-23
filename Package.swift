@@ -35,8 +35,10 @@ let package = Package(
   ],
   targets: [
     // libvips itself. `pkgConfig` is read by SwiftPM's own .pc parser, not by
-    // pkg-config(1) — that is why the musl sysroot ships a flattened vips.pc
-    // with no `Requires:` (see build/musl-sysroot/build.sh).
+    // pkg-config(1), and that parser reads `Libs` but not `Requires.private` —
+    // so a static link comes up short by every transitive archive. nix/
+    // munin-static.nix runs `pkg-config --static` itself and passes the result
+    // through -Xlinker.
     .systemLibrary(
       name: "Cvips",
       pkgConfig: "vips",

@@ -1,10 +1,7 @@
 name: Swift CI
 
-# The unit tests live here, on both platforms, and stay on the DYNAMIC build.
-# static-release.yml does not replace this: the Swift Static Linux SDK ships
-# neither XCTest nor swift-testing, so `swift test --swift-sdk
-# x86_64-swift-linux-musl` fails with "no such module". Dropping these jobs
-# would drop all unit-test coverage.
+# The unit tests, on both platforms, on the DYNAMIC build. The Static SDK
+# ships no test framework, so this is the only unit-test coverage there is.
 
 on:
   push:
@@ -16,6 +13,9 @@ on:
   # Filtering on master/main means a stacked PR -- one based on another
   # open PR's branch -- matches nothing and silently gets no CI at all.
   pull_request:
+  # So a run can be re-triggered without pushing. static-release.yml has had
+  # this; this one did not, which left no way to recover a dropped event.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -25,15 +25,11 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
 
-    # Every run step happens inside the devShell, so CI links the same
-    # libvips and libexif developers do. Consequence: nothing may `run:`
-    # before the nix installer, which is why the setup steps below are all
-    # `uses:`.
+    # Inside the devShell, so CI links what developers link. Nothing may
+    # `run:` before the nix installer, hence the `uses:`-only setup.
     #
-    # Deliberately per-job rather than workflow-wide: the devShell's
-    # PKG_CONFIG_PATH is glibc-flavoured, and SwiftPM reads host .pc
-    # directories even when cross-compiling, so nothing that targets musl
-    # may inherit this.
+    # Per-job, not workflow-wide: the devShell's PKG_CONFIG_PATH is
+    # glibc-flavoured and must not reach anything targeting musl.
     defaults:
       run:
         shell: nix develop --fallback --command bash -e {0}
@@ -50,25 +46,20 @@ jobs:
       - name: swiftlint
         run: swiftlint lint
 
-  # Linux is a separate job from macOS because the two need different C
-  # libraries, and only one of them can use nix.
-  #
-  # nix is deliberately absent here. The devShell has no cc-wrapper, so it
-  # bakes no -rpath, so a binary linked in it cannot find libvips.so.42 at run
-  # time -- `swift build` passes and `swift test` dies on exec. LD_LIBRARY_PATH
-  # does not rescue it: that applies to every process in the shell, so the
-  # Swift.org toolchain loads nix's libcurl/libxml2 against the system glibc
-  # and `swift --version` segfaults. Distro packages sit on the default loader
-  # path and need none of this -- and they are what README.md tells a Linux
-  # user to install, so this job now exercises the documented setup.
-  #
-  # This is the *dynamic* glibc build; the static musl binaries that ship to
-  # users are built by static-release.yml.
+  # No nix here. The devShell bakes no -rpath, so a binary linked in it cannot
+  # find libvips and `swift test` dies on exec; LD_LIBRARY_PATH makes it
+  # worse (see flake.nix). Distro packages need none of that, and they are what
+  # README tells a Linux user to install.
   test-linux:
     runs-on: ubuntu-24.04
     # The official Swift image, rather than downloading a tarball onto the
-    # runner: it is the same 6.3.1 toolchain, already unpacked and cached by
-    # the registry.
+    # runner: it is the same toolchain, already unpacked and cached by the
+    # registry.
+    #
+    # Spelled out rather than read from .swift-version, which is the pin
+    # build/linux/Dockerfile and nix/toolchain.nix use: `container:` is
+    # resolved before any step runs, so there is nowhere to read a file from.
+    # Move it with .swift-version.
     container: swift:6.3.1
 
     # A `container:` job defaults to `sh -e`, which is dash in this image and

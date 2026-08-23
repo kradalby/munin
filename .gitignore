@@ -11,6 +11,8 @@ tester/
 .swiftpm/
 result/
 result
+# `make static` builds two packages, so nix numbers the symlinks.
+result-*
 
 .direnv
 .envrc
