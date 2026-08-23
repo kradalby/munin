@@ -3,25 +3,14 @@
 #
 #   scripts/normalise-mtimes.sh <dir>...
 #
-# Why this exists: Munin copies each source image's filesystem mtime straight
-# into the photo JSON (Sources/MuninKit/Photo+Read.swift -> `modifiedDate`),
-# and git does not record mtimes. A fresh `git clone` or `actions/checkout`
-# therefore stamps every `example/album/*.jpg` with the checkout time, and the
-# gallery generated from it differs from any gallery generated anywhere else
-# -- in 104 of 936 files, as it happens. That byte-for-byte comparison is the
-# whole point of scripts/smoke-static.sh, so without this the parity gate can
-# only pass on the machine that produced the baseline. Deleting this step
-# turns CI red on the next fresh checkout.
+# Munin copies each source image's mtime into its photo JSON, and git does not
+# record mtimes -- so a fresh checkout stamps every example/album/*.jpg with
+# the checkout time and the generated gallery differs from everyone else's.
+# Both sides of the smoke test's byte comparison have to be pinned this way, or
+# it only passes on the machine that made the baseline.
 #
-# Both sides of the comparison have to be produced this way: the staged copy
-# in smoke-static.sh, and the committed example/content
-# (scripts/regen-example-content.sh). They then agree by construction rather
-# than by coincidence of when the tree was checked out.
-#
-# The instant itself is arbitrary. 2001-01-01T00:00:00Z is Foundation's
-# reference date, picked only because it is unmistakably synthetic when you
-# meet it as a `modifiedDate` in a JSON file. Changing it invalidates
-# example/content; regenerate the baseline in the same commit.
+# The instant is arbitrary (Foundation's reference date), picked to be
+# obviously synthetic in a JSON file. Changing it invalidates example/content.
 set -euo pipefail
 
 [ $# -gt 0 ] || { echo "usage: $(basename "$0") <dir>..." >&2; exit 2; }

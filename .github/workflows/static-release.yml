@@ -1,45 +1,22 @@
 name: Static Linux
 
-# Builds fully statically linked Linux binaries (musl; no PT_INTERP, no
-# DT_NEEDED) for amd64 and arm64, and publishes them to GitHub Releases.
+# Builds the Linux binaries -- one file each, needing no dynamic loader and no
+# shared libraries -- for amd64 and arm64, and publishes them to Releases.
 #
-# ---------------------------------------------------------------------
-# Why a separate file from swift-ci.yml
-# ---------------------------------------------------------------------
-# swift-ci.yml runs its jobs inside `nix develop`. That is exactly what must
-# not happen here: the devShell exports a PKG_CONFIG_PATH full of
-# glibc-linked .pc files, and SwiftPM's own .pc parser reads HOST pkg-config
-# directories during a `--swift-sdk` build regardless of the target triple.
-# This workflow is nix-free on purpose, and every Swift invocation happens
-# inside a container that has no `-dev` packages at all.
+# No CI-only build path here: `nix build .#munin-static-amd64` is what a
+# developer runs, what `make static` runs, and what garnix builds. The runner
+# only puts the artefacts somewhere.
 #
-# ---------------------------------------------------------------------
-# Where the work actually happens
-# ---------------------------------------------------------------------
-# Nothing here is a CI-only build path. The two scripts CI calls,
-# scripts/build-static.sh and scripts/smoke-static.sh, are the same ones a
-# developer runs locally, and `make build-musl-sysroot` builds the same C
-# closure. The runner contributes only Docker.
+# The correctness assertions live in garnix's checks.x86_64-linux.smoke-*.
+# This re-runs one so a tag does not depend on another system being green at
+# the moment it is pushed.
 #
-# Both triples cross-compile from one x86_64 container, so there is no
-# arm64 runner in the build path; qemu appears only for the arm64 smoke run,
-# where the point is to execute the artifact on its own architecture.
+# Separate from swift-ci.yml because that runs inside `nix develop`, whose
+# PKG_CONFIG_PATH is glibc-flavoured -- and SwiftPM's .pc parser reads host
+# directories even during a --swift-sdk build.
 #
-# The Static Linux SDK is installed into the image as root at `docker build`
-# time and every container here runs as root, so the SDK install and the
-# build share a $HOME. SDK installs are per-$HOME: installing as one user and
-# building as another silently yields "unknown Swift SDK".
-#
-# ---------------------------------------------------------------------
-# What is NOT here: unit tests
-# ---------------------------------------------------------------------
-# The Static Linux SDK ships neither XCTest nor swift-testing, and
-# swift-testing 6.3.1 does not compile for musl at all, so `swift test
-# --swift-sdk <musl triple>` is impossible rather than merely awkward. The
-# unit tests stay on the dynamic glibc job in swift-ci.yml; the static
-# artifacts get scripts/smoke-static.sh instead, which builds the whole
-# example/ gallery under `busybox env -i` and diffs it against the committed
-# example/content.
+# No unit tests: the Static SDK ships no test framework, so `swift test
+# --swift-sdk <musl triple>` is impossible. They stay in swift-ci.yml.
 
 on:
   push:
@@ -68,279 +45,62 @@ defaults:
     shell: bash
 
 jobs:
-  # ---------------------------------------------------------------------
-  # prepare: derive the sysroot image tag from the recipe's content hash.
-  #
-  # Everything downstream keys off this. Edit build/musl-sysroot/** and the
-  # tag changes, the sysroot is rebuilt, and the build job automatically
-  # points at the new one. Nobody has to remember to bump anything, and
-  # "how was this image made" has an answer any reader can reproduce:
-  # `make build-musl-sysroot`. A cached blob of mysterious provenance is
-  # the trap this avoids.
-  # ---------------------------------------------------------------------
-  prepare:
+  build:
     runs-on: ubuntu-24.04
-    outputs:
-      image: ${{ steps.tag.outputs.image }}
-      tag: ${{ steps.tag.outputs.tag }}
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - name: Compute sysroot image tag
-        id: tag
-        env:
-          RECIPE_HASH: ${{ hashFiles('build/musl-sysroot/**') }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RECIPE_HASH" ]; then
-            echo "::error::build/musl-sysroot/** matched no files; the sysroot recipe is missing"
-            exit 1
-          fi
-          # GHCR paths must be lowercase.
-          repo_lc="${REPO,,}"
-          echo "image=ghcr.io/${repo_lc}-musl-sysroot" >> "$GITHUB_OUTPUT"
-          echo "tag=${RECIPE_HASH:0:16}" >> "$GITHUB_OUTPUT"
-
-  # ---------------------------------------------------------------------
-  # sysroot: build the musl C closure, once per recipe change, and bake it
-  # into a container image alongside the toolchain that produced it.
-  #
-  # Stored in GHCR rather than actions/cache: actions/cache evicts entries
-  # after 7 days of inactivity and shares a 10 GB per-repo budget with the
-  # existing .build and Swift-toolchain caches. A ~45 minute artefact
-  # silently evicted after a quiet fortnight is the worst failure mode
-  # available. GHCR packages do not expire, are addressable by digest, and
-  # can be pulled by a developer so a local static build matches CI.
-  #
-  # The image is toolchain + closure in one, because that is what
-  # scripts/build-static.sh consumes: it runs `swift build` inside the image
-  # with the closure bind-mounted at /work.
-  # ---------------------------------------------------------------------
-  sysroot:
-    needs: prepare
-    # Fork PRs get a read-only GITHUB_TOKEN and can neither push to GHCR nor
-    # pull a private package from it, so the whole static pipeline is a no-op
-    # for them. Gating here is enough: a skipped `needs` skips `build` too, so
-    # a fork PR skips cleanly rather than failing informatively. A maintainer
-    # who wants the static build on a fork's changes pushes the branch here.
-    if: >-
-      github.event_name != 'pull_request'
-      || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
-    # Never measured on a runner. The cold closure is ~13 min per arch on 16
-    # cores, so ~120 min for both if it scaled linearly onto 4 vCPUs, plus a
-    # ~4 GB Swift image and a 1.2 GB SDK to fetch first. This ceiling exists
-    # to stop a hung job, not to enforce a budget: it only runs when the
-    # recipe hash changes, and cutting a slow-but-working build off at the
-    # two-hour mark republishes nothing and blocks `build`.
-    timeout-minutes: 240
-    permissions:
-      contents: read
-      packages: write
+    # A cold run builds the musl C closure from source plus the toolchain;
+    # hestia makes later runs a download. A ceiling for hung jobs, not a
+    # budget.
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            asset: munin-linux-amd64
+          - arch: arm64
+            asset: munin-linux-arm64
     env:
-      REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.tag }}
+      ARCH: ${{ matrix.arch }}
+      # Release only. Non-tag runs used to attach a debug build, but the
+      # Static SDK compiles in SWIFT_BACKTRACE=enable=no and ships no
+      # backtrace helper, so a crash is a bare SIGILL either way.
+      ASSET: ${{ matrix.asset }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
+
+      # upstream-cache-filter keeps cache.nixos.org paths out of the per-repo
+      # cache budget, which swift-ci.yml's caches also draw on.
+      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          upstream-cache-filter: "true"
 
-      - name: Skip if this recipe is already published
-        id: probe
-        run: |
-          set -uo pipefail
-          if docker manifest inspect "$REF" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "$REF is already published; skipping the sysroot build."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # The closure needs a few GB for sources and intermediate build trees
-      # on top of a Swift image and the 1.2 GB Static SDK. Reclaiming the
-      # preinstalled Android/dotnet/GHC trees is the cheap insurance against
-      # dying 40 minutes in with ENOSPC.
+      # A cold run does not fit alongside the preinstalled toolchains.
       - name: Free disk space
-        if: steps.probe.outputs.exists == 'false'
         run: |
           set -euo pipefail
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
                       /opt/hostedtoolcache/CodeQL || true
           df -h /
 
-      # Exactly the target a developer runs, at its default location
-      # (.build/musl-sysroot, which is gitignored).
-      - name: Build the musl C closure (both arches)
-        if: steps.probe.outputs.exists == 'false'
+      # The derivation already asserts the binary needs no loader and no
+      # shared libraries, has the right machine type, and retains no store
+      # references.
+      - name: Build munin-static-${{ matrix.arch }}
         run: |
           set -euo pipefail
-          make build-musl-sysroot MUSL_IMAGE=munin-musl-base
-          # build.sh runs as root inside the container; hand the tree back
-          # so the docker CLI can read it as a build context.
-          sudo chown -R "$(id -u):$(id -g)" .build/musl-sysroot
-          du -sh .build/musl-sysroot/out
-          df -h /
+          nix build ".#munin-static-$ARCH" --print-build-logs
+          file result/bin/munin
+          nix path-info -Sh ./result
 
-      # Only out/ is baked. src/, dl/ and build/ are ~1.5 GB of scratch that
-      # nothing downstream reads. /work/out is where build-static.sh expects
-      # the prefixes, and the .pc files carry absolute /work/out/<arch>
-      # prefixes, so the path is part of the contract, not a preference.
-      - name: Bake the closure into the sysroot image and push
-        if: steps.probe.outputs.exists == 'false'
-        run: |
-          set -euo pipefail
-          printf 'FROM munin-musl-base\nCOPY . /work/out\n' \
-            > "$RUNNER_TEMP/bake.Dockerfile"
-          docker build \
-            -t "$REF" \
-            -f "$RUNNER_TEMP/bake.Dockerfile" \
-            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
-            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-            .build/musl-sysroot/out
-          docker push "$REF"
-
-  # ---------------------------------------------------------------------
-  # build: cross-compile both triples on one x86_64 runner, then run each
-  # artefact on its own architecture.
-  # ---------------------------------------------------------------------
-  build:
-    needs: [prepare, sysroot]
-    # No `if:` on purpose. `sysroot` carries the fork-PR gate and a skipped
-    # job in `needs` skips this one too, so `needs` can stay plain.
-    runs-on: ubuntu-24.04
-    # Measured on a 16-core workstation: 60 s to build either triple, 11 s
-    # for the amd64 smoke run, 68 s for the arm64 one under qemu. A 4-vCPU
-    # runner plus a ~5 GB image pull should land well inside this.
-    timeout-minutes: 60
-    permissions:
-      contents: read
-      packages: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: amd64
-            triple: x86_64-swift-linux-musl
-            asset: munin-linux-amd64
-          - arch: arm64
-            triple: aarch64-swift-linux-musl
-            asset: munin-linux-arm64
-    env:
-      # Read by scripts/build-static.sh. MUSL_WORK is left at its default,
-      # $REPO/.build/musl-sysroot, which is where the extract step below
-      # puts the closure and where a developer's copy lives.
-      MUSL_IMAGE: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.tag }}
-      ARCH: ${{ matrix.arch }}
-      TRIPLE: ${{ matrix.triple }}
-      # Tags ship optimised, stripped binaries. Every other run builds debug
-      # and attaches it, so a branch or PR can be downloaded and tried
-      # without waiting for a release -- unstripped and with debug info,
-      # which is the point, at roughly three times the size.
-      CONFIG: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'debug' }}
-      # Written inverted -- `!tag && '-debug' || ''` rather than the more
-      # natural `tag && '' || '-debug'` -- because '' is FALSY in a GitHub
-      # Actions expression, so the natural spelling falls through to the
-      # right-hand side and suffixes `-debug` on tags too. That would have
-      # surfaced only on the first real release, as the publish job failing
-      # to find munin-linux-amd64.
-      ASSET: >-
-        ${{ matrix.asset }}${{ !startsWith(github.ref, 'refs/tags/v') && '-debug' || '' }}
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Registers binfmt handlers with the F (fix binary) flag, which is
-      # what the smoke run needs: without F the kernel resolves the qemu
-      # interpreter inside the container's mount namespace, where it does
-      # not exist, and every foreign-arch exec dies with a bare ENOENT.
-      # scripts/smoke-static.sh prechecks this and says so.
-      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
-        if: matrix.arch == 'arm64'
-
-      # build-static.sh bind-mounts the closure at /work, which would shadow
-      # the copy baked into the image, so extract it to the host instead.
-      # The .pc files' absolute /work/out/<arch> prefixes stay valid because
-      # the mount point is still /work.
-      #
-      # Unlike the sysroot job this has no "free disk space" step, because it
-      # needs no scratch: 5.7 GB of image, a 0.6 GB checkout (example/ is
-      # 0.3 GB of JPEG), 0.3 GB of extracted closure and 0.2 GB of build
-      # products come to ~7 GB against the >=14 GB a runner has free. The
-      # sysroot job reclaims space because it also unpacks ~1.5 GB of C
-      # sources and intermediate build trees on top of the same image. The
-      # `df -h /` below is what turns that arithmetic into a measurement --
-      # read it on the first run before assuming the margin is real.
-      - name: Extract the musl sysroot from ${{ needs.prepare.outputs.image }}
-        run: |
-          set -euo pipefail
-          if ! docker pull "$MUSL_IMAGE"; then
-            echo "::error::cannot pull the sysroot image $MUSL_IMAGE"
-            echo "::error::The sysroot job builds and pushes it; check whether that job ran."
-            echo "::error::If it is green and this still fails, suspect package visibility:"
-            echo "::error::GHCR creates a package private on first push, so this repo may need"
-            echo "::error::read access granted under Packages -> munin-musl-sysroot ->"
-            echo "::error::Package settings -> Manage Actions access."
-            exit 1
-          fi
-          mkdir -p .build/musl-sysroot
-          cid="$(docker create "$MUSL_IMAGE" /bin/true)"
-          docker cp "$cid:/work/out" .build/musl-sysroot/out
-          docker rm "$cid" >/dev/null
-          du -sh .build/musl-sysroot/out
-          df -h /
-
-      # The script spells the full triple rather than the SDK bundle id --
-      # `--swift-sdk <bundle-id>` silently selects aarch64 on an x86_64 host
-      # with only a warning -- and asserts inside the container that the
-      # result has no PT_INTERP, no DT_NEEDED and the expected machine type.
-      # That last assertion is what catches the bundle-id trap, so do not
-      # replace this with a bare `swift build`.
-      - name: Build ${{ matrix.triple }}
-        run: ./scripts/build-static.sh "$ARCH" "$CONFIG"
-
-      # Munin has no build-tool plugins, and cannot acquire one while it
-      # cross-compiles: a plugin's tool is built for the HOST, so if it links
-      # a C library it needs a host .pc file -- and SwiftPM has a single
-      # pkg-config search path, pointed here at the musl prefix. Dropping
-      # swift-vips (whose vips-generator plugin did exactly that) is what
-      # made this hold. If a plugin output tree appears, it stopped holding.
-      - name: Assert no build-tool plugin ran
-        run: |
-          set -euo pipefail
-          if [ -d .build/plugins/outputs ]; then
-            echo "::error::.build/plugins/outputs exists; a build-tool plugin ran"
-            find .build/plugins/outputs -maxdepth 3
-            exit 1
-          fi
-          ls -l ".build/$TRIPLE/$CONFIG/munin"
-
-      # Runs the binary on its own architecture inside busybox with an empty
-      # environment, builds the whole example/ gallery, diffs the result
-      # against the committed example/content, and decodes a PNG, a WebP and
-      # a TIFF. Note the coupling: the default reference is example/content,
-      # so a stale committed gallery fails this job. That is deliberate --
-      # example/content is the parity baseline, and CI is what keeps it
-      # honest. The fix for a red diff here is always to regenerate the
-      # baseline with scripts/regen-example-content.sh, never to loosen the
-      # comparison: that script pins the source images' mtimes (which Munin
-      # copies into every photo JSON, and which git does not preserve) to the
-      # same fixed instant scripts/smoke-static.sh pins them to here, which is
-      # the only reason the diff can be reproduced from a fresh checkout at
-      # all.
-      - name: Smoke test on ${{ matrix.arch }}
-        run: ./scripts/smoke-static.sh ".build/$TRIPLE/$CONFIG/munin" --arch "$ARCH"
+      # --no-link matters: otherwise this repoints ./result at the check's own
+      # output, an empty file, and the next step has no binary to stage.
+      - name: Smoke test
+        run: nix build ".#checks.x86_64-linux.smoke-$ARCH" --no-link --print-build-logs
 
       - name: Stage artefact
-        run: install -Dm755 ".build/$TRIPLE/$CONFIG/munin" "$RUNNER_TEMP/out/$ASSET"
+        run: install -Dm755 result/bin/munin "$RUNNER_TEMP/out/$ASSET"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -350,13 +110,9 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------
-  # release: `v*` tags only.
-  #
-  # Every other run attaches debug binaries as workflow artefacts instead --
-  # downloadable from the run page for 7 days, which is what you want to try
-  # a branch. A rolling `latest` release would duplicate that while forcing a
-  # second build configuration per master push, and delete-and-recreate on a
-  # published release is a destructive operation to run on every commit.
+  # `v*` tags only. Other runs attach artefacts to the run page instead; a
+  # rolling `latest` release would duplicate that and delete-and-recreate on
+  # every commit.
   # ---------------------------------------------------------------------
   release:
     needs: build

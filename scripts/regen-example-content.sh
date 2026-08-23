@@ -3,20 +3,17 @@
 #
 #   scripts/regen-example-content.sh <munin-binary>
 #
-# example/content is what scripts/smoke-static.sh diffs the static build
-# against, so it has to be reproducible from a fresh checkout by anyone. That
-# means normalising the source mtimes first -- see the long comment in
-# scripts/normalise-mtimes.sh for why -- and it is the reason this is a script
-# and not three commands in a README: a baseline regenerated without that step
-# passes locally and fails in CI.
+# The baseline scripts/smoke-static.sh diffs against, so it has to be
+# reproducible from a fresh checkout. That needs the source mtimes normalised
+# first (see normalise-mtimes.sh), which is why this is a script and not three
+# lines in a README: skip that step and it passes locally, fails in CI.
 #
-# Any munin build produces the same tree (the glibc and both musl builds are
-# byte-identical here; that equivalence is what the smoke test asserts), so
-# use whichever is at hand -- the glibc one needs no sysroot.
+# Use a static build (`nix build .#munin-static-amd64`). The two musl triples
+# agree byte for byte, but a dynamic build links whatever libvips the distro
+# ships and its thumbnails differ.
 #
-# Note this rewrites the mtimes of example/album in the working tree. That is
-# intentional and harmless: git does not track mtimes, and it leaves the tree
-# in the state CI will see.
+# Rewrites example/album mtimes in the working tree: harmless, and leaves the
+# tree in the state CI sees.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
