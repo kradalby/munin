@@ -54,7 +54,7 @@ struct Munin: AsyncParsableCommand {
     print(stats)
 
     if report.hasFailures {
-      print("\n\(report.failures.count) photo(s) failed to write:")
+      print("\n\(report.failures.count) photo(s) failed:")
       for failure in report.failures {
         print("  - \(failure)")
       }

@@ -88,15 +88,41 @@ func readStateFromInputDirectory(
           ctx: ctx,
           prior: prior
         )
-        await ctx.state.updatePhotosToWrite(name: filePath)
         await sem.signal()
 
-        guard let photo else { return nil }
+        // A source VIPS cannot open is not a photo: no dimensions, no
+        // thumbnails, nothing to symlink. Publishing it anyway is what put 45
+        // AppleDouble resource forks — delivered under the photos' own names
+        // by an SMB export — into an album index with no `_original` beside
+        // them, and one unreadable original fails that album's whole download.
+        // The JSON pass in `Gallery.build` writes metadata for every input
+        // photo regardless of whether its image pass succeeded, so nothing
+        // downstream could have caught it. Report it and leave it out;
+        // `Album.clean` then removes any sidecar an earlier run published.
+        guard let photo else {
+          await ctx.state.recordFailure(
+            PhotoWriteFailure(
+              photo: fileNameWithoutExt,
+              path: FilePath(photoUrl),
+              error: .imageOperationFailed(
+                path: filePath,
+                operation: "open",
+                underlying: "source could not be opened")))
+
+          return nil
+        }
         if !photo.shouldInclude {
           ctx.log.debug(
             "Photo \(photo.name) included \(PhotoConstants.excludeKeyword) keyword, ignoring...")
           return nil
         }
+
+        // Counted here rather than at read time so the "to write" total only
+        // ever names photos that will be written. A rejected source used to
+        // inflate it and leave the progress bar a photo short of its own
+        // total.
+        await ctx.state.updatePhotosToWrite(name: filePath)
+
         return photo
       }
     }
