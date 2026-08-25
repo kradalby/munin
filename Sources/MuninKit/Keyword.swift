@@ -203,3 +203,28 @@ extension KeywordPointer: CustomStringConvertible {
     return "KeywordPointer: \(name)"
   }
 }
+
+extension KeywordPointer {
+  /// Build a pointer from a raw IPTC keyword, normalising it to NFC first.
+  ///
+  /// IPTC keywords carry whatever Unicode normalisation the writing app
+  /// used — macOS Photos writes "Aspargesgården" as NFD where Lightroom
+  /// writes it as NFC, and a single photo can carry both. Swift `String`
+  /// compares the two as equal, so `buildKeywordsFromAlbum` collapses them
+  /// into one `Keyword` and writes one file; the filesystem keeps them
+  /// apart, and every photo keeps publishing its own spelling as a URL.
+  /// One file written, two URLs published, and whichever spelling lost the
+  /// race 404s. Which one loses varies per run, because the pointers are
+  /// visited in `Set` iteration order and Swift seeds its hasher per
+  /// process — so the loser's file is left behind as an orphan too.
+  ///
+  /// Normalising here, before the string becomes both a dictionary key and
+  /// a filename, is what makes the in-memory identity and the on-disk
+  /// identity the same identity. It applies to keywords only: album and
+  /// photo paths are derived from names that already exist on disk, and
+  /// normalising those would point them at files that do not.
+  init(keyword: String, outputPath: String) {
+    let name = keyword.precomposedStringWithCanonicalMapping
+    self.init(name: name, url: "\(outputPath)/keywords/\(urlifyName(name)).json")
+  }
+}
