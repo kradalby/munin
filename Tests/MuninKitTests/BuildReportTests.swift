@@ -46,6 +46,17 @@ struct BuildReportTests {
       Issue.record("Expected imageOperationFailed, got \(failure.error)")
     }
 
+    // Reported, but not published: a source with no dimensions and no
+    // thumbnails has nothing to symlink, and one missing `_original` is
+    // enough to fail its album's whole download. `clean` also removes the
+    // sidecar if an earlier run wrote one.
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: harness.outputGalleryRoot + "/Misc/broken.json"))
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: harness.outputGalleryRoot + "/Misc/broken_original.jpg"))
+
     // The other Misc photos still produced JSON metadata despite the
     // broken sibling — partial-failure tolerance, not abort-on-first.
     let otherPhotos = ["portrait_mm", "20180510-171752-IMG_7165", "test_special_chars"]

@@ -129,7 +129,11 @@ func readPhotoFromPath(
     }
 
   } catch {
-    ctx.log.error("Could not open image at \(atPath): \(error)")
+    // The documented contract, restored: nil means VIPS could not open the
+    // file. The caller turns that into a reported failure rather than a
+    // published photo — see `readStateFromInputDirectory`.
+    ctx.log.error("Could not open image at \(atPath), skipping: \(error)")
+    return nil
   }
 
   if let exif = exifRawDict["EXIF"] {
