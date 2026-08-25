@@ -229,18 +229,11 @@ func readPhotoFromPath(
       locationName: locationName)
 
     // Add location names as keywords
-    let stateKeyword = KeywordPointer(
-      name: state,
-      url: "\(ctx.config.outputPath)/keywords/\(urlifyName(state)).json"
-    )
+    let stateKeyword = KeywordPointer(keyword: state, outputPath: ctx.config.outputPath)
     let locationCodeKeyword = KeywordPointer(
-      name: locationCode,
-      url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationCode)).json"
-    )
+      keyword: locationCode, outputPath: ctx.config.outputPath)
     let locationNameKeyword = KeywordPointer(
-      name: locationName,
-      url: "\(ctx.config.outputPath)/keywords/\(urlifyName(locationName)).json"
-    )
+      keyword: locationName, outputPath: ctx.config.outputPath)
 
     photo.keywords.append(stateKeyword)
     photo.keywords.append(locationCodeKeyword)
@@ -248,11 +241,8 @@ func readPhotoFromPath(
   }
 
   for keyword in exifResult.iptc.keywords {
-    let keywordPointer = KeywordPointer(
-      name: keyword,
-      url: "\(ctx.config.outputPath)/keywords/\(urlifyName(keyword)).json"
-    )
-    if ctx.config.allPeople.contains(keyword) {
+    let keywordPointer = KeywordPointer(keyword: keyword, outputPath: ctx.config.outputPath)
+    if ctx.config.allPeople.contains(keywordPointer.name) {
       photo.people.append(keywordPointer)
     } else {
       photo.keywords.append(keywordPointer)
