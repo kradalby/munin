@@ -44,4 +44,35 @@ struct KeywordNormalizationTests {
     #expect(keywords.count == 1)
     #expect(keywords[0].url.string == Self.expectedURL)
   }
+
+  /// `Album.clean` walks album folders only, so before this nothing had ever
+  /// swept `keywords/`. On the live gallery that left
+  /// `keywords/Aspargesga\u{030A}rden.json` sitting next to its NFC twin for
+  /// three weeks and a full 26h rebuild, still serving the pre-fix
+  /// `hugin/root/...` paths it was written with. That is the migration story
+  /// for the fossils already on disk: no host-side rename to remember.
+  @Test func cleanRemovesKeywordFilesNothingPointsAt() async throws {
+    // The whole tree, not one album: the sweep is only meaningful against a
+    // keywords directory that has something real in it to spare.
+    let fixture = try SourceFixture.stageAll()
+    defer { fixture.cleanup() }
+
+    let harness = GalleryHarness(sourceRoot: fixture.sourceRoot)
+    defer { harness.cleanup() }
+
+    try await harness.buildAndClean()
+
+    let keywordsDir = harness.outputRoot + "/keywords"
+    let fm = FileManager.default
+    let expected = Set(try fm.contentsOfDirectory(atPath: keywordsDir))
+    #expect(!expected.isEmpty)
+
+    let orphan = keywordsDir + "/" + Self.decomposed + ".json"
+    #expect(fm.createFile(atPath: orphan, contents: Data("{}".utf8)))
+
+    try await harness.buildAndClean()
+
+    // The orphan is gone and nothing real went with it.
+    #expect(Set(try fm.contentsOfDirectory(atPath: keywordsDir)) == expected)
+  }
 }

@@ -7,6 +7,7 @@
 
 import Foundation
 import Logging
+import SystemPackage
 
 struct Timings: Sendable {
   var readInputDirectory: TimeInterval?
@@ -354,6 +355,36 @@ public struct Gallery: Sendable {
 
   public func clean(ctx: Context) {
     input.clean(ctx: ctx)
+    cleanKeywords(ctx: ctx)
+  }
+
+  /// Remove `keywords/*.json` files that no photo points at any more.
+  ///
+  /// `Album.clean` walks album folders only, so nothing has ever swept the
+  /// keywords directory: a keyword renamed in EXIF, dropped from the last
+  /// photo that carried it, or — before ingest normalisation — written under
+  /// the losing spelling of an NFC/NFD pair, leaves a file behind forever.
+  /// hugin serves those orphans as live collections, so they are not inert:
+  /// they are stale collections pointing at paths that may no longer resolve.
+  ///
+  /// The root album accumulates every pointer in the gallery on the way up
+  /// from the leaves, so the expected set is already in hand — no second
+  /// traversal. An empty set means the input read produced nothing, which is
+  /// never a reason to empty the directory.
+  private func cleanKeywords(ctx: Context) {
+    let expected = Set(
+      input.keywords.union(input.people).compactMap { $0.url.path.lastComponent?.string })
+    guard !expected.isEmpty else { return }
+
+    let dir = FilePath(joinPath(ctx.config.outputPath, "keywords"))
+    for name in fileOrSymlinkNames(under: dir) where !expected.contains(name) {
+      ctx.log.info("Removing unreferenced keyword file \(name)")
+      do {
+        try POSIX.unlink(dir.appending(name))
+      } catch {
+        ctx.log.error("Could not remove unreferenced keyword file \(name): \(error)")
+      }
+    }
   }
 
   public func statistics(ctx: Context) -> Statistics {
