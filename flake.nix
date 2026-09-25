@@ -276,6 +276,10 @@
     # Adds the Swift toolchain, for hosts that cannot exec a Swift.org
     # tarball. Compiles and lints; the binary still will not run, for the
     # -rpath reason above. x86_64-linux only.
+    #
+    # Pass `--build-system native`. swift-build, the default since Swift 6.4,
+    # takes SDKROOT only as an Xcode-style .sdk, and execs a hardcoded
+    # /usr/bin/touch, which NixOS does not have.
     // lib.optionalAttrs (system == buildSystem) {
       swift = pkgs.mkShellNoCC {
         nativeBuildInputs =

@@ -218,7 +218,12 @@ On nix, the toolchain is also available directly, for compiling:
 
 ```bash
 nix develop .#swift    # swift build, swiftlint, sourcekit-lsp — no container
+swift build --build-system native
 ```
+
+`--build-system native` is required there: swift-build, the default since
+Swift 6.4, takes `SDKROOT` only as an Xcode-style `.sdk` and execs a hardcoded
+`/usr/bin/touch`, which NixOS does not have. The static build passes it too.
 
 That shell compiles and links but the result will not *run*: nothing bakes an
 `-rpath`, so it dies on exec with `libiptcdata.so.0: cannot open shared object

@@ -19,7 +19,12 @@
   triple = "${arch}-swift-linux-musl";
 
   # Shared by the build and the bin-path query, which must agree.
+  #
+  # native, although deprecated: swift-build, the default since Swift 6.4,
+  # execs a hardcoded /usr/bin/touch for every resource bundle (swift-crypto
+  # has one), and the sandbox has no /usr/bin.
   swiftFlags = lib.concatStringsSep " " [
+    "--build-system native"
     "-c ${config}"
     "--swift-sdk ${triple}"
     "--swift-sdks-path ${sdk}"
@@ -196,8 +201,7 @@ in
     installPhase = ''
       runHook preInstall
 
-      # Asked, not assumed: swift-build, the default since Swift 6.4, has no
-      # .build/<triple>/<config>.
+      # Asked, not assumed: each build system lays out .build differently.
       bin=$(swift build ${swiftFlags} --show-bin-path)/munin
       file "$bin"
       # PT_INTERP names a dynamic loader, DT_NEEDED a shared library. Either
