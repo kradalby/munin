@@ -236,7 +236,7 @@
         if ! command -v swift >/dev/null 2>&1; then
           echo
           echo "  ⚠  swift not found on PATH."
-          echo "     Install the Swift 6.3.1 toolchain (matching CI) via either:"
+          echo "     Install the Swift 6.4.0 toolchain (matching CI) via either:"
           echo "       • swiftly:  https://www.swift.org/install/"
           echo "       • tarball:  https://download.swift.org/"
           echo

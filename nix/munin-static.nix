@@ -18,6 +18,15 @@
 
   triple = "${arch}-swift-linux-musl";
 
+  # Shared by the build and the bin-path query, which must agree.
+  swiftFlags = lib.concatStringsSep " " [
+    "-c ${config}"
+    "--swift-sdk ${triple}"
+    "--swift-sdks-path ${sdk}"
+    "--disable-automatic-resolution"
+    "--scratch-path .build"
+  ];
+
   crossPkgs = import ./cross-pkgs.nix {inherit pkgs arch;};
 
   # Every archive munin links, plus everything their .pc files name under
@@ -175,11 +184,7 @@ in
         esac
       done
 
-      swift build -c ${config} \
-        --swift-sdk ${triple} \
-        --swift-sdks-path ${sdk} \
-        --disable-automatic-resolution \
-        --scratch-path .build \
+      swift build ${swiftFlags} \
         -Xcc -I${prefix}/include \
         -Xlinker -L${gccMuslLibs} \
         $linkArgs \
@@ -191,7 +196,9 @@ in
     installPhase = ''
       runHook preInstall
 
-      bin=.build/${triple}/${config}/munin
+      # Asked, not assumed: swift-build, the default since Swift 6.4, has no
+      # .build/<triple>/<config>.
+      bin=$(swift build ${swiftFlags} --show-bin-path)/munin
       file "$bin"
       # PT_INTERP names a dynamic loader, DT_NEEDED a shared library. Either
       # one means the binary depends on something being installed.

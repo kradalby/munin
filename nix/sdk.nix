@@ -8,7 +8,7 @@
 # hence no unit tests against musl.
 {
   pkgs,
-  version ? "6.3.1",
+  version ? "6.4.0",
 }: let
   name = "swift-${version}-RELEASE_static-linux-0.1.0";
 in
@@ -20,7 +20,7 @@ in
       url = "https://download.swift.org/swift-${version}-release/static-sdk/swift-${version}-RELEASE/${name}.artifactbundle.tar.gz";
       # From the swift.org website data file, same value the Dockerfile pins:
       #   swift_releases.yml -> platform: static-sdk
-      hash = "sha256-+sBSccH30GC9IDJAzlJR1cqQLTCsiZ9VN2Xbs6iLl60=";
+      hash = "sha256-R9L9ie6/35601Ta2cQQUKX91XBeSbN68R0LAiYK0Cp4=";
     };
 
     dontUnpack = true;

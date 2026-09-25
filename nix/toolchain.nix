@@ -7,7 +7,7 @@
 # daemon's build dir is often a tmpfs.
 {
   pkgs,
-  version ? "6.3.1",
+  version ? "6.4.0",
 }: let
   inherit (pkgs) stdenv;
 
@@ -23,7 +23,7 @@ in
 
     src = pkgs.fetchurl {
       url = "https://download.swift.org/swift-${version}-release/ubuntu2404/swift-${version}-RELEASE/swift-${version}-RELEASE-ubuntu24.04.tar.gz";
-      hash = "sha256-x5KKv9prkW2BLSMaXHJKamvfJYeCmPa97ORR9YWrml8=";
+      hash = "sha256-afeytNvOYJC2ySGUtxFJoFfhYmkJO1qd3tOK/EoFCU4=";
     };
 
     nativeBuildInputs = [pkgs.autoPatchelfHook];

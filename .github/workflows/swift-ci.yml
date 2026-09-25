@@ -60,7 +60,7 @@ jobs:
     # build/linux/Dockerfile and nix/toolchain.nix use: `container:` is
     # resolved before any step runs, so there is nowhere to read a file from.
     # Move it with .swift-version.
-    container: swift:6.3.1
+    container: swift:6.4.0
 
     # A `container:` job defaults to `sh -e`, which is dash in this image and
     # has no `pipefail`. The image ships bash; ask for it explicitly.
@@ -121,19 +121,19 @@ jobs:
         id: cache-swift-macos
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: /Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain
-          key: swift-6.3.1-macos-latest
+          path: /Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain
+          key: swift-6.4.0-macos-latest
 
-      - name: Install Swift 6.3.1
+      - name: Install Swift 6.4.0
         if: steps.cache-swift-macos.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           cd /tmp
-          curl -sSLO https://download.swift.org/swift-6.3.1-release/xcode/swift-6.3.1-RELEASE/swift-6.3.1-RELEASE-osx.pkg
-          sudo installer -pkg swift-6.3.1-RELEASE-osx.pkg -target /
+          curl -sSLO https://download.swift.org/swift-6.4.0-release/xcode/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-osx.pkg
+          sudo installer -pkg swift-6.4.0-RELEASE-osx.pkg -target /
 
       - name: Put Swift on PATH
-        run: echo "/Library/Developer/Toolchains/swift-6.3.1-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
+        run: echo "/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
 
       - name: Verify Swift toolchain
         run: swift --version

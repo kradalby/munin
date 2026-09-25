@@ -51,7 +51,7 @@ No NixOS or nix-darwin module — munin is a batch CLI, so one would amount to
 
 | File | Role |
 | --- | --- |
-| `toolchain.nix` | the swift.org 6.3.1 tarball, patchelfed onto nixpkgs |
+| `toolchain.nix` | the swift.org 6.4.0 tarball, patchelfed onto nixpkgs |
 | `sdk.nix` | the Static Linux SDK artifactbundle, untarred |
 | `cross-pkgs.nix` | the static-musl package set, with its overrides |
 | `vips.nix` | a trimmed static-musl libvips out of nixpkgs |
