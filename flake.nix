@@ -22,8 +22,8 @@
     # Not flake-utils' defaultSystems: those include x86_64-darwin, which
     # current nixpkgs throws on at `import`, so `--all-systems` exited 1.
     #
-    # Branch on this string, never on pkgs.stdenv.isLinux -- the latter forces
-    # pkgs, which is what throws.
+    # Branch on this string, never on pkgs.stdenv.hostPlatform.isLinux --
+    # that forces pkgs, which is what throws.
     systems = [
       "x86_64-linux"
       "aarch64-linux"
@@ -169,7 +169,7 @@
           #   warning: couldn't find pc file for spng
           # and add the corresponding nixpkgs package here.
         ]
-        ++ lib.optionals stdenv.isLinux [
+        ++ lib.optionals stdenv.hostPlatform.isLinux [
           # libvips Linux-only C deps
           glibc.dev
           libselinux.dev
@@ -248,7 +248,7 @@
       # Darwin's stdenv points SDKROOT/DEVELOPER_DIR at nixpkgs' apple-sdk,
       # which the system Swift refuses ("this SDK is not supported by the
       # compiler"). Hand them back to Xcode; pkg-config still points at nix.
-      systemToolchainHook = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+      systemToolchainHook = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
         unset SDKROOT DEVELOPER_DIR CC CXX
       '';
     in {
