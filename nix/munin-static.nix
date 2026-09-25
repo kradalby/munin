@@ -99,7 +99,7 @@
 
   deps = import ./deps.nix {
     inherit pkgs resolved;
-    hash = "sha256-kkHFY//2vANHYgZb5TE+g2ZMveMe8PiGL57gHDs8uPU=";
+    hash = "sha256-O78rThBB3ztVO7FTVRTeUoodw0Cjnh/QXQckIV5xeqw=";
   };
 
   # Allowlist: example/ is hundreds of megabytes, and `src = self` makes

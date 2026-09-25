@@ -20,18 +20,18 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/kradalby/SwiftExif.git", from: "0.1.0"),
-    .package(url: "https://github.com/apple/swift-log.git", from: "1.12.0"),
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.15.1"),
     // vapor/console-kit provides the progress/activity indicator UI that
     // replaced swift-tools-support-core's PercentProgressAnimation.
-    .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.0"),
-    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.7.1"),
+    .package(url: "https://github.com/vapor/console-kit.git", from: "4.16.1"),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.8.2"),
     // apple/swift-system provides FilePath for typed path handling. Used
     // internally in MuninKit's `Paths` helpers; public API is still String.
-    .package(url: "https://github.com/apple/swift-system.git", from: "1.6.4"),
+    .package(url: "https://github.com/apple/swift-system.git", from: "1.8.1"),
     // apple/swift-crypto provides SHA256 on Linux (mirroring CryptoKit's API
     // on Darwin). Used both in MuninKit proper (for source-file content
     // hashing) and in the test support layer (for filesystem snapshots).
-    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0"),
+    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"6.0.0"),
   ],
   targets: [
     // libvips itself. `pkgConfig` is read by SwiftPM's own .pc parser, not by
