@@ -6,8 +6,10 @@
 #
 # SWIFT_VERSION has no default: .swift-version is the single pin, and a build
 # without it should fail rather than track `swift:latest`.
+#
+# -noble for the reason swift-ci.yml's test-linux gives.
 ARG SWIFT_VERSION
-FROM swift:${SWIFT_VERSION}
+FROM swift:${SWIFT_VERSION}-noble
 
 # tzdata is load-bearing: ExifDateTests skips itself without
 # /usr/share/zoneinfo, silently dropping the only guard against an unpinned

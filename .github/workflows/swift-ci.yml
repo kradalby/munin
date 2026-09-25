@@ -60,7 +60,11 @@ jobs:
     # build/linux/Dockerfile and nix/toolchain.nix use: `container:` is
     # resolved before any step runs, so there is nowhere to read a file from.
     # Move it with .swift-version.
-    container: swift:6.4.0
+    #
+    # -noble, because the bare tag follows the newest Ubuntu. nix/toolchain.nix
+    # has to use the 24.04 tarball (later ones want a newer glibc than
+    # nixpkgs'), and CI, Docker and nix should all run the same build.
+    container: swift:6.4.0-noble
 
     # A `container:` job defaults to `sh -e`, which is dash in this image and
     # has no `pipefail`. The image ships bash; ask for it explicitly.
