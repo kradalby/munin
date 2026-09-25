@@ -72,7 +72,7 @@ Three things make that tarball work under nix:
 1. **`autoPatchelfHook`, with `libxml2_13`** — `swift-build` links an older
    libxml2 soname than nixpkgs ships. `libedit` and python are ignored: lldb
    only.
-2. **`bin/clang.cfg`** — nix has no `/usr/include`, no `crt1.o` on a default
+2. **`usr/bin/clang.cfg`** — nix has no `/usr/include`, no `crt1.o` on a default
    path, and a stub `ld-linux`. clang loads exactly one config file and the
    musl triples already have theirs, so this covers the host and is shadowed
    on a cross link. It is what lets SwiftPM compile, link **and run**

@@ -52,10 +52,14 @@ in
     dontBuild = true;
     dontStrip = true;
 
+    # usr/ stays: swift-build takes the toolchain root to be swiftc's
+    # ../../.., and without a usr/ there it runs a bare `swiftc` out of the
+    # working directory instead. bin/ is only for PATH.
     installPhase = ''
       mkdir -p $out
-      tar -xf $src -C $out --strip-components=2
+      tar -xf $src -C $out --strip-components=1
       chmod -R u+w $out
+      ln -s usr/bin $out/bin
 
       # 1. clang.cfg -- for the C driver.
       #
@@ -68,7 +72,7 @@ in
       # Needed because SwiftPM compiles, links *and runs* Package.swift as a
       # host binary, and this clang knows nothing about where nix keeps
       # crt1.o, libgcc_s, or a dynamic loader that is not a stub.
-      cat > $out/bin/clang.cfg <<EOF
+      cat > $out/usr/bin/clang.cfg <<EOF
       -idirafter ${hostInclude}/include
       -B${pkgs.glibc}/lib
       -L${pkgs.glibc}/lib
@@ -79,15 +83,15 @@ in
       -Wl,-rpath,${pkgs.glibc}/lib
       -Wl,-rpath,${pkgs.gcc-unwrapped.lib}/lib
       EOF
-      ln -s clang.cfg $out/bin/clang++.cfg
+      ln -s clang.cfg $out/usr/bin/clang++.cfg
 
       # swift-frontend embeds clang and never reads the driver config.
       # Without SDKROOT: "missing required module 'SwiftGlibc'", then a
       # missing swiftrt.o.
       mkdir -p $out/nix-sysroot/usr/lib
       ln -s ${hostInclude}/include $out/nix-sysroot/usr/include
-      ln -s $out/lib/swift $out/nix-sysroot/usr/lib/swift
-      ln -s $out/lib/swift_static $out/nix-sysroot/usr/lib/swift_static
+      ln -s $out/usr/lib/swift $out/nix-sysroot/usr/lib/swift
+      ln -s $out/usr/lib/swift_static $out/nix-sysroot/usr/lib/swift_static
 
       mkdir -p $out/nix-support
       echo "export SDKROOT=$out/nix-sysroot" > $out/nix-support/setup-hook
