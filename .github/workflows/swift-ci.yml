@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Inside the devShell, so CI links what developers link. Nothing may
     # `run:` before the nix installer, hence the `uses:`-only setup.
@@ -35,11 +35,11 @@ jobs:
         shell: nix develop --fallback --command bash -e {0}
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
 
-      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
+      - uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
 
       # swiftlint parses sources rather than compiling them, so this job needs
       # no Swift toolchain and no build.
@@ -51,7 +51,7 @@ jobs:
   # worse (see flake.nix). Distro packages need none of that, and they are what
   # README tells a Linux user to install.
   test-linux:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # The official Swift image, rather than downloading a tarball onto the
     # runner: it is the same toolchain, already unpacked and cached by the
     # registry.
@@ -69,7 +69,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install C dependencies
         run: |
@@ -82,7 +82,7 @@ jobs:
         run: swift --version
 
       - name: Cache Swift build artefacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .build
           key: swift-build-linux-${{ hashFiles('Package.resolved') }}
@@ -106,11 +106,11 @@ jobs:
         shell: nix develop --fallback --command bash -e {0}
 
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
 
-      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
+      - uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
 
       # --- Swift toolchain -------------------------------------------------
 
@@ -119,7 +119,7 @@ jobs:
 
       - name: Cache Swift toolchain
         id: cache-swift-macos
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain
           key: swift-6.4.0-macos-latest
@@ -141,7 +141,7 @@ jobs:
       # --- Build + test ----------------------------------------------------
 
       - name: Cache Swift build artefacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .build
           key: swift-build-macos-${{ hashFiles('Package.resolved') }}

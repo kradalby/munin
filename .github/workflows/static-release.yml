@@ -46,7 +46,7 @@ defaults:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # A cold run builds the musl C closure from source plus the toolchain;
     # hestia makes later runs a download. A ceiling for hung jobs, not a
     # budget.
@@ -66,13 +66,13 @@ jobs:
       # backtrace helper, so a crash is a bare SIGILL either way.
       ASSET: ${{ matrix.asset }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
 
       # upstream-cache-filter keeps cache.nixos.org paths out of the per-repo
       # cache budget, which swift-ci.yml's caches also draw on.
-      - uses: Mic92/hestia@b21a1aaf8c3d5c2e430c9ba278c0f78abd46a320 # v3.0.0
+      - uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
         with:
           upstream-cache-filter: "true"
 
@@ -117,7 +117,7 @@ jobs:
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
