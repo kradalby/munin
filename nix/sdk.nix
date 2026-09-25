@@ -27,8 +27,10 @@ in
     dontBuild = true;
     dontFixup = true; # target sysroot: nothing here executes on the host
 
+    # configuration/ holds per-user overrides. SwiftPM creates it on every
+    # --swift-sdks-path read and warns when it cannot; empty means none.
     installPhase = ''
-      mkdir -p $out
+      mkdir -p $out/configuration
       tar -xf $src -C $out
     '';
   }
