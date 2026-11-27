@@ -8,7 +8,7 @@ by **independent** libraries (ImageMagick's libpng/libtiff, Google's `cwebp`), s
 that decoding them proves libvips' `pngload`/`tiffload`/`webpload` work rather
 than proving our own encoder round-trips.
 
-`scripts/smoke-static.sh` builds this gallery with the static binary and checks
+`checks.smoke-*` in `flake.nix` build this gallery with the static binary and check
 the magic bytes of every output. Munin names each scaled output after its source
 extension, so this exercises the save side too (`pngsave`, `tiffsave`,
 `webpsave`).
