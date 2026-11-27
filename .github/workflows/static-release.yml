@@ -11,10 +11,6 @@ name: Static Linux
 # This re-runs one so a tag does not depend on another system being green at
 # the moment it is pushed.
 #
-# Separate from swift-ci.yml because that runs inside `nix develop`, whose
-# PKG_CONFIG_PATH is glibc-flavoured -- and SwiftPM's .pc parser reads host
-# directories even during a --swift-sdk build.
-#
 # No unit tests: the Static SDK ships no test framework, so `swift test
 # --swift-sdk <musl triple>` is impossible. They stay in swift-ci.yml.
 

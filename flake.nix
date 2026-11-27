@@ -1,12 +1,11 @@
 {
-  # The static Linux binary only. See nix/README.md.
+  # One Swift, nixpkgs', pinned by flake.lock, on every system.
   #
-  # The dynamic Linux and Darwin builds are not nix packages: nixpkgs' swift is
-  # too old to parse this package's manifest, and on Darwin the toolchain lives
-  # in Xcode, outside the store.
+  #   default (x86_64-linux)    static musl binary, needs nothing installed
+  #   munin-static-{amd64,arm64} same, both crossed from x86_64-linux
+  #   default (others)          dynamic build, what `swift build` makes
   #
-  # No `swift test` check either — the Static SDK ships no test framework, so
-  # the suite runs on the dynamic builds (.github/workflows/swift-ci.yml).
+  # See nix/README.md.
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
@@ -21,174 +20,124 @@
 
     # Not flake-utils' defaultSystems: those include x86_64-darwin, which
     # current nixpkgs throws on at `import`, so `--all-systems` exited 1.
-    #
-    # Branch on this string, never on pkgs.stdenv.hostPlatform.isLinux --
-    # that forces pkgs, which is what throws.
     systems = [
       "x86_64-linux"
       "aarch64-linux"
       "aarch64-darwin"
     ];
 
-    forAllSystems = f: lib.genAttrs systems (system: f system);
-
-    # Both triples cross from here, and toolchain.nix is x86_64-only (its
-    # clang.cfg names the x86_64 loader). Other systems get a devShell only.
+    # Both static triples cross from here; the musl C closure is only
+    # assembled for this build platform.
     buildSystem = "x86_64-linux";
-    buildPkgs = import nixpkgs {system = buildSystem;};
+
+    pkgsFor = system: import nixpkgs {inherit system;};
+    buildPkgs = pkgsFor buildSystem;
+
+    # Allowlists, so an unrelated edit does not rebuild: example/ is hundreds
+    # of megabytes, and `src = self` makes every README commit a fresh build.
+    only = root: paths:
+      lib.fileset.toSource {
+        inherit root;
+        fileset = lib.fileset.unions paths;
+      };
+
+    swiftPaths = [./Sources ./Tests ./assets ./Package.swift ./Package.resolved];
+    src = only ./. swiftPaths;
+    testSrc = only ./. (swiftPaths ++ [./example]);
+    lintSrc = only ./. [./Sources ./Tests ./Package.swift ./.swiftlint.yml];
+    exampleSrc = only ./example [./example/album ./example/munin.json ./example/people.json];
+
+    # A fixed-output fetch keyed on Package.resolved; nixpkgs' swiftpm unpack
+    # hook lays it out as an already-resolved workspace.
+    swiftpmDepsFor = pkgs:
+      pkgs.swiftPackages.fetchSwiftPMDeps {
+        inherit src;
+        hash = "sha256-/Nx9n5DvFMzFzBqkESEu6hsGv4HmdIFTRWKbRzViH8Q=";
+      };
+
+    dynamicFor = pkgs:
+      import ./nix/munin.nix {
+        inherit pkgs src testSrc;
+        swiftpmDeps = swiftpmDepsFor pkgs;
+      };
 
     staticFor = arch:
       import ./nix/munin-static.nix {
         pkgs = buildPkgs;
-        repo = self;
-        inherit arch;
+        inherit src arch;
+        swiftpmDeps = swiftpmDepsFor buildPkgs;
       };
 
-    # Separate from the package's filter so a .swift edit does not re-run the
-    # gallery build, and a fixture edit does not rebuild the package.
-    smokeSrc = lib.cleanSourceWith {
-      name = "munin-smoke-fixtures";
-      src = self;
-      filter = path: _type: let
-        rel = lib.removePrefix "${toString self}/" (toString path);
-        top = lib.head (lib.splitString "/" rel);
-      in
-        builtins.elem top ["example" "scripts"];
-    };
+    emulatorFor = arch:
+      lib.optionalString (arch != "x86_64") "${buildPkgs.qemu-user}/bin/qemu-${arch}";
 
-    # swiftlint parses rather than compiles, so no toolchain -- but linting a
-    # handful of files must not drag example/ into the store.
-    lintSrc = lib.cleanSourceWith {
-      name = "munin-lint-source";
-      src = self;
-      filter = path: _type: let
-        rel = lib.removePrefix "${toString self}/" (toString path);
-        top = lib.head (lib.splitString "/" rel);
-      in
-        builtins.elem top ["Sources" "Tests" "Package.swift" ".swiftlint.yml"];
-    };
+    galleryFor = arch: name: gallery:
+      import ./nix/gallery.nix {
+        pkgs = buildPkgs;
+        name = "${name}-${arch}";
+        inherit gallery;
+        munin = staticFor arch;
+        emulator = emulatorFor arch;
+      };
 
-    # The same script CI and a developer run, not a reimplementation. The
-    # sandbox is a stricter empty environment than its busybox container.
+    # Every generated file byte-identical to the committed baseline, so a
+    # libvips or encoder change shows up on the commit that bumps flake.lock.
+    # Both triples diff the same tree: they agree byte for byte.
     #
-    # Its format-decode step is the only thing that catches a
-    # narrower-than-intended C closure: example/ is all JPEG, so everything
-    # else passes on a JPEG-only libvips.
-    smokeCheck = {
-      arch,
-      dockerArch,
-      emulated ? false,
-    }:
-      buildPkgs.runCommand "munin-smoke-${dockerArch}" {
-        nativeBuildInputs =
-          [buildPkgs.bash buildPkgs.diffutils]
-          ++ lib.optional emulated buildPkgs.qemu-user;
+    # Then PNG, WebP and TIFF from other people's encoders (see
+    # nix/testdata/README.md): example/ is all JPEG, so a JPEG-only libvips
+    # passes the diff. Munin names each output after its source extension, so
+    # this covers load and save.
+    smokeCheck = arch: let
+      formats = galleryFor arch "formats" ./nix/testdata/formats;
+    in
+      buildPkgs.runCommand "munin-smoke-${arch}" {
+        nativeBuildInputs = [buildPkgs.diffutils];
       } ''
-        cp -r ${smokeSrc}/. work
-        chmod -R u+w work
-        # No /usr/bin in the sandbox, and smoke-static.sh execs
-        # normalise-mtimes.sh directly, so `bash script` alone is not enough.
-        patchShebangs work/scripts
-        cd work
-        ${lib.optionalString emulated
-          "export SMOKE_RUNNER=${buildPkgs.qemu-user}/bin/qemu-${arch}"}
-        bash scripts/smoke-static.sh \
-          ${staticFor arch}/bin/munin --arch ${dockerArch} --native
+        # --no-dereference: the *_original files are relative links into album/,
+        # which neither tree here contains.
+        diff -r --no-dereference ${./example/content} ${galleryFor arch "example" exampleSrc}
+
+        magic() { od -An -v -tx1 -N "''${2:-4}" -j "''${3:-0}" "$1" | tr -d ' \n'; }
+        fmt=${formats}/formats/Formats
+        [ "$(magic $fmt/png_sample_100.png)" = 89504e47 ]
+        [ "$(magic $fmt/webp_sample_100.webp)" = 52494646 ]
+        [ "$(magic $fmt/webp_sample_100.webp 4 8)" = 57454250 ]
+        case "$(magic $fmt/tiff_sample_100.tif)" in 49492a00|4d4d002a) ;; *) exit 1 ;; esac
+
         touch $out
       '';
-
-    # Native build-tool dependencies: just pkg-config, for discovering the C
-    # libraries below. Swift is intentionally not in this list.
-    ndeps = pkgs:
-      with pkgs; [
-        pkg-config
-      ];
-
-    # Shared libraries, so needed at run time as well as compile time.
-    bdeps = pkgs:
-      with pkgs;
-        [
-          # SwiftExif
-          libexif
-          libiptcdata
-
-          # libvips: image processing + transitive pile
-          cfitsio
-          expat.dev
-          fftw.dev
-          fribidi
-          glib.dev
-          lcms2.dev
-          libdatrie.dev
-          libgsf.dev
-          libimagequant
-          librsvg.dev
-          libthai
-          libwebp
-          matio
-          openexr.dev
-          openjpeg.dev
-          orc.dev
-          pango.dev
-          pcre2.dev
-          vips.dev
-
-          libarchive.dev
-          cgif
-          libspng.dev
-          libxdmcp.dev
-          libhwy
-
-          openssl.dev
-
-          # Requires.private in vips.pc. pkg-config resolves those only for
-          # --static; SwiftPM's own parser walks them always, and drops *all*
-          # cflags when one is missing.
-          dav1d.dev
-          hdf5.dev
-          libraw.dev
-          libultrahdr.dev
-
-          # Same, for glib.pc -> sysprof-capture-4, but sysprof is Linux-only
-          # in nixpkgs. Nothing links it, so an empty .pc suffices.
-          (writeTextFile {
-            name = "sysprof-capture-4-stub";
-            destination = "/lib/pkgconfig/sysprof-capture-4.pc";
-            text = ''
-              Name: sysprof-capture-4
-              Description: stub for SwiftPM's Requires.private resolution
-              Version: 3.38.0
-              Cflags:
-              Libs:
-            '';
-          })
-
-          # If compiling against libvips fails with something like:
-          #   fatal error: 'glib.h' file not found
-          # look for a warning just before it:
-          #   warning: couldn't find pc file for spng
-          # and add the corresponding nixpkgs package here.
-        ]
-        ++ lib.optionals stdenv.hostPlatform.isLinux [
-          # libvips Linux-only C deps
-          glibc.dev
-          libselinux.dev
-          libsepol.dev
-          pcre.dev
-          util-linux.dev
-        ];
   in {
-    packages.${buildSystem} = {
-      munin = staticFor "x86_64";
-      default = staticFor "x86_64";
+    packages = lib.genAttrs systems (system: let
+      pkgs = pkgsFor system;
+      dynamic = dynamicFor pkgs;
+    in
+      {
+        munin-dynamic = dynamic;
+        default = dynamic;
+      }
+      // lib.optionalAttrs (system == buildSystem) rec {
+        munin-static-amd64 = staticFor "x86_64";
+        munin-static-arm64 = staticFor "aarch64";
+        default = munin-static-amd64;
 
-      munin-static-amd64 = staticFor "x86_64";
-      munin-static-arm64 = staticFor "aarch64";
+        # What example/content should be; `nix run .#regen-example-content`
+        # writes it there.
+        example-content = galleryFor "x86_64" "example" exampleSrc;
 
-      # Separate attrs so a bad download.swift.org fetch fails in seconds
-      # rather than 40 minutes into a munin build.
-      swift-toolchain = import ./nix/toolchain.nix {pkgs = buildPkgs;};
-      swift-static-sdk = import ./nix/sdk.nix {pkgs = buildPkgs;};
+        # Separate attr so a bad download.swift.org fetch fails in seconds.
+        swift-static-sdk = import ./nix/sdk.nix {pkgs = buildPkgs;};
+      });
+
+    apps.${buildSystem}.regen-example-content = {
+      type = "app";
+      program = toString (buildPkgs.writeShellScript "regen-example-content" ''
+        set -euo pipefail
+        [ -f Package.swift ] || { echo "run from the repository root" >&2; exit 1; }
+        rm -rf example/content
+        cp -r --no-preserve=mode ${self.packages.${buildSystem}.example-content} example/content
+        echo "review with: git status --short example/content"
+      '');
     };
 
     # munin-gallery, not munin: nixpkgs' `munin` is the resource monitoring
@@ -196,96 +145,39 @@
     #
     # Ignores final/prev and uses this flake's pinned nixpkgs on purpose:
     # thumbnails are a function of the libvips version, and example/content is
-    # the baseline for that one. See nix/README.md for the x86_64-linux-only
-    # restriction and why there is no module.
+    # the baseline for that one.
     overlays.default = _final: prev:
       lib.optionalAttrs (prev.stdenv.hostPlatform.system == buildSystem) {
         munin-gallery = staticFor "x86_64";
       };
 
-    checks.${buildSystem} = {
-      smoke-amd64 = smokeCheck {
-        arch = "x86_64";
-        dockerArch = "amd64";
-      };
-      # qemu-user, not binfmt: registering a handler is the one thing a
-      # sandbox cannot do. Invoking the interpreter needs no registration.
-      smoke-arm64 = smokeCheck {
-        arch = "aarch64";
-        dockerArch = "arm64";
-        emulated = true;
-      };
+    checks = lib.genAttrs systems (system:
+      {
+        unit = (dynamicFor (pkgsFor system)).tests.unit;
+      }
+      // lib.optionalAttrs (system == buildSystem) {
+        smoke-amd64 = smokeCheck "x86_64";
+        smoke-arm64 = smokeCheck "aarch64";
 
-      # Not --strict: that promotes the current warnings to errors.
-      lint =
-        buildPkgs.runCommand "munin-swiftlint" {
-          nativeBuildInputs = [buildPkgs.swiftlint];
-        } ''
-          cd ${lintSrc}
-          swiftlint lint --no-cache
-          touch $out
-        '';
-    };
+        # Not --strict: that promotes the current warnings to errors.
+        lint =
+          buildPkgs.runCommand "munin-swiftlint" {
+            nativeBuildInputs = [buildPkgs.swiftlint];
+          } ''
+            cd ${lintSrc}
+            swiftlint lint --no-cache
+            touch $out
+          '';
+      });
 
-    devShells = forAllSystems (system: let
-      pkgs = import nixpkgs {inherit system;};
-
-      # This shell does not provide Swift (see header); say so rather than
-      # letting `swift build` fail with command-not-found.
-      swiftCheckHook = ''
-        if ! command -v swift >/dev/null 2>&1; then
-          echo
-          echo "  ⚠  swift not found on PATH."
-          echo "     Install the Swift 6.4.0 toolchain (matching CI) via either:"
-          echo "       • swiftly:  https://www.swift.org/install/"
-          echo "       • tarball:  https://download.swift.org/"
-          echo
-        else
-          echo "  swift found: $(command -v swift)"
-          swift --version 2>/dev/null | head -n 1 | sed 's/^/  /'
-        fi
-      '';
-      # Darwin's stdenv points SDKROOT/DEVELOPER_DIR at nixpkgs' apple-sdk,
-      # which the system Swift refuses ("this SDK is not supported by the
-      # compiler"). Hand them back to Xcode; pkg-config still points at nix.
-      systemToolchainHook = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
-        unset SDKROOT DEVELOPER_DIR CC CXX
-      '';
+    devShells = lib.genAttrs systems (system: let
+      pkgs = pkgsFor system;
     in {
-      # mkShellNoCC, not mkShell: a C compiler puts nix's gcc-wrapper `ld`
-      # ahead of the Swift toolchain's own, and the compiled Package.swift then
-      # dies on exec as "Missing or empty JSON output from manifest
-      # compilation". pkg-config needs no wrapper.
-      #
-      # Consequence: nothing bakes an -rpath, so a Linux binary linked here
-      # cannot find its C libraries at run time. LD_LIBRARY_PATH makes it worse —
-      # it applies to every process in the shell, so the Swift toolchain picks
-      # up nix's libcurl and `swift --version` segfaults. Compile and lint
-      # here; run via `make docker-*`. macOS is unaffected (absolute install
-      # names).
-      default = pkgs.mkShellNoCC {
-        nativeBuildInputs = ndeps pkgs;
-        buildInputs =
-          (bdeps pkgs)
-          ++ [
-            pkgs.swiftlint
-          ];
-        shellHook = systemToolchainHook + swiftCheckHook;
-      };
-    }
-    # Adds the Swift toolchain, for hosts that cannot exec a Swift.org
-    # tarball. Compiles and lints; the binary still will not run, for the
-    # -rpath reason above. x86_64-linux only.
-    #
-    # Pass `--build-system native`. swift-build, the default since Swift 6.4,
-    # takes SDKROOT only as an Xcode-style .sdk, and execs a hardcoded
-    # /usr/bin/touch, which NixOS does not have.
-    // lib.optionalAttrs (system == buildSystem) {
-      swift = pkgs.mkShellNoCC {
-        nativeBuildInputs =
-          (ndeps pkgs)
-          ++ [(import ./nix/toolchain.nix {inherit pkgs;})];
-        buildInputs = (bdeps pkgs) ++ [pkgs.swiftlint];
+      # The package's own stdenv and inputs, so `swift build` here links what
+      # the package links -- with an rpath, so the binary runs.
+      default = (pkgs.mkShell.override {inherit (pkgs.swiftPackages) stdenv;}) {
+        inputsFrom = [(dynamicFor pkgs)];
+        packages = [pkgs.swiftlint pkgs.swiftPackages.swift-format];
       };
     });
   };

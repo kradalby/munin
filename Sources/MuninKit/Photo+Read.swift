@@ -335,7 +335,7 @@ private func applyConfigDerivedFields(
 /// bytes, and moving a gallery between them would re-encode everything.
 ///
 /// So the host's timezone is pinned out, exactly as
-/// `scripts/normalise-mtimes.sh` pins out the host's mtimes: `TimeZone`
+/// `nix/gallery.nix` pins out the host's mtimes: `TimeZone`
 /// fixed to UTC, and `Locale` to `en_US_POSIX` so a host whose default
 /// calendar is not Gregorian cannot reinterpret the fixed `dateFormat`.
 ///

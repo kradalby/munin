@@ -3,5 +3,5 @@
 # they do not bury the hand-written changes in a pull request.
 
 # The parity baseline: whatever `munin` writes for example/album. Regenerated
-# with scripts/regen-example-content.sh, never edited by hand.
+# with `nix run .#regen-example-content`, never edited by hand.
 example/content/** linguist-generated=true

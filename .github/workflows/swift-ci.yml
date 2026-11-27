@@ -1,7 +1,10 @@
 name: Swift CI
 
-# The unit tests, on both platforms, on the DYNAMIC build. The Static SDK
+# The unit tests, on both platforms, on the dynamic build. The Static SDK
 # ships no test framework, so this is the only unit-test coverage there is.
+#
+# Both jobs run the flake's checks: the Swift toolchain and every C library
+# come from flake.lock, the same ones a developer gets from `nix develop`.
 
 on:
   push:
@@ -13,27 +16,26 @@ on:
   # Filtering on master/main means a stacked PR -- one based on another
   # open PR's branch -- matches nothing and silently gets no CI at all.
   pull_request:
-  # So a run can be re-triggered without pushing. static-release.yml has had
-  # this; this one did not, which left no way to recover a dropped event.
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-26.04
-
-    # Inside the devShell, so CI links what developers link. Nothing may
-    # `run:` before the nix installer, hence the `uses:`-only setup.
-    #
-    # Per-job, not workflow-wide: the devShell's PKG_CONFIG_PATH is
-    # glibc-flavoured and must not reach anything targeting musl.
-    defaults:
-      run:
-        shell: nix develop --fallback --command bash -e {0}
-
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-26.04
+            system: x86_64-linux
+          - runner: macos-latest
+            system: aarch64-darwin
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -41,119 +43,14 @@ jobs:
 
       - uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
 
-      # swiftlint parses sources rather than compiling them, so this job needs
-      # no Swift toolchain and no build.
+      - name: swift test
+        run: nix build ".#checks.${{ matrix.system }}.unit" --print-build-logs
+
+      # The dev loop, not just the derivation: a devShell that cannot build
+      # is a regression even when the package can.
+      - name: swift build in nix develop
+        run: nix develop --command swift build --build-system native
+
       - name: swiftlint
-        run: swiftlint lint
-
-  # No nix here. The devShell bakes no -rpath, so a binary linked in it cannot
-  # find libvips and `swift test` dies on exec; LD_LIBRARY_PATH makes it
-  # worse (see flake.nix). Distro packages need none of that, and they are what
-  # README tells a Linux user to install.
-  test-linux:
-    runs-on: ubuntu-26.04
-    # The official Swift image, rather than downloading a tarball onto the
-    # runner: it is the same toolchain, already unpacked and cached by the
-    # registry.
-    #
-    # Spelled out rather than read from .swift-version, which is the pin
-    # build/linux/Dockerfile and nix/toolchain.nix use: `container:` is
-    # resolved before any step runs, so there is nowhere to read a file from.
-    # Move it with .swift-version.
-    #
-    # -noble, because the bare tag follows the newest Ubuntu. nix/toolchain.nix
-    # has to use the 24.04 tarball (later ones want a newer glibc than
-    # nixpkgs'), and CI, Docker and nix should all run the same build.
-    container: swift:6.4.0-noble
-
-    # A `container:` job defaults to `sh -e`, which is dash in this image and
-    # has no `pipefail`. The image ships bash; ask for it explicitly.
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Install C dependencies
-        run: |
-          set -euo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            libvips-dev libexif-dev libiptcdata0-dev pkg-config
-
-      - name: Verify Swift toolchain
-        run: swift --version
-
-      - name: Cache Swift build artefacts
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .build
-          key: swift-build-linux-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            swift-build-linux-
-
-      - name: swift build
-        run: swift build
-
-      - name: swift test
-        run: swift test
-
-  # The C libraries come from nix here, which works because nix dylibs carry
-  # absolute install names -- dyld needs no search path, so the run-time
-  # problem that rules nix out on Linux does not arise.
-  test-macos:
-    runs-on: macos-latest
-
-    defaults:
-      run:
-        shell: nix develop --fallback --command bash -e {0}
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6 # v1.0.0
-
-      - uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
-
-      # --- Swift toolchain -------------------------------------------------
-
-      # Deliberately not from the flake — see the flake.nix header for why.
-      # It lands on the ambient PATH, which `nix develop` preserves.
-
-      - name: Cache Swift toolchain
-        id: cache-swift-macos
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: /Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain
-          key: swift-6.4.0-macos-latest
-
-      - name: Install Swift 6.4.0
-        if: steps.cache-swift-macos.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          cd /tmp
-          curl -sSLO https://download.swift.org/swift-6.4.0-release/xcode/swift-6.4.0-RELEASE/swift-6.4.0-RELEASE-osx.pkg
-          sudo installer -pkg swift-6.4.0-RELEASE-osx.pkg -target /
-
-      - name: Put Swift on PATH
-        run: echo "/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin" >> "$GITHUB_PATH"
-
-      - name: Verify Swift toolchain
-        run: swift --version
-
-      # --- Build + test ----------------------------------------------------
-
-      - name: Cache Swift build artefacts
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .build
-          key: swift-build-macos-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            swift-build-macos-
-
-      - name: swift build
-        run: swift build
-
-      - name: swift test
-        run: swift test
+        if: matrix.system == 'x86_64-linux'
+        run: nix build .#checks.x86_64-linux.lint --print-build-logs

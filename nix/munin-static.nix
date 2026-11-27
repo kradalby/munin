@@ -6,13 +6,13 @@
 # See nix/README.md.
 {
   pkgs,
-  repo,
+  src,
+  swiftpmDeps,
   arch ? "x86_64",
   config ? "release",
 }: let
   inherit (pkgs) lib;
 
-  toolchain = import ./toolchain.nix {inherit pkgs;};
   sdk = import ./sdk.nix {inherit pkgs;};
   vips = import ./vips.nix {inherit pkgs arch;};
 
@@ -21,14 +21,13 @@
   # Shared by the build and the bin-path query, which must agree.
   #
   # native, although deprecated: swift-build, the default since Swift 6.4,
-  # execs a hardcoded /usr/bin/touch for every resource bundle (swift-crypto
-  # has one), and the sandbox has no /usr/bin.
+  # finds llvm-ar only on PATH and links with the host ld and libstdc++,
+  # ignoring the SDK's toolset.
   swiftFlags = lib.concatStringsSep " " [
     "--build-system native"
     "-c ${config}"
     "--swift-sdk ${triple}"
     "--swift-sdks-path ${sdk}"
-    "--disable-automatic-resolution"
     "--scratch-path .build"
   ];
 
@@ -95,35 +94,6 @@
   # glib-2.0.pc's Libs names -latomic; the Static SDK has none (its atomics
   # are in compiler-rt). nixpkgs' musl cross-gcc ships one.
   gccMuslLibs = "${crossPkgs.stdenv.cc.cc.lib}/${crossPkgs.stdenv.hostPlatform.config}/lib";
-
-  # By content, so a Sources/ edit does not re-clone ten git repositories.
-  resolved = builtins.path {
-    path = ../Package.resolved;
-    name = "Package.resolved";
-  };
-
-  deps = import ./deps.nix {
-    inherit pkgs resolved;
-    hash = "sha256-O78rThBB3ztVO7FTVRTeUoodw0Cjnh/QXQckIV5xeqw=";
-  };
-
-  # Allowlist: example/ is hundreds of megabytes, and `src = self` makes
-  # every README commit a fresh build of the whole package.
-  src = lib.cleanSourceWith {
-    name = "munin-source";
-    src = repo;
-    filter = path: _type: let
-      rel = lib.removePrefix "${toString repo}/" (toString path);
-      top = lib.head (lib.splitString "/" rel);
-    in
-      builtins.elem top [
-        "Sources"
-        "Tests"
-        "assets"
-        "Package.swift"
-        "Package.resolved"
-      ];
-  };
 in
   pkgs.stdenvNoCC.mkDerivation {
     pname = "munin-static-${arch}";
@@ -131,46 +101,16 @@ in
     inherit src;
 
     nativeBuildInputs = [
-      toolchain
-      pkgs.jq
+      pkgs.swift
+      pkgs.swiftpm
       pkgs.file
       pkgs.binutils
       pkgs.pkg-config
       pkgs.removeReferencesTo
     ];
 
-    # No network, so hand SwiftPM an already-resolved workspace. Both files
-    # derive from Package.resolved; there is no second revision list.
-    configurePhase = ''
-      runHook preConfigure
-
-      mkdir -p .build/checkouts
-      cp -r ${deps}/* .build/checkouts/
-      chmod -R u+w .build/checkouts
-
-      jq '{
-        object: {
-          artifacts: [],
-          prebuilts: [],
-          dependencies: [
-            .pins[] | (.location | sub("\\.git$"; "") | split("/") | last) as $name | {
-              basedOn: null,
-              packageRef: {
-                identity: .identity,
-                kind: .kind,
-                location: .location,
-                name: $name
-              },
-              state: { checkoutState: .state, name: "sourceControlCheckout" },
-              subpath: $name
-            }
-          ]
-        },
-        version: 7
-      }' Package.resolved > .build/workspace-state.json
-
-      runHook postConfigure
-    '';
+    # swiftpm's unpack hook lays these out; the sandbox has no network.
+    inherit swiftpmDeps;
 
     buildPhase = ''
       runHook preBuild
