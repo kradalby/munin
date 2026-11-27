@@ -98,7 +98,7 @@ Two things differ from a distro-libvips build, both deliberate:
 - **Image formats: JPEG, PNG, WebP and TIFF.** All four are exercised end to
   end on both architectures before anything is published — each decoded from a
   file written by an unrelated encoder, then re-encoded by Munin
-  (`make smoke-static-amd64`, which the release build runs for both arches).
+  (`checks.smoke-*`, which the release build runs for both arches).
   **HEIC/AVIF is not supported** (it would drag libheif and a C++ HEVC/AV1
   decoder into the static closure), and neither are libtiff's exotic codecs
   (zstd, lzma, jbig, lerc) or paletted PNG output. If your `fileExtensions`
@@ -110,139 +110,56 @@ Two things differ from a distro-libvips build, both deliberate:
 
 ### Build from source
 
-#### Requirements
-
-- **Swift**, at the version in `.swift-version` — install via
-  [swiftly](https://www.swift.org/install/) or the
-  [Swift.org tarball](https://download.swift.org/). `nixpkgs`' Swift is too old
-  to parse this package's manifest and is not used; see `flake.nix` for the dev
-  shell that provides just the C library deps.
-- **Ubuntu 24.04** (primary CI target) or macOS 14+
-- **System C libraries**:
-
-  Ubuntu / Debian:
-
-  ```bash
-  sudo apt install libvips-dev libexif-dev libiptcdata0-dev pkg-config
-  ```
-
-  macOS (Homebrew):
-
-  ```bash
-  brew install vips libexif libiptcdata pkg-config
-  ```
-
-  Nix (via the bundled flake):
-
-  ```bash
-  nix develop
-  ```
-
-  The devShell provides every C dependency. It **does not** provide Swift,
-  `swift-format` or `sourcekit-lsp` — nixpkgs' versions of those are built
-  against a different Swift than the toolchain you compile with. Install them
-  alongside the toolchain via swiftly or the Swift.org tarball.
-
-#### Build and install
+With nix (Linux or macOS) — the flake pins Swift and every C library:
 
 ```bash
 git clone https://github.com/kradalby/munin
 cd munin
-make install   # builds release, copies binary to ~/bin/munin
+nix build            # x86_64-linux: the static binary; elsewhere: dynamic
 ```
 
-#### Building the static Linux binaries yourself
-
-Needs nix. Both architectures cross-compile from x86_64, so no arm64 machine is
-involved, and no Docker.
+Without nix: Swift 6.4 from [swift.org](https://www.swift.org/install/), plus
 
 ```bash
-make static               # -> nix build .#munin-static-{amd64,arm64}
-nix flake check           # portability, full example/ build, PNG/WebP/TIFF
+sudo apt install libvips-dev libexif-dev libiptcdata0-dev pkg-config   # Ubuntu / Debian
+brew install vips libexif libiptcdata pkg-config                       # macOS
+make install         # release build, copied to ~/bin/munin
+```
+
+#### The static Linux binaries
+
+Both architectures cross-compile from x86_64, so no arm64 machine is involved.
+
+```bash
+make static          # -> nix build .#munin-static-{amd64,arm64}
+nix flake check      # portability, full example/ build, PNG/WebP/TIFF
+```
+
+The smoke checks diff the generated gallery byte for byte against the
+committed `example/content`, so a change to Munin's output fails them until
+the baseline is refreshed:
+
+```bash
+make regen-example   # -> nix run .#regen-example-content
 ```
 
 `nix/README.md` covers what the closure contains, how to bump Swift, and what
-drifts. Never run a cross build inside `nix develop` — SwiftPM's `.pc` parser
-reads host pkg-config directories regardless of the target triple, and the
-devShell's are glibc-flavoured. The derivation has no such environment, which
-is why this moved there.
-
-The smoke check diffs the generated gallery byte-for-byte against the committed
-`example/content`, so any change to Munin's output makes it fail until that
-baseline is refreshed:
-
-```bash
-nix build .#munin-static-amd64
-scripts/regen-example-content.sh ./result/bin/munin
-```
-
-It has to be a *static* build. The two musl triples agree byte for byte — the
-arm64 smoke check asserts it under qemu — but a dynamic build links whatever
-libvips your distro or Homebrew ships, and its thumbnails differ.
-
-Use the script rather than running the binary over `example/` by hand. Munin
-copies each source image's mtime into its JSON and git does not preserve
-mtimes, so the script pins them first — a baseline regenerated without that
-step passes on the machine that made it and fails on every fresh checkout.
-`scripts/normalise-mtimes.sh` explains the whole story.
+drifts.
 
 ## Development
 
-Assuming Swift and the system libraries from the Requirements section above
-are in place:
-
 ```bash
-make build         # debug build
-make test          # run test suite (requires libvips on your system)
-make run           # build + run the binary
-make lint          # swiftlint
-make fmt           # swiftlint --fix + swift-format
+nix develop          # swift, swiftpm, swift-format, swiftlint, C libraries
+make build           # debug build
+make test            # run test suite
+make run             # build + run the binary
+make lint            # swiftlint
+make fmt             # swiftlint --fix + swift-format
+make check           # everything CI runs
 ```
 
-### Building without a system toolchain (NixOS and friends)
-
-Two options. The container works anywhere Docker does:
-
-```bash
-make docker-build  # debug build in the official Swift image
-make docker-test   # run the full test suite there
-```
-
-These run inside an image built from `build/linux/Dockerfile` — `swift:` at the
-version `.swift-version` pins, plus the C libraries from the Requirements
-section. The scratch path is a named Docker volume, not `./.build`, and `/src`
-is mounted read-only, so container builds leave no root-owned files in the
-working tree and do not collide with a host-side `swift build`.
-
-On nix, the toolchain is also available directly, for compiling:
-
-```bash
-nix develop .#swift    # swift build, swiftlint, sourcekit-lsp — no container
-swift build --build-system native
-```
-
-`--build-system native` is required there: swift-build, the default since
-Swift 6.4, takes `SDKROOT` only as an Xcode-style `.sdk` and execs a hardcoded
-`/usr/bin/touch`, which NixOS does not have. The static build passes it too.
-
-That shell compiles and links but the result will not *run*: nothing bakes an
-`-rpath`, so it dies on exec with `libiptcdata.so.0: cannot open shared object
-file`. Use it for type-checking and the LSP; use `make docker-test` to run the
-suite and `make static` for a binary that has no such problem.
-
-NixOS is the motivating case, and the failure is confusing enough to be worth
-spelling out. A swiftly or Swift.org toolchain is a generic Linux binary, and
-unless `programs.nix-ld` is enabled NixOS points the dynamic loader at a stub
-that only prints an error, so it cannot start at all. An FHS wrapper
-(`buildFHSEnv`, `steam-run`) gets `swift --version` working but not much
-further: SwiftPM then links the compiled `Package.swift` with nixpkgs' linker,
-which cannot find the C runtime startup files, and the build dies with a bare
-`Invalid manifest`. Behind that sit three smaller traps — a libxml2 soname
-mismatch, a missing `libuuid`, and `SDKROOT`, which `swift-frontend` needs
-because it embeds clang and never reads the driver's config file.
-
-`nix/toolchain.nix` answers all of them, which is what makes both
-`nix develop .#swift` and the static build work.
+Binaries built in the devShell run there: it uses the same stdenv as the
+package, so they carry an rpath to their C libraries.
 
 ### Code style
 
