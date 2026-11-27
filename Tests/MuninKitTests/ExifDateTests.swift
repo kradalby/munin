@@ -23,15 +23,17 @@ import Testing
 /// `Locale(identifier: "th_TH")` is buddhist and reads the same string as
 /// 1474-12-28.
 ///
-/// The suite is skipped without `/usr/share/zoneinfo`, and that has to be
+/// The suite is skipped without a zoneinfo directory, and that has to be
 /// decided here: `TimeZone(identifier:)` is answered by ICU from embedded
 /// data, so the `#require` below passes on a host with no tzdata and the next
-/// line takes SIGILL. `TZDIR` does not help — the path is hardcoded in
-/// libFoundationEssentials.so. Any distroless container hits this.
+/// line takes SIGILL. Any distroless container hits this. swift.org's
+/// Foundation reads only `/usr/share/zoneinfo`; nixpkgs' also reads `TZDIR`
+/// and `/etc/zoneinfo`, which is how the nix sandbox runs this suite.
 @Suite(
   .serialized,
   .enabled(
-    if: FileManager.default.fileExists(atPath: "/usr/share/zoneinfo"),
+    if: [ProcessInfo.processInfo.environment["TZDIR"], "/usr/share/zoneinfo", "/etc/zoneinfo"]
+      .compactMap { $0 }.contains { FileManager.default.fileExists(atPath: $0) },
     "no timezone database on this host"))
 struct ExifDateTests {
 
